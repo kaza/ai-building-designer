@@ -1,0 +1,3684 @@
+{
+  "global_id": "1j0ruzDbP1SvaZpJh5_JP4",
+  "name": "4-Storey Building V3",
+  "description": "",
+  "units": "meters",
+  "stories": [
+    {
+      "global_id": "1ivdYwdUL8WRyYvOY9_jfM",
+      "name": "Ground Floor",
+      "description": "",
+      "elevation": 0.0,
+      "height": 2.89,
+      "walls": [
+        {
+          "global_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "name": "South Wall",
+          "tag": "W1",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 16.0,
+            "y": 0.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "36SscIHW96I8mifzQA2tXU",
+          "name": "East Wall",
+          "tag": "W2",
+          "description": "",
+          "start": {
+            "x": 16.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 16.0,
+            "y": 12.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "3a3WdXOK11cw14TqgUjzAm",
+          "name": "North Wall",
+          "tag": "W3",
+          "description": "",
+          "start": {
+            "x": 16.0,
+            "y": 12.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 12.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "2eC8m2SFD9kgNYpgM2s$r7",
+          "name": "West Wall",
+          "tag": "W4",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 12.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "2zlnf4XlPF0gcp_4BXIOVp",
+          "name": "Core Vestibule West Wall",
+          "tag": "W5",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1xqhvLir14qxcjhzIyS_gM",
+          "name": "Core Vestibule East Wall",
+          "tag": "W6",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "0hfmlwpv11uQ7BdkSYT$ep",
+          "name": "Core South Wall",
+          "tag": "W7",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "2C7rzhDeHAEA88vFBMzet4",
+          "name": "Elevator West Wall",
+          "tag": "W8",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 5.7,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "22DZxeROf8pgVGk3fZ1Hsz",
+          "name": "Elevator North Wall",
+          "tag": "W9",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 11.75
+          },
+          "end": {
+            "x": 7.5,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "3aqi9BEaH5teMXl1mcVV2M",
+          "name": "Elevator South Wall",
+          "tag": "W10",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 7.5,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "31bVO7YFf7CQSCHzZCeHsH",
+          "name": "Core Divider Wall",
+          "tag": "W11",
+          "description": "",
+          "start": {
+            "x": 7.5,
+            "y": 8.25
+          },
+          "end": {
+            "x": 7.5,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1og$i0yu90$99RvPKnKucy",
+          "name": "Staircase East Wall",
+          "tag": "W12",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "2RIBN_lQf5YAkPIw_7S_eQ",
+          "name": "Staircase North Wall",
+          "tag": "W13",
+          "description": "",
+          "start": {
+            "x": 7.7,
+            "y": 11.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "3rXqj_0pjEVQNbRXJwyy$u",
+          "name": "Staircase South Wall",
+          "tag": "W14",
+          "description": "",
+          "start": {
+            "x": 7.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1xbgZSthfA2h5$dOLvKAYz",
+          "name": "Corridor South Wall West",
+          "tag": "W15",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 5.25
+          },
+          "end": {
+            "x": 5.7,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "11cgC2LI5B49lVkC5Oizrr",
+          "name": "Corridor North Wall West",
+          "tag": "W16",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 6.75
+          },
+          "end": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3cxcau4nr07BMbePWhtqHF",
+          "name": "Corridor South Wall East",
+          "tag": "W17",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 5.25
+          },
+          "end": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2PWQs23izDre0lKGEsbGzu",
+          "name": "Corridor North Wall East",
+          "tag": "W18",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "end": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1L4IXAz1H5FRt$ntZNomVZ",
+          "name": "Corridor South Wall Core",
+          "tag": "W19",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 5.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2k4IZmRirD$v1s15yacwiD",
+          "name": "Lobby West Wall",
+          "tag": "W20",
+          "description": "",
+          "start": {
+            "x": 7.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 7.0,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0hhWd11XjC3e_eVAe1BlV5",
+          "name": "Lobby East Wall",
+          "tag": "W21",
+          "description": "",
+          "start": {
+            "x": 9.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 9.0,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "09PLM89jr2sBV5WCDiVNEO",
+          "name": "Apt S1 Bedroom Wall",
+          "tag": "W22",
+          "description": "",
+          "start": {
+            "x": 3.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 3.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3iVRa0pNzCHOlxHxkDewlY",
+          "name": "Apt S1 Bathroom Outer Wall",
+          "tag": "W23",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 2.4
+          },
+          "end": {
+            "x": 1.8,
+            "y": 2.4
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2niz4_J2jDofSJl4txPKI4",
+          "name": "Apt S1 Vorraum Outer Wall",
+          "tag": "W24",
+          "description": "",
+          "start": {
+            "x": 1.8,
+            "y": 3.15
+          },
+          "end": {
+            "x": 3.5,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "00DWpK3S17ixRTz8P6M8QB",
+          "name": "Apt S1 Bath-Vorraum Wall",
+          "tag": "W25",
+          "description": "",
+          "start": {
+            "x": 1.8,
+            "y": 2.4
+          },
+          "end": {
+            "x": 1.8,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0ypKIsTKTF4OeLQf_FvINH",
+          "name": "Apt S2 Bedroom Wall",
+          "tag": "W26",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1ntxSvEMn0LOSY3msS5X9p",
+          "name": "Apt S2 Bathroom Outer Wall",
+          "tag": "W27",
+          "description": "",
+          "start": {
+            "x": 9.0,
+            "y": 2.4
+          },
+          "end": {
+            "x": 10.8,
+            "y": 2.4
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2NYp9kRJzCcvAGCLaGf2M_",
+          "name": "Apt S2 Vorraum Outer Wall",
+          "tag": "W28",
+          "description": "",
+          "start": {
+            "x": 10.8,
+            "y": 3.15
+          },
+          "end": {
+            "x": 12.5,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1SHei_iaL5vOIulOlh6DzQ",
+          "name": "Apt S2 Bath-Vorraum Wall",
+          "tag": "W29",
+          "description": "",
+          "start": {
+            "x": 10.8,
+            "y": 2.4
+          },
+          "end": {
+            "x": 10.8,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3WHITzckL6ixZBpM6L7aan",
+          "name": "Apt N1 Bathroom Outer Wall",
+          "tag": "W31",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 8.85
+          },
+          "end": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1pcOJod4n1cRq8WVMJvtvB",
+          "name": "Apt N1 Vorraum Outer Wall",
+          "tag": "W32",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "end": {
+            "x": 4.5,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "20N2qjErf9nh3QUqCWCX0v",
+          "name": "Apt N1 Bath-Vorraum Wall",
+          "tag": "W33",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0XFuqYR7j1BvZRYAUc7cfp",
+          "name": "Apt N2 Bathroom Outer Wall",
+          "tag": "W36",
+          "description": "",
+          "start": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "end": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2TkSlA9J585uYwQ5u_7jBn",
+          "name": "Apt N2 Vorraum Outer Wall",
+          "tag": "W37",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 8.85
+          },
+          "end": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2Jgz8E6J5DTvHdeVtRye01",
+          "name": "Apt N2 Bath-Vorraum Wall",
+          "tag": "W38",
+          "description": "",
+          "start": {
+            "x": 12.25,
+            "y": 6.75
+          },
+          "end": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2TttuM4gD9vQpH00w0dK1p",
+          "name": "Apt N2 Bathroom East Wall",
+          "tag": "W36",
+          "description": "",
+          "start": {
+            "x": 14.8,
+            "y": 6.75
+          },
+          "end": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0Mmi$EO$H6GO7xXbQuTiH$",
+          "name": "Apt N1 Storage Wall",
+          "tag": "W37",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 8.85
+          },
+          "end": {
+            "x": 5.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3S93HUg9PF4PegqoWFH0kj",
+          "name": "Apt N2 Storage Wall",
+          "tag": "W38",
+          "description": "",
+          "start": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "end": {
+            "x": 16.0,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3EDV5KjD96NOSjgB4iJJU$",
+          "name": "Apt S2 Abstellraum Wall",
+          "tag": "W39",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "end": {
+            "x": 16.0,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3LIJFu6Tv8NxhMRjFJS1im",
+          "name": "Apt N2 South Boundary Wall",
+          "tag": "W40",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "end": {
+            "x": 16.0,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0SrBuLJr1BpfQf9fRUAtCF",
+          "name": "Corridor Close East",
+          "tag": "W41",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "end": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        }
+      ],
+      "slabs": [
+        {
+          "global_id": "1dIBo0jnvAsg1pjuw39dAy",
+          "name": "Floor Slab",
+          "description": "",
+          "outline": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 12.0
+              },
+              {
+                "x": 0.0,
+                "y": 12.0
+              }
+            ]
+          },
+          "thickness": 0.2,
+          "is_floor": true,
+          "slab_type": "FLOOR"
+        }
+      ],
+      "doors": [
+        {
+          "global_id": "2sm0Zpfmn0g8tJHAVnVk26",
+          "name": "Lobby Core Entry",
+          "tag": "D1",
+          "description": "",
+          "wall_id": "0hfmlwpv11uQ7BdkSYT$ep",
+          "position": 0.9,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0hwZiuLPXE_vesJ$JIRR20",
+          "name": "Elevator Door",
+          "tag": "D2",
+          "description": "",
+          "wall_id": "3aqi9BEaH5teMXl1mcVV2M",
+          "position": 0.3,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "25cfwN9i9DMBITRiEq_4bJ",
+          "name": "Staircase Door",
+          "tag": "D3",
+          "description": "",
+          "wall_id": "3rXqj_0pjEVQNbRXJwyy$u",
+          "position": 0.3,
+          "width": 1.0,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1c9LyD3fLFJB1qBbuPpuYW",
+          "name": "Building Main Entry",
+          "tag": "D4",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 7.4,
+          "width": 1.2,
+          "height": 2.2,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3MxYVo2Uj0p8rszXel5IZY",
+          "name": "Apt S1 Bedroom Door",
+          "tag": "D5",
+          "description": "",
+          "wall_id": "09PLM89jr2sBV5WCDiVNEO",
+          "position": 1.65,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3ebj3Url1D3endNrdnvmj8",
+          "name": "Apt S1 Vorraum Door",
+          "tag": "D6",
+          "description": "",
+          "wall_id": "2niz4_J2jDofSJl4txPKI4",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "06plSH7_bBtvJAaV0MaB3Y",
+          "name": "Apt S1 Bathroom Door",
+          "tag": "D7",
+          "description": "",
+          "wall_id": "00DWpK3S17ixRTz8P6M8QB",
+          "position": 1.05,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1fcpsW6_9AyfxNjQreH2Gd",
+          "name": "Apt S1 Entry",
+          "tag": "D8",
+          "description": "",
+          "wall_id": "1xbgZSthfA2h5$dOLvKAYz",
+          "position": 2.25,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "30Ro9aC8554fcodphm9Ie7",
+          "name": "Apt S2 Bedroom Door",
+          "tag": "D9",
+          "description": "",
+          "wall_id": "0ypKIsTKTF4OeLQf_FvINH",
+          "position": 1.65,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "094nhPNBT7TvN9paP5crIG",
+          "name": "Apt S2 Vorraum Door",
+          "tag": "D10",
+          "description": "",
+          "wall_id": "2NYp9kRJzCcvAGCLaGf2M_",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "25Wdu$Rfn9KP5Fhn$mOAm9",
+          "name": "Apt S2 Bathroom Door",
+          "tag": "D11",
+          "description": "",
+          "wall_id": "1SHei_iaL5vOIulOlh6DzQ",
+          "position": 1.05,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0xTHg5dTfFXwr_2MEpqQ0a",
+          "name": "Apt S2 Entry",
+          "tag": "D12",
+          "description": "",
+          "wall_id": "3cxcau4nr07BMbePWhtqHF",
+          "position": 0.9500000000000004,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1hbA7VDBH6rQlOGmsm5qwW",
+          "name": "Apt N1 Vorraum Door",
+          "tag": "D14",
+          "description": "",
+          "wall_id": "1pcOJod4n1cRq8WVMJvtvB",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0x82ZP$FTBCRtoqpwNaPhV",
+          "name": "Apt N1 Bathroom Door",
+          "tag": "D15",
+          "description": "",
+          "wall_id": "20N2qjErf9nh3QUqCWCX0v",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0GrEUjiYr8_el2UMaxsKKg",
+          "name": "Apt N1 Entry",
+          "tag": "D16",
+          "description": "",
+          "wall_id": "11cgC2LI5B49lVkC5Oizrr",
+          "position": 3.15,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0$05oYPBP8rfSsbLlczvr3",
+          "name": "Apt N2 Entry",
+          "tag": "D20",
+          "description": "",
+          "wall_id": "2PWQs23izDre0lKGEsbGzu",
+          "position": 0.849999999999999,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2tk09lk_1EHPJqpBTwvcYR",
+          "name": "Lobby Corridor Entry",
+          "tag": "D17",
+          "description": "",
+          "wall_id": "1L4IXAz1H5FRt$ntZNomVZ",
+          "position": 2.3,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "13Be6a88j038W$LPBPCBw$",
+          "name": "Apt N2 Bathroom Door",
+          "tag": "D18",
+          "description": "",
+          "wall_id": "2Jgz8E6J5DTvHdeVtRye01",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1QwVfH6kTFVe1QcAAVi0j1",
+          "name": "Apt N2 Vorraum Door",
+          "tag": "D19",
+          "description": "",
+          "wall_id": "2TkSlA9J585uYwQ5u_7jBn",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0B4pNb2oLDQfS2pIN_ZqoH",
+          "name": "Apt N1 Storage Door",
+          "tag": "D20",
+          "description": "",
+          "wall_id": "0Mmi$EO$H6GO7xXbQuTiH$",
+          "position": 0.2,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0DNAUn2yP1$uoamXE0PiNZ",
+          "name": "Apt N2 Storage Door",
+          "tag": "D21",
+          "description": "",
+          "wall_id": "3S93HUg9PF4PegqoWFH0kj",
+          "position": 0.2,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1NyoSbFEv6WvMn97Jzd2nV",
+          "name": "Apt S2 Abstellraum Door",
+          "tag": "D22",
+          "description": "",
+          "wall_id": "3EDV5KjD96NOSjgB4iJJU$",
+          "position": 0.5,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1O0bpqv6P10udo40FbpllP",
+          "name": "Apt S2 Storage Door",
+          "tag": "",
+          "description": "",
+          "wall_id": "0SrBuLJr1BpfQf9fRUAtCF",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        }
+      ],
+      "windows": [
+        {
+          "global_id": "135ipgMTXBhwADN41yzd9V",
+          "name": "Apt S1 Living Window",
+          "tag": "Win1",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 3.8,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1yL6lsGb142wkbF1o4cwj1",
+          "name": "Apt S1 Kitchen Window",
+          "tag": "Win2",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 5.2,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "3M_vK$5mX7gfUNDWc$Vn7p",
+          "name": "Apt S1 Bedroom Window",
+          "tag": "Win3",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 0.5,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "20mapBfev7qP1snlvxpm76",
+          "name": "Apt S2 Living Window",
+          "tag": "Win4",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 9.4,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0cEY3STsr5detX_JNCzX_q",
+          "name": "Apt S2 Kitchen Window",
+          "tag": "Win5",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 10.8,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1pOZAQ47n9Lg92g4MCrLSF",
+          "name": "Apt S2 Bedroom Window",
+          "tag": "Win6",
+          "description": "",
+          "wall_id": "0nE2sgK1T0S9vgOiu27GL4",
+          "position": 14.0,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "3H71_XurT1$8L8YLfB8t8J",
+          "name": "Apt N2 Living Window",
+          "tag": "Win7",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 3.6,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0POWZEW8H4JOq22yY9r58a",
+          "name": "Apt N2 Kitchen Window",
+          "tag": "Win8",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 4.8,
+          "width": 0.9,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "11ptT8ADTE4u23fpLE1B8b",
+          "name": "Apt N2 Bedroom Window",
+          "tag": "Win9",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 0.5,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "2gm3lNvxXAlQX4mZoNIfR7",
+          "name": "Apt N1 Living Window",
+          "tag": "Win10",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 10.35,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0rCCLBNiPDDRvL6tHHgMjv",
+          "name": "Apt N1 Kitchen Window",
+          "tag": "Win11",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 11.8,
+          "width": 0.9,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1rsH8Qzwj58QeAa56Z7suY",
+          "name": "Apt N1 Bedroom Window",
+          "tag": "Win12",
+          "description": "",
+          "wall_id": "3a3WdXOK11cw14TqgUjzAm",
+          "position": 14.0,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        }
+      ],
+      "roofs": [],
+      "staircases": [
+        {
+          "global_id": "2C_tmTB0z0AO9He1wTInx0",
+          "name": "Main Staircase",
+          "tag": "ST1",
+          "description": "",
+          "outline": {
+            "vertices": [
+              {
+                "x": 7.7,
+                "y": 8.25
+              },
+              {
+                "x": 10.3,
+                "y": 8.25
+              },
+              {
+                "x": 10.3,
+                "y": 11.75
+              },
+              {
+                "x": 7.7,
+                "y": 11.75
+              }
+            ]
+          },
+          "stair_type": "STRAIGHT_RUN_STAIR",
+          "width": 1.2,
+          "riser_height": 0.175,
+          "tread_length": 0.28
+        }
+      ],
+      "virtual_elements": [],
+      "spaces": [],
+      "apartments": [
+        {
+          "global_id": "03B2NhYfjBkRsN9IIoLiMO",
+          "name": "Apt S1",
+          "tag": "A1",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 0.0
+              },
+              {
+                "x": 7.0,
+                "y": 0.0
+              },
+              {
+                "x": 7.0,
+                "y": 5.25
+              },
+              {
+                "x": 0.0,
+                "y": 5.25
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "1UYied3mPAFfCWel3s35Db",
+              "name": "Apt S1 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 1.8,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 3.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 3.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 1.8,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2fzWkvl0X77h0yPtKiy$bh",
+              "name": "Apt S1 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 2.4
+                  },
+                  {
+                    "x": 1.8,
+                    "y": 2.4
+                  },
+                  {
+                    "x": 1.8,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "1mB$WcoHH9oA0Yk6P50_mq",
+              "name": "Apt S1 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 3.62,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 3.62,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 3.15
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3MNPsFuGX3AeRQWlkaacrv",
+              "name": "Apt S1 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 1.8,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.0200000000000005,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.0200000000000005,
+                    "y": 2.22
+                  },
+                  {
+                    "x": 1.8,
+                    "y": 2.22
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "26EPGuEgvBhe7MtDBLw$eh",
+              "name": "Apt S1 Bedroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bedroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 3.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 7.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 7.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 3.5,
+                    "y": 5.25
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "2eQp9I0ynEeO11lxS$LY0$",
+          "name": "Apt S2",
+          "tag": "A2",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 9.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 6.75
+              },
+              {
+                "x": 12.5,
+                "y": 6.75
+              },
+              {
+                "x": 12.5,
+                "y": 5.25
+              },
+              {
+                "x": 9.0,
+                "y": 5.25
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "1oHBQDMvD9vholLQqezm5M",
+              "name": "Apt S2 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.8,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 10.8,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "32c2RDff1DohzfNGOLXq8c",
+              "name": "Apt S2 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 9.0,
+                    "y": 2.4
+                  },
+                  {
+                    "x": 10.8,
+                    "y": 2.4
+                  },
+                  {
+                    "x": 10.8,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 9.0,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "1vmtaxalPAbgaOPOK3VZaQ",
+              "name": "Apt S2 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 9.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.62,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.62,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 9.0,
+                    "y": 3.15
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "28kr0YNlr5pxdguxRb2ude",
+              "name": "Apt S2 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.799999999999999,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 13.02,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 13.02,
+                    "y": 2.22
+                  },
+                  {
+                    "x": 10.799999999999999,
+                    "y": 2.22
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "1TQwtjaxH9BxW4PgtBl5Gh",
+              "name": "Apt S2 Bedroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bedroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3BuyhrajT5tOOcSHSEy_CO",
+              "name": "Apt S2 Abstellraum",
+              "tag": "",
+              "description": "",
+              "room_type": "storage",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 6.75
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "3TfQ4Gx1j1ZA__VEtsdbrz",
+          "name": "Apt N1",
+          "tag": "A3",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 6.75
+              },
+              {
+                "x": 5.7,
+                "y": 6.75
+              },
+              {
+                "x": 5.7,
+                "y": 12.0
+              },
+              {
+                "x": 0.0,
+                "y": 12.0
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "0P9qXzJfnBovLCTAgBz_w9",
+              "name": "Apt N1 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "27i2eNWYr4IxF4h$Ngu8NV",
+              "name": "Apt N1 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.7,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0uJGPnt1n5sx61eXp5HdaU",
+              "name": "Apt N1 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.7,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 4.92,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 4.92,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 12.0
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2lhQ6WYG58pfc9Yz7Ogfve",
+              "name": "Apt N1 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 5.7,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 5.7,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 12.0
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "30VHfXVHT6GRnYxRYUGnNu",
+          "name": "Apt N2",
+          "tag": "A4",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 10.3,
+                "y": 6.75
+              },
+              {
+                "x": 16.0,
+                "y": 6.75
+              },
+              {
+                "x": 16.0,
+                "y": 12.0
+              },
+              {
+                "x": 10.3,
+                "y": 12.0
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "2MdVYbcvX3TO3QcTGSzW2l",
+              "name": "Apt N2 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2AeRk_jSLBQvvwl41mH$UG",
+              "name": "Apt N2 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.25,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 14.8,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 14.8,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0W2$fsTnr6tQm5YWK8P3uZ",
+              "name": "Apt N2 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 12.520000000000001,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 12.520000000000001,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 12.0
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "1plHDkfirBnOEn4F3Y7ID0",
+              "name": "Apt N2 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 12.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "global_id": "2hbdH4USr2Rw5PHDTgLXhL",
+      "name": "1st Floor",
+      "description": "",
+      "elevation": 2.89,
+      "height": 2.89,
+      "walls": [
+        {
+          "global_id": "305ToXrJj1avEVZH02wr2$",
+          "name": "South Wall",
+          "tag": "W1",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 16.0,
+            "y": 0.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "1sPwSXBEz67ejmjzFdU1zO",
+          "name": "East Wall",
+          "tag": "W2",
+          "description": "",
+          "start": {
+            "x": 16.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 16.0,
+            "y": 12.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "name": "North Wall",
+          "tag": "W3",
+          "description": "",
+          "start": {
+            "x": 16.0,
+            "y": 12.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 12.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "08pA$ghDj42QT8zuvB$$ip",
+          "name": "West Wall",
+          "tag": "W4",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 12.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "height": 2.89,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "2AlNvzuyD57O0hOUC9oQz5",
+          "name": "Core Vestibule West Wall",
+          "tag": "W5",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "2ikAbtuQL8xx65D44ow1NP",
+          "name": "Core Vestibule East Wall",
+          "tag": "W6",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "0nzkmtKO95dgJAvj1aWL45",
+          "name": "Core South Wall",
+          "tag": "W7",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1JQbTvyNbAG9P6WcOfelwK",
+          "name": "Elevator West Wall",
+          "tag": "W8",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 5.7,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "0KN9GJGSP1KBgDx9jTCYDN",
+          "name": "Elevator North Wall",
+          "tag": "W9",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 11.75
+          },
+          "end": {
+            "x": 7.5,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "35SuR$XZb7kwCoDpvnjt_g",
+          "name": "Elevator South Wall",
+          "tag": "W10",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 7.5,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1C0hn8CWPDCgNXH_DfmpaU",
+          "name": "Core Divider Wall",
+          "tag": "W11",
+          "description": "",
+          "start": {
+            "x": 7.5,
+            "y": 8.25
+          },
+          "end": {
+            "x": 7.5,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "2Mp5972Lf8hg3ObzMcZwav",
+          "name": "Staircase East Wall",
+          "tag": "W12",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "0vwAl5DYT0ZeJNbEpUFjJY",
+          "name": "Staircase North Wall",
+          "tag": "W13",
+          "description": "",
+          "start": {
+            "x": 7.7,
+            "y": 11.75
+          },
+          "end": {
+            "x": 10.3,
+            "y": 11.75
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "1cx9VuOm57jgfSPV9DZpGa",
+          "name": "Staircase South Wall",
+          "tag": "W14",
+          "description": "",
+          "start": {
+            "x": 7.7,
+            "y": 8.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 8.25
+          },
+          "height": 2.89,
+          "thickness": 0.2,
+          "load_bearing": true,
+          "is_external": false
+        },
+        {
+          "global_id": "3fIfCKeo90xwQYS3gv45Lz",
+          "name": "Corridor South Wall West",
+          "tag": "W15",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 5.25
+          },
+          "end": {
+            "x": 5.7,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0yxls2GYH3jujm87_7QL6z",
+          "name": "Corridor North Wall West",
+          "tag": "W16",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 6.75
+          },
+          "end": {
+            "x": 5.7,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3r8AMQ3q99vOmwPSSeCmnM",
+          "name": "Corridor South Wall East",
+          "tag": "W17",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 5.25
+          },
+          "end": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2k_4a_Cu94g8xTw1NWrtxA",
+          "name": "Corridor North Wall East",
+          "tag": "W18",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 6.75
+          },
+          "end": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1wqyC6IIDB$QbG28z77R$X",
+          "name": "Corridor South Wall Core",
+          "tag": "W19",
+          "description": "",
+          "start": {
+            "x": 5.7,
+            "y": 5.25
+          },
+          "end": {
+            "x": 10.3,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0zQxNZ50X7PBmusJzjJifZ",
+          "name": "Apt S1 Bedroom Wall",
+          "tag": "W20",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 4.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1zlqhR6yn0Gf3VDm1uYuEv",
+          "name": "Apt S1 Bathroom Outer Wall",
+          "tag": "W21",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 3.15
+          },
+          "end": {
+            "x": 2.7,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3MFelZtK56bvWgdQWIb$dC",
+          "name": "Apt S1 Vorraum Outer Wall",
+          "tag": "W22",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 3.15
+          },
+          "end": {
+            "x": 4.5,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3EkSaJj$L2Z83kzDb3jNhU",
+          "name": "Apt S1 Bath-Vorraum Wall",
+          "tag": "W23",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 3.15
+          },
+          "end": {
+            "x": 2.7,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2UOiKXHZfC2OvQdj2DB1cy",
+          "name": "Apt Partition S-1",
+          "tag": "W24",
+          "description": "",
+          "start": {
+            "x": 8.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 8.0,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3TxVArSWLAQfGWTK67Se8P",
+          "name": "Apt S2 Bedroom Wall",
+          "tag": "W25",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2KpHjd1xT76O8q5P9WaKc9",
+          "name": "Apt S2 Bathroom Outer Wall",
+          "tag": "W26",
+          "description": "",
+          "start": {
+            "x": 8.0,
+            "y": 3.15
+          },
+          "end": {
+            "x": 10.7,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2fyh350fj7Pv_m3LGUQr5U",
+          "name": "Apt S2 Vorraum Outer Wall",
+          "tag": "W27",
+          "description": "",
+          "start": {
+            "x": 10.7,
+            "y": 3.15
+          },
+          "end": {
+            "x": 12.5,
+            "y": 3.15
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1DUUexamjAOeLjCBuNz3IM",
+          "name": "Apt S2 Bath-Vorraum Wall",
+          "tag": "W28",
+          "description": "",
+          "start": {
+            "x": 10.7,
+            "y": 3.15
+          },
+          "end": {
+            "x": 10.7,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3lP9kXD_X40Bl8Jr4pCYEM",
+          "name": "Apt N1 Bathroom Outer Wall",
+          "tag": "W30",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 8.85
+          },
+          "end": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1p1aV0SbD0VBgpK10WfHL6",
+          "name": "Apt N1 Vorraum Outer Wall",
+          "tag": "W31",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "end": {
+            "x": 4.5,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "3N237yk4j3AvqThgsgzpZG",
+          "name": "Apt N1 Bath-Vorraum Wall",
+          "tag": "W32",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 6.75
+          },
+          "end": {
+            "x": 2.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1J2y76Lx59lu3KNsM2YLeR",
+          "name": "Apt N2 Bathroom Outer Wall",
+          "tag": "W35",
+          "description": "",
+          "start": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "end": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2ihvO1DDfA6O5RH3zhTk1Y",
+          "name": "Apt N2 Vorraum Outer Wall",
+          "tag": "W36",
+          "description": "",
+          "start": {
+            "x": 10.3,
+            "y": 8.85
+          },
+          "end": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "0TxP1OCivA2Pqh3JiiM$Cv",
+          "name": "Apt N2 Bath-Vorraum Wall",
+          "tag": "W37",
+          "description": "",
+          "start": {
+            "x": 12.25,
+            "y": 6.75
+          },
+          "end": {
+            "x": 12.25,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2Ev3_2FgP9N8PNEUO0uHmT",
+          "name": "Apt N2 Bathroom East Wall",
+          "tag": "W35",
+          "description": "",
+          "start": {
+            "x": 14.8,
+            "y": 6.75
+          },
+          "end": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1J$FArQvX0ogb2dqRv5xTS",
+          "name": "Apt N1 Storage Wall",
+          "tag": "W36",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 8.85
+          },
+          "end": {
+            "x": 5.7,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "1ETOSS8_DDT9a721$vPna6",
+          "name": "Apt N2 Storage Wall",
+          "tag": "W37",
+          "description": "",
+          "start": {
+            "x": 14.8,
+            "y": 8.85
+          },
+          "end": {
+            "x": 16.0,
+            "y": 8.85
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2Qi7QyOVX0rvP2Ss10P1MJ",
+          "name": "Apt S2 Abstellraum Wall",
+          "tag": "W38",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "end": {
+            "x": 16.0,
+            "y": 5.25
+          },
+          "height": 2.89,
+          "thickness": 0.1,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "2BJ5igP6z1sx00lvDhGVjT",
+          "name": "Apt N2 South Boundary Wall",
+          "tag": "W39",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "end": {
+            "x": 16.0,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        },
+        {
+          "global_id": "17aNMvWPHCQ9mp0PaOF2As",
+          "name": "Corridor Close East",
+          "tag": "W40",
+          "description": "",
+          "start": {
+            "x": 12.5,
+            "y": 5.25
+          },
+          "end": {
+            "x": 12.5,
+            "y": 6.75
+          },
+          "height": 2.89,
+          "thickness": 0.15,
+          "load_bearing": false,
+          "is_external": false
+        }
+      ],
+      "slabs": [
+        {
+          "global_id": "3Tu8RCFv10txoxw3_s_a3$",
+          "name": "Floor Slab",
+          "description": "",
+          "outline": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 12.0
+              },
+              {
+                "x": 0.0,
+                "y": 12.0
+              }
+            ]
+          },
+          "thickness": 0.2,
+          "is_floor": true,
+          "slab_type": "FLOOR"
+        }
+      ],
+      "doors": [
+        {
+          "global_id": "3S2oe6JtP6NxrAmeDKzEZ6",
+          "name": "Core Entry",
+          "tag": "D1",
+          "description": "",
+          "wall_id": "0nzkmtKO95dgJAvj1aWL45",
+          "position": 0.9,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "1mYul17A96YABuY6A3zKkW",
+          "name": "Elevator Door",
+          "tag": "D2",
+          "description": "",
+          "wall_id": "35SuR$XZb7kwCoDpvnjt_g",
+          "position": 0.3,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2cnu$3WPP8hx9UwJzZYV30",
+          "name": "Staircase Door",
+          "tag": "D3",
+          "description": "",
+          "wall_id": "1cx9VuOm57jgfSPV9DZpGa",
+          "position": 0.3,
+          "width": 1.0,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0kKuqxDSP0dAjwVQiQxMW7",
+          "name": "Apt S1 Bedroom Door",
+          "tag": "D4",
+          "description": "",
+          "wall_id": "0zQxNZ50X7PBmusJzjJifZ",
+          "position": 1.65,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2dkdN_5K918gpTMy2RRYCg",
+          "name": "Apt S1 Vorraum Door",
+          "tag": "D5",
+          "description": "",
+          "wall_id": "3MFelZtK56bvWgdQWIb$dC",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2F$DWBviL7hhZJtMlsHxso",
+          "name": "Apt S1 Bathroom Door",
+          "tag": "D6",
+          "description": "",
+          "wall_id": "3EkSaJj$L2Z83kzDb3jNhU",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2k__mtBDb46PTmffeaJBq8",
+          "name": "Apt S1 Entry",
+          "tag": "D7",
+          "description": "",
+          "wall_id": "3fIfCKeo90xwQYS3gv45Lz",
+          "position": 3.15,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3$D4DspG58MgBrffA20MKh",
+          "name": "Apt S2 Bedroom Door",
+          "tag": "D8",
+          "description": "",
+          "wall_id": "3TxVArSWLAQfGWTK67Se8P",
+          "position": 1.65,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "27BuEapezEDQXgkK5Y2zIA",
+          "name": "Apt S2 Vorraum Door",
+          "tag": "D9",
+          "description": "",
+          "wall_id": "2fyh350fj7Pv_m3LGUQr5U",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3$bd6lunPEpv_cLkQbVHJe",
+          "name": "Apt S2 Bathroom Door",
+          "tag": "D10",
+          "description": "",
+          "wall_id": "1DUUexamjAOeLjCBuNz3IM",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3SvYCl82D2HxnT7bE3EpZ6",
+          "name": "Apt S2 Entry",
+          "tag": "D11",
+          "description": "",
+          "wall_id": "3r8AMQ3q99vOmwPSSeCmnM",
+          "position": 0.849999999999999,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2vAbDTHSb26xxQVy2w$s2R",
+          "name": "Apt N1 Vorraum Door",
+          "tag": "D13",
+          "description": "",
+          "wall_id": "1p1aV0SbD0VBgpK10WfHL6",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2z0tmnz6f3d8Z4LZskDJdJ",
+          "name": "Apt N1 Bathroom Door",
+          "tag": "D14",
+          "description": "",
+          "wall_id": "3N237yk4j3AvqThgsgzpZG",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3L7Vgbr4H9lx8D_wKyeNAY",
+          "name": "Apt N1 Entry",
+          "tag": "D15",
+          "description": "",
+          "wall_id": "0yxls2GYH3jujm87_7QL6z",
+          "position": 3.15,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2X7IMVUBn8yQnln8W1DONa",
+          "name": "Apt N2 Entry",
+          "tag": "D19",
+          "description": "",
+          "wall_id": "2k_4a_Cu94g8xTw1NWrtxA",
+          "position": 0.849999999999999,
+          "width": 0.9,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2k1A85oh1CZBPqG7CWwqTh",
+          "name": "Apt N2 Bathroom Door",
+          "tag": "D16",
+          "description": "",
+          "wall_id": "0TxP1OCivA2Pqh3JiiM$Cv",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "2QhPd2kV991gMNf2FTA$mm",
+          "name": "Apt N2 Vorraum Door",
+          "tag": "D17",
+          "description": "",
+          "wall_id": "2ihvO1DDfA6O5RH3zhTk1Y",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "27_IG$G152$Qae2RzG6T$6",
+          "name": "Apt N1 Storage Door",
+          "tag": "D18",
+          "description": "",
+          "wall_id": "1J$FArQvX0ogb2dqRv5xTS",
+          "position": 0.2,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "0YtUrY1dr6nB8S15j3rBpr",
+          "name": "Apt N2 Storage Door",
+          "tag": "D19",
+          "description": "",
+          "wall_id": "1ETOSS8_DDT9a721$vPna6",
+          "position": 0.2,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3RwME2g9DB8eftA0mt3fKg",
+          "name": "Apt S2 Abstellraum Door",
+          "tag": "D20",
+          "description": "",
+          "wall_id": "2Qi7QyOVX0rvP2Ss10P1MJ",
+          "position": 0.5,
+          "width": 0.7,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        },
+        {
+          "global_id": "3J$6f1_MX8Je4VO4wWynwp",
+          "name": "Apt S2 Storage Door",
+          "tag": "",
+          "description": "",
+          "wall_id": "17aNMvWPHCQ9mp0PaOF2As",
+          "position": 0.3,
+          "width": 0.8,
+          "height": 2.1,
+          "operation_type": "SINGLE_SWING_LEFT",
+          "swing_inward": true
+        }
+      ],
+      "windows": [
+        {
+          "global_id": "26v6hACrPDSwhYQnXJRpeG",
+          "name": "Apt S1 Living Window",
+          "tag": "Win1",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 4.7,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1dKHO53519HQLaCzqp4xYe",
+          "name": "Apt S1 Kitchen Window",
+          "tag": "Win2",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 6.0,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0DeH7cuYLCAvNV7A6XhRbX",
+          "name": "Apt S1 Bedroom Window",
+          "tag": "Win3",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 0.5,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "2OUzeE601BT9R0fXnZxm0e",
+          "name": "Apt S2 Living Window",
+          "tag": "Win4",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 8.5,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1n8fVRXPbFefiJuc1h1F73",
+          "name": "Apt S2 Kitchen Window",
+          "tag": "Win5",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 9.8,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1Xj$Ur_EXCKQSzj3cqmNqc",
+          "name": "Apt S2 Bedroom Window",
+          "tag": "Win6",
+          "description": "",
+          "wall_id": "305ToXrJj1avEVZH02wr2$",
+          "position": 14.0,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "2vFlwpjff9qxzpF9ZvTgCl",
+          "name": "Apt N2 Living Window",
+          "tag": "Win7",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 3.6,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "3TdsSiLMfDBfO5eymnXr60",
+          "name": "Apt N2 Kitchen Window",
+          "tag": "Win8",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 4.8,
+          "width": 0.9,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "1BI$rQfPP87hUW6u$edNra",
+          "name": "Apt N2 Bedroom Window",
+          "tag": "Win9",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 0.5,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0Oinp$Md94Wwiwsq_f$9Cr",
+          "name": "Apt N1 Living Window",
+          "tag": "Win10",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 10.35,
+          "width": 1.0,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "2zja5AV7v9APXSMArpKN$f",
+          "name": "Apt N1 Kitchen Window",
+          "tag": "Win11",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 11.8,
+          "width": 0.9,
+          "height": 1.5,
+          "sill_height": 0.9
+        },
+        {
+          "global_id": "0WoDFM25v5VA6$bIAR4CFh",
+          "name": "Apt N1 Bedroom Window",
+          "tag": "Win12",
+          "description": "",
+          "wall_id": "3P0yz0Sj9ELRXdOBPX9o4S",
+          "position": 14.0,
+          "width": 1.2,
+          "height": 1.5,
+          "sill_height": 0.9
+        }
+      ],
+      "roofs": [],
+      "staircases": [
+        {
+          "global_id": "0OCsAUVgT34AprbDhd3roN",
+          "name": "Main Staircase",
+          "tag": "ST1",
+          "description": "",
+          "outline": {
+            "vertices": [
+              {
+                "x": 7.7,
+                "y": 8.25
+              },
+              {
+                "x": 10.3,
+                "y": 8.25
+              },
+              {
+                "x": 10.3,
+                "y": 11.75
+              },
+              {
+                "x": 7.7,
+                "y": 11.75
+              }
+            ]
+          },
+          "stair_type": "STRAIGHT_RUN_STAIR",
+          "width": 1.2,
+          "riser_height": 0.175,
+          "tread_length": 0.28
+        }
+      ],
+      "virtual_elements": [],
+      "spaces": [],
+      "apartments": [
+        {
+          "global_id": "2RyA4xGqr2TBR5JE0tTMI6",
+          "name": "Apt S1",
+          "tag": "A1",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 0.0
+              },
+              {
+                "x": 8.0,
+                "y": 0.0
+              },
+              {
+                "x": 8.0,
+                "y": 5.25
+              },
+              {
+                "x": 0.0,
+                "y": 5.25
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "2stG8w5C9D4ReCiqQm9Fsc",
+              "name": "Apt S1 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.7,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3YGjUEwB993g$LA$opRen4",
+              "name": "Apt S1 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2EsqIyksnDYvL3DoWOzyt1",
+              "name": "Apt S1 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 3.15
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2eGBIATQ9C1ObQAgXKcBmC",
+              "name": "Apt S1 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.25,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 2.22
+                  },
+                  {
+                    "x": 2.25,
+                    "y": 2.22
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0SNYDo8f57zBZkLmEjWmmw",
+              "name": "Apt S1 Bedroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bedroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 4.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 8.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 8.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 5.25
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "0Q3ppot55AWu$ffBSMz8dV",
+          "name": "Apt S2",
+          "tag": "A2",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 8.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 0.0
+              },
+              {
+                "x": 16.0,
+                "y": 6.75
+              },
+              {
+                "x": 12.5,
+                "y": 6.75
+              },
+              {
+                "x": 12.5,
+                "y": 5.25
+              },
+              {
+                "x": 8.0,
+                "y": 5.25
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "2KxHTLi851hvCa6b8chtFn",
+              "name": "Apt S2 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.7,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 10.7,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0tzALhtR9FHAzafcZgSBQm",
+              "name": "Apt S2 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 8.0,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 10.7,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 10.7,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 8.0,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0XssbBhqLFm8eCIS80gC7d",
+              "name": "Apt S2 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 8.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 3.15
+                  },
+                  {
+                    "x": 8.0,
+                    "y": 3.15
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3JJPUy6jP3HxWsyH5kKtd2",
+              "name": "Apt S2 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.25,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 2.22
+                  },
+                  {
+                    "x": 10.25,
+                    "y": 2.22
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0OuD9LqnbBLBdureweardn",
+              "name": "Apt S2 Bedroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bedroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.5,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 0.0
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0jkiyyxVjDeuIgftBBDVP7",
+              "name": "Apt S2 Abstellraum",
+              "tag": "",
+              "description": "",
+              "room_type": "storage",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.5,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 5.25
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.5,
+                    "y": 6.75
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "0iVa7xYknAKfrN5WjOdczN",
+          "name": "Apt N1",
+          "tag": "A3",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 0.0,
+                "y": 6.75
+              },
+              {
+                "x": 5.7,
+                "y": 6.75
+              },
+              {
+                "x": 5.7,
+                "y": 12.0
+              },
+              {
+                "x": 0.0,
+                "y": 12.0
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "1_yVqh5Kj1y82By5cqWNH3",
+              "name": "Apt N1 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "2iz456uOj9MOxH2I7jc94e",
+              "name": "Apt N1 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.7,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 4.5,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0L3cIrF_9DlOsOJM8IXwz8",
+              "name": "Apt N1 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 2.7,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 4.92,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 4.92,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 2.7,
+                    "y": 12.0
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3YTRiP4uz3jQ4Q8JvltSfg",
+              "name": "Apt N1 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 0.0,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 5.7,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 5.7,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 0.0,
+                    "y": 12.0
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "global_id": "0srY4eDV17$uhhy2PFF63s",
+          "name": "Apt N2",
+          "tag": "A4",
+          "description": "",
+          "boundary": {
+            "vertices": [
+              {
+                "x": 10.3,
+                "y": 6.75
+              },
+              {
+                "x": 16.0,
+                "y": 6.75
+              },
+              {
+                "x": 16.0,
+                "y": 12.0
+              },
+              {
+                "x": 10.3,
+                "y": 12.0
+              }
+            ]
+          },
+          "spaces": [
+            {
+              "global_id": "1NWdtlXKD9qQckGhYd25gT",
+              "name": "Apt N2 Vorraum",
+              "tag": "",
+              "description": "",
+              "room_type": "hallway",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "3WZsCX8In25PvmKqsbAvyX",
+              "name": "Apt N2 Bathroom",
+              "tag": "",
+              "description": "",
+              "room_type": "bathroom",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 12.25,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 14.8,
+                    "y": 6.75
+                  },
+                  {
+                    "x": 14.8,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 12.25,
+                    "y": 8.85
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0RiLxzl8n3WfMutdSMDWl1",
+              "name": "Apt N2 Kitchen",
+              "tag": "",
+              "description": "",
+              "room_type": "kitchen",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 12.520000000000001,
+                    "y": 9.78
+                  },
+                  {
+                    "x": 12.520000000000001,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 12.0
+                  }
+                ]
+              }
+            },
+            {
+              "global_id": "0cjQtTEv18x9pqDExsTtWr",
+              "name": "Apt N2 Living",
+              "tag": "",
+              "description": "",
+              "room_type": "living",
+              "boundary": {
+                "vertices": [
+                  {
+                    "x": 10.3,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 8.85
+                  },
+                  {
+                    "x": 16.0,
+                    "y": 12.0
+                  },
+                  {
+                    "x": 10.3,
+                    "y": 12.0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
