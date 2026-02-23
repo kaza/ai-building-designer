@@ -1,4 +1,4 @@
-# How I Taught AI to Design Apartment Buildings in a Weekend
+# How I Helped AI Design Apartment Buildings in a Weekend
 
 *Or: what a software engineer does when he can't type but can't stop thinking.*
 
@@ -22,7 +22,7 @@ For coding, we solved this — compilers, type checkers, LSPs, test runners. Tha
 
 Architecture has none of that. No compiler for buildings. No test runner for floor plans. No way for AI to check its own work.
 
-So I decided to build the scaffolding. From the ER waiting room. One-handed.
+So I decided to build the scaffolding. From my couch. In socks. With a Coke.
 
 I grabbed my phone and asked Claude a question:
 
@@ -30,13 +30,13 @@ I grabbed my phone and asked Claude a question:
 
 After a few iterations, we converged on the architecture: IFC file format (the industry standard), ifcopenshell (Python library for IFC), and a JSON intermediate model. Simplest path, zero dependencies on running ArchiCAD.
 
-From there I planned a three-step proof of concept:
+From there, I had a clear 3-step proof of concept planned:
 
 1. **Friday:** Build the simplest possible house, export as IFC, open in ArchiCAD — prove the pipeline works end-to-end
 2. **Saturday:** Give AI a real floor plan sketch, let it recreate the apartment using the tools
 3. **Sunday:** Generate a complete multi-apartment building from scratch
 
-All of this happened through Telegram voice messages on my phone. I wasn't sitting at a computer — I was having breakfast, watching movies with my daughter, taking breaks during dance class with my wife. The AI was building while I was living my weekend.
+All of this happened through Telegram voice messages on my phone. I wasn't sitting at a computer — I was having breakfast, watching movies with my daughter, taking breaks during dance class with my wife. The AI was building while I was living my weekend. (My wife would certainly find a different description.)
 
 ## Friday Night: Four Walls and a Prayer
 
@@ -59,13 +59,13 @@ My wife had a floor plan of our apartment — a professional architectural drawi
 </tr>
 </table>
 
-17 walls. 9 doors. 4 windows. Load-bearing walls classified separately from partitions. All placed by AI, reading a sketch, through iterative [design-and-review cycles](../../src/archicad_builder/vision/).
+17 walls. 9 doors. 4 windows. Load-bearing walls classified separately from partitions. All placed by AI, reading a sketch, through iterative [design-and-review cycles](../src/archicad_builder/vision/).
 
 Not perfect. But the AI was *designing* — reading a drawing, placing elements, and checking its own work through visual comparison with Gemini. 25 million tokens. Still voice messages only.
 
-## Saturday Night: The Vision
+## Saturday Night: The Mission
 
-That evening, after getting back from dance class with my wife, I gave the AI its vision:
+That evening, after getting back from dance class with my wife, instead of a task I gave it a mission:
 
 > *"Your goal: generate a complete 4-storey building, 16×12 meters. Elevator, staircase, multiple apartments per floor. We need validators — when they fail, you need to understand what failed, pull surrounding context, and fix it.*
 >
@@ -172,14 +172,20 @@ We didn't *just* need smarter AI to design buildings. We needed to give it the r
 
 ## What's Next
 
-- **Real project**: Apply this to an actual building design my wife is working on
-- **Growing the validator library**: Fire codes, structural stability, construction regulations, accessibility standards — every new rule just gets added to the library. The architecture stays the same, the rules keep growing. Architects can focus on *architecture* while the system handles compliance in real-time.
-- **Interactive design**: Clients or architects interact through chat — "what if we move this wall 50cm?" — the system implements the change, runs all validators, shows the impact. Full conversational building design.
-- **3D visualization**: The model is already IFC. Export to OBJ and render in a browser — not a technical challenge, just engineering.
-- **Higher-level concepts**: My wife wants to encode architectural design patterns — the conceptual problems and solutions that experienced architects carry in their heads
-- **Context tools**: We already export mermaid diagrams and visual context so the LLM can reason about building structure — expanding this further
-- **Constraint solver**: Macro-layout optimization — which apartment where, stairwell position
-- **Self-play**: The reasoning happens in the LLM (Claude, Gemini) — but with self-play on a 4090 GPU, the system could learn to design without being told how
+The validator library only grows. Here's what plugs in next — and none of it requires smarter AI. Just more tools.
+
+- **Cost estimation**: The system knows every wall, every room, every square meter. Connect standard construction prices and every design iteration gets an instant cost per m² — before an architect even opens the file.
+- **Structural analysis**: Hook into structural calculation software. Load-bearing wall thickness, span limits, foundation requirements. Change a wall, get immediate feedback: "this works" or "this doesn't, and here's why."
+- **Building services — all of them**: The same connectivity algorithms that check "can you walk from the entrance to every apartment" work for electrical wiring, ventilation ducts, water supply, and sewage. One wall move, and the system tells you what breaks across *every* system. Then fixes it.
+- **Fire codes, building regulations, everything**: Each rule is just another validator. The library grows, the quality floor rises, and architects focus on *architecture* — not on checking if they violated paragraph 47 of the fire code.
+- **Interactive client sessions**: A client opens a chat: "What if we move this wall?" The system implements the change, runs validators, shows the impact — cost, structural, regulatory — in seconds. Not days.
+- **3D in the browser**: The model is already IFC. Export to OBJ, render in WebGL. The client sees the building in 3D while they're making decisions.
+- **Real project**: Apply this to an actual building design my wife is working on.
+- **Higher-level concepts**: My wife wants to encode architectural design patterns — the conceptual problems and solutions that experienced architects carry in their heads.
+- **Constraint solver**: Macro-layout optimization — which apartment where, stairwell position.
+- **Self-play**: The reasoning happens in the LLM (Claude, Gemini) — but with self-play on a 4090 GPU, the system could learn to design without being told how.
+
+The endgame: architects become 100× more efficient. Not because AI replaces them — because all the tedious, error-prone, regulation-checking, cost-estimating, pipe-routing work gets pushed into Python. Architects do what they're actually trained for: design.
 
 ---
 
