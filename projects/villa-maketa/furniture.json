@@ -1,0 +1,329 @@
+{
+  "_comment": "Axis-aligned furniture boxes for the Blender preview. bounds=[x0,y0,x1,y1] in meters, h=height, z=bottom elevation. Types map to materials in render_blender.py.",
+  "items": [
+    {
+      "name": "Sofa L long",
+      "type": "sofa",
+      "bounds": [
+        0.35,
+        6.2,
+        2.5,
+        7.05
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Sofa L short",
+      "type": "sofa",
+      "bounds": [
+        0.35,
+        4.9,
+        1.2,
+        6.2
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Coffee table",
+      "type": "wood",
+      "bounds": [
+        1.6,
+        5.3,
+        2.5,
+        5.9
+      ],
+      "h": 0.4
+    },
+    {
+      "name": "Armchair",
+      "type": "sofa",
+      "bounds": [
+        3.1,
+        5.1,
+        3.95,
+        5.95
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Dining table",
+      "type": "wood",
+      "bounds": [
+        0.9,
+        3.1,
+        2.3,
+        4.3
+      ],
+      "h": 0.75
+    },
+    {
+      "name": "Chair 1",
+      "type": "wood",
+      "bounds": [
+        0.45,
+        3.25,
+        0.85,
+        3.65
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Chair 2",
+      "type": "wood",
+      "bounds": [
+        0.45,
+        3.8,
+        0.85,
+        4.2
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Chair 3",
+      "type": "wood",
+      "bounds": [
+        2.35,
+        3.25,
+        2.75,
+        3.65
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Chair 4",
+      "type": "wood",
+      "bounds": [
+        2.35,
+        3.8,
+        2.75,
+        4.2
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Chair 5",
+      "type": "wood",
+      "bounds": [
+        1.2,
+        2.6,
+        1.6,
+        3.0
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Chair 6",
+      "type": "wood",
+      "bounds": [
+        1.7,
+        2.6,
+        2.1,
+        3.0
+      ],
+      "h": 0.45
+    },
+    {
+      "name": "Kitchen counter S",
+      "type": "counter",
+      "bounds": [
+        0.35,
+        0.2,
+        4.3,
+        0.85
+      ],
+      "h": 0.9
+    },
+    {
+      "name": "Kitchen counter W",
+      "type": "counter",
+      "bounds": [
+        0.35,
+        0.85,
+        1.0,
+        2.2
+      ],
+      "h": 0.9
+    },
+    {
+      "name": "Master bed",
+      "type": "bed",
+      "bounds": [
+        5.3,
+        5.7,
+        6.9,
+        7.75
+      ],
+      "h": 0.5
+    },
+    {
+      "name": "Master wardrobe",
+      "type": "wardrobe",
+      "bounds": [
+        4.65,
+        6.9,
+        5.25,
+        7.85
+      ],
+      "h": 2.0
+    },
+    {
+      "name": "Master desk",
+      "type": "wood",
+      "bounds": [
+        7.35,
+        5.0,
+        7.9,
+        6.1
+      ],
+      "h": 0.75
+    },
+    {
+      "name": "Room2 bed",
+      "type": "bed",
+      "bounds": [
+        6.25,
+        8.9,
+        7.85,
+        10.9
+      ],
+      "h": 0.5
+    },
+    {
+      "name": "Room2 wardrobe",
+      "type": "wardrobe",
+      "bounds": [
+        8.55,
+        8.2,
+        9.35,
+        9.7
+      ],
+      "h": 2.0
+    },
+    {
+      "name": "Bathtub",
+      "type": "ceramic",
+      "bounds": [
+        4.65,
+        2.65,
+        6.35,
+        3.4
+      ],
+      "h": 0.55
+    },
+    {
+      "name": "Bath sink",
+      "type": "ceramic",
+      "bounds": [
+        6.05,
+        3.95,
+        6.5,
+        4.4
+      ],
+      "h": 0.85
+    },
+    {
+      "name": "Bath toilet",
+      "type": "ceramic",
+      "bounds": [
+        6.05,
+        2.7,
+        6.5,
+        3.25
+      ],
+      "h": 0.42
+    },
+    {
+      "name": "Guest toilet",
+      "type": "ceramic",
+      "bounds": [
+        6.7,
+        3.95,
+        7.15,
+        4.42
+      ],
+      "h": 0.42
+    },
+    {
+      "name": "Guest sink",
+      "type": "ceramic",
+      "bounds": [
+        6.68,
+        3.3,
+        7.08,
+        3.7
+      ],
+      "h": 0.85
+    },
+    {
+      "name": "Lounger 1",
+      "type": "wood",
+      "bounds": [
+        6.3,
+        12.2,
+        7.0,
+        13.9
+      ],
+      "h": 0.35,
+      "z": 0.15
+    },
+    {
+      "name": "Lounger 2",
+      "type": "wood",
+      "bounds": [
+        7.5,
+        12.2,
+        8.2,
+        13.9
+      ],
+      "h": 0.35,
+      "z": 0.15
+    },
+    {
+      "name": "Deck sofa",
+      "type": "sofa",
+      "bounds": [
+        0.4,
+        9.2,
+        2.1,
+        10.1
+      ],
+      "h": 0.45,
+      "z": 0.15
+    },
+    {
+      "name": "Deck table 1",
+      "type": "wood",
+      "bounds": [
+        1.3,
+        10.5,
+        2.2,
+        11.1
+      ],
+      "h": 0.4,
+      "z": 0.15
+    },
+    {
+      "name": "Deck table 2",
+      "type": "wood",
+      "bounds": [
+        2.6,
+        10.4,
+        3.3,
+        10.9
+      ],
+      "h": 0.4,
+      "z": 0.15
+    },
+    {
+      "name": "Guest shower",
+      "type": "ceramic",
+      "bounds": [
+        6.64,
+        2.56,
+        7.94,
+        3.36
+      ],
+      "h": 0.12
+    }
+  ]
+}
