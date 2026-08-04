@@ -40,16 +40,30 @@ class TestValidate:
     def test_validate_4apt(self):
         data = run_cli("validate", "4apt-centered-core")
         assert data["ok"] is True
-        # 4apt has 2 known E032 šupaks (dead zone east of corridor close)
-        # on both GF and 1F — real findings, not false positives
-        assert data["validation"]["errors"] == 2
-        e032 = [d for d in data["validation"]["details"]
-                if "E032" in d["message"]]
-        assert len(e032) == 2
+        # The 2 historical E032 šupaks were fixed in building.json before
+        # this repo was published — the project validates clean.
+        assert data["validation"]["errors"] == 0
 
     def test_validate_nonexistent_project(self):
         data = run_cli_expect_fail("validate", "nonexistent-project")
         assert data["ok"] is False
+
+
+class TestValidateWaivers:
+    def test_project_without_config_has_no_waiver_keys(self):
+        data = run_cli("validate", "3apt-corner-core")
+        assert "waived" not in data["validation"]
+        assert "stale_waivers" not in data["validation"]
+
+    def test_villa_waivers_applied(self):
+        """villa-maketa ships validation.json waiving its villa-vs-block noise."""
+        data = run_cli("validate", "villa-maketa")
+        v = data["validation"]
+        assert v["errors"] == 0
+        assert v["warnings"] == 0
+        assert v["waived_count"] >= 4
+        assert all(w["reason"] for w in v["waived"])
+        assert v["stale_waivers"] == []
 
 
 class TestList:

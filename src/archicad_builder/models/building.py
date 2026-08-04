@@ -221,8 +221,14 @@ class Building(BaseModel):
         thickness: float,
         name: str = "",
         description: str = "",
+        *,
+        is_external: bool = False,
+        load_bearing: bool = False,
     ) -> Wall:
-        """Add a wall to a story. Returns the created wall."""
+        """Add a wall to a story. Returns the created wall.
+
+        is_external marks facade walls — validators (E044) rely on it.
+        """
         story = self._require_story(story_name)
         wall = Wall(
             name=name,
@@ -231,6 +237,8 @@ class Building(BaseModel):
             end=Point2D(x=end[0], y=end[1]),
             height=height,
             thickness=thickness,
+            is_external=is_external,
+            load_bearing=load_bearing,
         )
         story.walls.append(wall)
         return wall

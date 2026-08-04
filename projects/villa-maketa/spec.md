@@ -115,13 +115,13 @@ project needs them.
   need doors named "<apartment> <room> Door" / "<apartment> Entry Door".
 - `Building.add_wall()` never sets `is_external` — must be set manually on the returned
   wall or facade checks (E044) see building depth 0.
-- E044 only checks north/south facades of the bounding box → false-positive errors for
-  Living (west facade windows) and Master (window on exterior north segment of the L).
-  Accepted in v1; proper fix is a validator change (check all external walls).
+- E044 only checked north/south facades of the bounding box → false positives for
+  Living and Master. Fixed 2026-08-04 in the framework (specs/facade-detection.md);
+  `add_wall()` now takes `is_external=` directly.
 - W001 targets exactly 2.52m clear height (block economics); villa keeps 2.63m → noise.
 
-## Accepted validation results (v1)
+## Accepted validation results
 
-2 errors (both E044 false positives, see above), 4 warnings (W001 height, W040 Vorraum
-share 18.7%, W042 stair aspect ratio, W060 master terrace door 1.4m wide — it's a
-double door — all villa-vs-block noise).
+**0 errors, 0 warnings, 5 waived, 0 stale.** The E044 false positives were fixed in
+the framework (specs/facade-detection.md); the remaining villa-vs-block noise is
+waived with reasons in `validation.json` (specs/validation-waivers.md).

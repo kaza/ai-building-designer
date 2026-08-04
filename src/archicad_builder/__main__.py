@@ -17,6 +17,11 @@ import typer
 
 from archicad_builder.models.building import Building
 from archicad_builder.validators.phases import validate_all_phases
+from archicad_builder.validators.waivers import (
+    WaiverConfig,
+    load_waivers,
+    partition_findings,
+)
 
 app = typer.Typer(
     name="archicad_builder",
@@ -47,9 +52,20 @@ def _save_building(building: Building, project: str) -> Path:
     return path
 
 
-def _validate_json(building: Building) -> dict:
-    """Run all validators and return structured results."""
+def _validate_json(building: Building, waivers: "WaiverConfig | None" = None) -> dict:
+    """Run all validators and return structured results.
+
+    With a WaiverConfig, waived findings move to 'waived' (with reasons),
+    counts exclude them, and unmatched waivers are listed as 'stale_waivers'.
+    Without one, output shape is unchanged (no waiver keys at all).
+    """
     errors = validate_all_phases(building)
+
+    waived: list[dict] = []
+    stale: list[dict] = []
+    if waivers is not None:
+        errors, waived, stale = partition_findings(errors, waivers)
+
     details = []
     for e in errors:
         detail = {"severity": e.severity, "message": e.message}
@@ -57,12 +73,26 @@ def _validate_json(building: Building) -> dict:
             detail["element_type"] = e.element_type
         details.append(detail)
 
-    return {
+    result = {
         "errors": sum(1 for e in errors if e.severity == "error"),
         "warnings": sum(1 for e in errors if e.severity == "warning"),
         "optimizations": sum(1 for e in errors if e.severity == "optimization"),
         "details": details,
     }
+    if waivers is not None:
+        result["waived"] = waived
+        result["waived_count"] = len(waived)
+        result["stale_waivers"] = stale
+    return result
+
+
+def _load_project_waivers(project: str) -> "WaiverConfig | None":
+    """Load projects/<name>/validation.json; exit with JSON error if malformed."""
+    try:
+        return load_waivers(PROJECTS_DIR / project / "validation.json")
+    except ValueError as e:
+        typer.echo(json.dumps({"ok": False, "error": str(e)}))
+        raise typer.Exit(1) from e
 
 
 def _output(data: dict) -> None:
@@ -78,7 +108,8 @@ def _output(data: dict) -> None:
 def validate(project: str = typer.Argument(..., help="Project directory name")):
     """Run all validators on a building."""
     building = _load_building(project)
-    result = _validate_json(building)
+    waivers = _load_project_waivers(project)
+    result = _validate_json(building, waivers)
     _output({"ok": True, "validation": result})
 
 
@@ -86,7 +117,8 @@ def validate(project: str = typer.Argument(..., help="Project directory name")):
 def assess(project: str = typer.Argument(..., help="Project directory name")):
     """Full assessment: validation + building summary + area stats."""
     building = _load_building(project)
-    validation = _validate_json(building)
+    waivers = _load_project_waivers(project)
+    validation = _validate_json(building, waivers)
 
     # Build summary
     stories_info = []
@@ -351,6 +383,8 @@ def _dispatch_action(building: Building, action: dict) -> dict:
                 thickness=action.get("thickness", 0.25),
                 name=action.get("name", ""),
                 description=action.get("description", ""),
+                is_external=action.get("is_external", False),
+                load_bearing=action.get("load_bearing", False),
             )
             return {"action": cmd, "name": wall.name, "id": wall.global_id}
 

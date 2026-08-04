@@ -21,11 +21,8 @@ b.add_story(GF, height=H, elevation=0.0)
 
 
 def wall(name: str, start, end, thickness=INT):
-    w = b.add_wall(GF, start, end, height=H, thickness=thickness, name=name)
-    # add_wall has no is_external param; validators need it for facade checks (E044)
-    w.is_external = thickness == EXT
-    w.load_bearing = thickness == EXT
-    return w
+    return b.add_wall(GF, start, end, height=H, thickness=thickness, name=name,
+                      is_external=thickness == EXT, load_bearing=thickness == EXT)
 
 
 # --- Exterior walls (counter-clockwise around the L footprint) ---

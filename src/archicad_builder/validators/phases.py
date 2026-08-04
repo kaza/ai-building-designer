@@ -701,10 +701,19 @@ def validate_phase5_rooms(building: Building) -> list[ValidationError]:
     errors: list[ValidationError] = []
 
     for story in building.stories:
-        building_depth = max(
-            (max(w.start.y, w.end.y) for w in story.walls if w.is_external),
-            default=0,
-        )
+        # W046: façade checks need is_external flags; without them E044
+        # cannot judge (fail loud instead of flagging every room).
+        story_has_external_walls = any(w.is_external for w in story.walls)
+        if story.apartments and not story_has_external_walls:
+            errors.append(ValidationError(
+                severity="warning",
+                element_type="Story",
+                element_id=story.global_id,
+                message=(
+                    f"W046: Story '{story.name}' has no walls marked "
+                    f"is_external — façade checks (E044) skipped."
+                ),
+            ))
 
         for apt in story.apartments:
             # E040: No kitchen
@@ -837,37 +846,29 @@ def validate_phase5_rooms(building: Building) -> list[ValidationError]:
                         ),
                     ))
 
-            # E044: Habitable room without window
-            # Check if habitable rooms are on exterior wall (have façade access)
-            apt_verts = apt.boundary.vertices
-            apt_min_y = min(v.y for v in apt_verts)
-            apt_max_y = max(v.y for v in apt_verts)
-
-            for space in apt.spaces:
-                if space.room_type in (RoomType.BATHROOM, RoomType.TOILET,
-                                       RoomType.HALLWAY, RoomType.CORRIDOR,
-                                       RoomType.STORAGE):
-                    continue  # Dark rooms allowed
-
-                # Check if room touches an exterior wall
-                s_verts = space.boundary.vertices
-                s_min_y = min(v.y for v in s_verts)
-                s_max_y = max(v.y for v in s_verts)
-
-                touches_facade = (
-                    abs(s_min_y) < 0.01 or
-                    abs(s_max_y - building_depth) < 0.01
-                )
-                if not touches_facade:
-                    errors.append(ValidationError(
-                        severity="error",
-                        element_type="Space",
-                        element_id=space.global_id,
-                        message=(
-                            f"E044: Room '{space.name}' ({space.room_type.value}) "
-                            f"has no façade access — habitable rooms need windows."
-                        ),
-                    ))
+            # E044: Habitable room without façade access.
+            # A room has façade access iff any axis-aligned edge of its
+            # boundary polygon lies along a wall flagged is_external
+            # (see specs/facade-detection.md). Skipped (with W046 emitted
+            # at story level below) when no walls are flagged external.
+            if story_has_external_walls:
+                habitable_types = {RoomType.LIVING, RoomType.BEDROOM,
+                                   RoomType.KITCHEN}
+                for space in apt.spaces:
+                    if space.room_type not in habitable_types:
+                        continue
+                    if not _touches_external_wall(story, space):
+                        errors.append(ValidationError(
+                            severity="error",
+                            element_type="Space",
+                            element_id=space.global_id,
+                            message=(
+                                f"E044: Room '{space.name}' "
+                                f"({space.room_type.value}) has no façade "
+                                f"access — no boundary edge lies on an "
+                                f"external wall."
+                            ),
+                        ))
 
             # E045: 2+ bedrooms but no separate WC
             if len(bedrooms) >= 2:
@@ -1510,6 +1511,51 @@ def validate_interior_enclosure(building: Building) -> list[ValidationError]:
                     ))
 
     return errors
+
+
+def _touches_external_wall(
+    story: Story,
+    space,
+    tolerance: float = 0.2,
+    min_overlap: float = 0.01,
+) -> bool:
+    """True iff any axis-aligned edge of the space boundary lies along an
+    external wall (specs/facade-detection.md).
+
+    Unlike _edge_has_wall this requires the wall itself to be axis-aligned in
+    the edge's direction, filters to is_external walls, and accepts any
+    positive overlap (an L-notch segment may cover well under 50% of an edge).
+    """
+    verts = space.boundary.vertices
+    n = len(verts)
+    for i in range(n):
+        a, b = verts[i], verts[(i + 1) % n]  # includes the closing edge
+        if abs(a.y - b.y) < 1e-6:  # horizontal edge
+            lo, hi = sorted((a.x, b.x))
+            for w in story.walls:
+                if not w.is_external:
+                    continue
+                if abs(w.start.y - w.end.y) > 1e-6:  # wall not horizontal
+                    continue
+                if abs(w.start.y - a.y) > tolerance:
+                    continue
+                w_lo, w_hi = sorted((w.start.x, w.end.x))
+                if min(hi, w_hi) - max(lo, w_lo) > min_overlap:
+                    return True
+        elif abs(a.x - b.x) < 1e-6:  # vertical edge
+            lo, hi = sorted((a.y, b.y))
+            for w in story.walls:
+                if not w.is_external:
+                    continue
+                if abs(w.start.x - w.end.x) > 1e-6:  # wall not vertical
+                    continue
+                if abs(w.start.x - a.x) > tolerance:
+                    continue
+                w_lo, w_hi = sorted((w.start.y, w.end.y))
+                if min(hi, w_hi) - max(lo, w_lo) > min_overlap:
+                    return True
+        # diagonal edges: out of scope (repo is axis-aligned throughout)
+    return False
 
 
 def _edge_has_wall(

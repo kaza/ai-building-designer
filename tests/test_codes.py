@@ -338,8 +338,8 @@ class TestSupakDetector:
         e032 = [e for e in errors if "E032" in e.message]
         assert len(e032) == 0, f"Unexpected E032: {[e.message for e in e032]}"
 
-    def test_4apt_has_supak(self):
-        """4apt-centered-core has known šupak east of corridor close."""
+    def test_4apt_is_supak_free(self):
+        """4apt-centered-core validates E032-clean (šupaks fixed pre-publication)."""
         from archicad_builder.validators.phases import validate_phase4_facade
         import json
         from pathlib import Path
@@ -349,5 +349,6 @@ class TestSupakDetector:
         b = Building.model_validate(data)
         errors = validate_phase4_facade(b)
         e032 = [e for e in errors if "E032" in e.message]
-        assert len(e032) == 2  # GF + 1F
-        assert all("12.8" in e.message or "15.8" in e.message for e in e032)
+        # The historical šupaks were fixed in building.json before publication;
+        # the project is E032-clean now.
+        assert len(e032) == 0

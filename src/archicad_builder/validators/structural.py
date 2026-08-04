@@ -7,9 +7,12 @@ can't catch on their own (e.g., door fits in host wall, slab covers walls).
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 
 from archicad_builder.models.building import Story, Wall
+
+_CODE_RE = re.compile(r"^([EWO]\d+[a-z]?):")
 
 
 @dataclass
@@ -20,6 +23,12 @@ class ValidationError:
     element_type: str
     element_id: str
     message: str
+
+    @property
+    def code(self) -> str | None:
+        """Rule code parsed from the message prefix (e.g. 'E044'), or None."""
+        m = _CODE_RE.match(self.message)
+        return m.group(1) if m else None
 
 
 def validate_story(story: Story) -> list[ValidationError]:
