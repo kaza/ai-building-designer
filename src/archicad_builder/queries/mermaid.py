@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from archicad_builder.queries.connectivity import ConnectivityGraph
 
-
 # Node shape by type
 _NODE_SHAPES = {
     "exterior": ("([", "])"),     # stadium shape

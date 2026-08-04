@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.elements import Wall, Window
 from archicad_builder.models.geometry import Point2D
-from archicad_builder.models.spaces import Apartment, RoomType, Space
+from archicad_builder.models.spaces import Space
 
 
 @dataclass
@@ -24,8 +23,8 @@ class WallRoomRelation:
 
     wall_name: str
     wall_id: str
-    side_a: Optional[str]  # Room name on positive-normal side, or None
-    side_b: Optional[str]  # Room name on negative-normal side, or None
+    side_a: str | None  # Room name on positive-normal side, or None
+    side_b: str | None  # Room name on negative-normal side, or None
 
 
 def get_room_walls(
@@ -67,7 +66,7 @@ def get_wall_rooms(
     storey_name: str,
     wall_name: str,
     step_distance: float = 0.3,
-) -> tuple[Optional[str], Optional[str]]:
+) -> tuple[str | None, str | None]:
     """Get the rooms on each side of a wall.
 
     Steps to both sides of the wall center and checks which
@@ -226,7 +225,7 @@ def _point_to_segment_dist(
 # ── Internal helpers ─────────────────────────────────────────────────
 
 
-def _find_space(story: Story, room_name: str) -> Optional[Space]:
+def _find_space(story: Story, room_name: str) -> Space | None:
     """Find a space by name in a story (including inside apartments)."""
     for space in story.spaces:
         if space.name.lower() == room_name.lower():
@@ -324,7 +323,7 @@ def _segments_overlap(
 
 def _find_containing_space(
     px: float, py: float, spaces: list[Space]
-) -> Optional[str]:
+) -> str | None:
     """Find which space contains a given point."""
     for space in spaces:
         verts = [(v.x, v.y) for v in space.boundary.vertices]

@@ -7,14 +7,12 @@ walls, doors, windows, and rooms for one apartment.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
-from archicad_builder.models.building import Building, Story
+from archicad_builder.models.building import Building
 from archicad_builder.models.elements import Door, Wall, Window
-from archicad_builder.models.geometry import Point2D
-from archicad_builder.models.spaces import Apartment, Space
+from archicad_builder.models.spaces import Apartment
 
 
 @dataclass

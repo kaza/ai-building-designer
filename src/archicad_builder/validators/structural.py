@@ -388,7 +388,7 @@ def _check_walls_cross_core(story: Story) -> list[ValidationError]:
             if x_overlap and y_overlap:
                 # Exclude walls that only touch the zone boundary
                 # (their start or end is on the zone edge)
-                is_boundary = (
+                (
                     abs(wx_min - zx_min) < MARGIN or abs(wx_max - zx_max) < MARGIN
                     or abs(wy_min - zy_min) < MARGIN or abs(wy_max - zy_max) < MARGIN
                 )

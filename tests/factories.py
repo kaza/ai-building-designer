@@ -51,6 +51,11 @@ def make_defect_building() -> Building:
     wall("Apt Divider Wall", (6, 0), (6, 5.25), 0.12)
     wall("Apt B Vorraum West Wall", (8, 3.25), (8, 5.25), 0.12)
     wall("Apt B Vorraum South Wall", (8, 3.25), (10, 3.25), 0.12)
+    # Disconnected cluster in Apt A: study+closet connect to each other
+    # only (E083) — no door to the rest of the apartment
+    wall("Apt A Study East Wall", (2, 3.25), (2, 5.25), 0.12)
+    wall("Apt A Study South Wall", (0, 3.25), (2, 3.25), 0.12)
+    wall("Apt A Closet Wall", (1, 3.25), (1, 5.25), 0.12)
 
     b.add_door(GF, "Corridor South Wall", position=2.6, width=0.9, height=2.1,
                name="Apt A Entry")
@@ -61,6 +66,9 @@ def make_defect_building() -> Building:
     # Apt B: internal door only — deliberately NO entry from the corridor
     b.add_door(GF, "Apt B Vorraum South Wall", position=0.55, width=0.9,
                height=2.1, name="Apt B Living Door")
+    # cluster-internal door (study <-> closet), no connection outward
+    b.add_door(GF, "Apt A Closet Wall", position=0.6, width=0.8, height=2.1,
+               name="Apt A Closet Door")
 
     b.add_window(GF, "South Wall", position=4.5, width=1.2, height=1.4,
                  name="Apt A Bedroom Window")
@@ -74,6 +82,8 @@ def make_defect_building() -> Building:
             rect_space("Apt A Living", RoomType.LIVING, 2, 0, 4, 3.25),
             rect_space("Apt A Vorraum", RoomType.HALLWAY, 2, 3.25, 4, 5.25),
             rect_space("Apt A Bedroom", RoomType.BEDROOM, 4, 0, 6, 5.25),
+            rect_space("Apt A Study", RoomType.OFFICE, 0, 3.25, 1, 5.25),
+            rect_space("Apt A Closet", RoomType.STORAGE, 1, 3.25, 2, 5.25),
         ],
     ))
     story.apartments.append(Apartment(

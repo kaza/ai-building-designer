@@ -119,6 +119,40 @@ everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
 .venv/bin/python -m archicad_builder render villa-maketa
 ```
 
+## Rendering & viewing
+
+Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
+
+```bash
+.venv/bin/python projects/villa-maketa/build.py                        # 1. JSON
+.venv/bin/python -m archicad_builder validate villa-maketa             # 2. gate
+.venv/bin/python -m archicad_builder render villa-maketa               # 3. 2D plan
+.venv/bin/python projects/villa-maketa/render_furnished_plan.py        # 4. 2D + furniture
+.venv/bin/python -m archicad_builder export villa-maketa               # 5. IFC
+.venv/bin/python projects/villa-maketa/ifc_to_obj.py                   # 6. OBJ for Blender
+/Applications/Blender.app/Contents/MacOS/Blender -b -P \
+    projects/villa-maketa/render_blender.py                            # 7. 3D renders + blend
+```
+
+Outputs (all in `output/`, gitignored, regenerable):
+
+| File | What |
+|---|---|
+| `floor_ground_floor.png` | architectural 2D plan (dims, labels) |
+| `floor_ground_floor_furnished.png` | 2D plan + furniture/sanitary overlay |
+| `perspective.png` | 3D pool-side perspective (Cycles) |
+| `top_down.png` | orthographic maquette view |
+| `villa-maketa.ifc` | BIM model (ArchiCAD/Revit/FreeCAD) |
+| `villa.blend` | interactive scene with materials/furniture |
+
+Viewers:
+
+| Viewer | How | Notes |
+|---|---|---|
+| **Blender** (best) | `open output/villa.blend`, press **Z → Material Preview** (viewport defaults to grey Solid) | full materials + furniture; **Rendered** mode = Cycles live |
+| **FreeCAD** | `open -a FreeCAD output/villa-maketa.ifc`; in the IFC Import Options dialog keep "Load the shape", OK; if the tree shows one node, expand it; View → Fit All | GUI `Gui.open` can fail from startup scripts — `output/show_villa.py` imports via `nativeifc.ifc_import` directly |
+| **Autodesk Viewer** (web) | upload `villa-maketa.ifc` to viewer.autodesk.com | free account; shareable link |
+
 ## Lessons learned
 
 - Validators match by NAME: E022 needs a wall with "corridor" in its name; E070/E031

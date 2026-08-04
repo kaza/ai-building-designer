@@ -10,11 +10,12 @@ import math
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from archicad_builder.models.building import Building
 from archicad_builder.export.floorplan import render_floorplan
+from archicad_builder.models.building import Building
 
 
 def render_overview(

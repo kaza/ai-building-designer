@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 
@@ -155,8 +154,8 @@ def assess(project: str = typer.Argument(..., help="Project directory name")):
 @app.command()
 def render(
     project: str = typer.Argument(..., help="Project directory name"),
-    story: Optional[str] = typer.Option(None, "--story", "-s", help="Render specific story"),
-    output_dir: Optional[str] = typer.Option(None, "--output", "-o", help="Output directory"),
+    story: str | None = typer.Option(None, "--story", "-s", help="Render specific story"),
+    output_dir: str | None = typer.Option(None, "--output", "-o", help="Output directory"),
 ):
     """Render floor plan(s) to PNG."""
     building = _load_building(project)
@@ -179,8 +178,8 @@ def render(
 def list_cmd(
     project: str = typer.Argument(..., help="Project directory name"),
     what: str = typer.Argument(..., help="What to list: stories, apartments, rooms, walls"),
-    story: Optional[str] = typer.Option(None, "--story", "-s", help="Filter by story"),
-    apartment: Optional[str] = typer.Option(None, "--apartment", "-a", help="Filter by apartment"),
+    story: str | None = typer.Option(None, "--story", "-s", help="Filter by story"),
+    apartment: str | None = typer.Option(None, "--apartment", "-a", help="Filter by apartment"),
 ):
     """List building elements."""
     building = _load_building(project)
@@ -469,8 +468,8 @@ def _dispatch_action(building: Building, action: dict) -> dict:
             return {"action": cmd, "name": staircase.name}
 
         elif cmd == "add-apartment":
+            from archicad_builder.models.geometry import Point2D, Polygon2D
             from archicad_builder.models.spaces import Apartment
-            from archicad_builder.models.geometry import Polygon2D, Point2D
             apt = Apartment(
                 name=action["name"],
                 boundary=Polygon2D(vertices=[
@@ -494,7 +493,7 @@ def _dispatch_action(building: Building, action: dict) -> dict:
             return {"action": cmd, "apartment": action["apartment"]}
 
         elif cmd == "resize-apartment":
-            from archicad_builder.models.geometry import Polygon2D, Point2D
+            from archicad_builder.models.geometry import Point2D, Polygon2D
             s = building.get_story(story)
             if not s:
                 raise ValueError(f"Story '{story}' not found")
@@ -507,8 +506,8 @@ def _dispatch_action(building: Building, action: dict) -> dict:
             return {"action": cmd, "apartment": apt.name}
 
         elif cmd == "add-space":
-            from archicad_builder.models.spaces import Space, RoomType
-            from archicad_builder.models.geometry import Polygon2D, Point2D
+            from archicad_builder.models.geometry import Point2D, Polygon2D
+            from archicad_builder.models.spaces import RoomType, Space
             s = building.get_story(story)
             if not s:
                 raise ValueError(f"Story '{story}' not found")
@@ -526,7 +525,7 @@ def _dispatch_action(building: Building, action: dict) -> dict:
             return {"action": cmd, "name": space.name, "type": action["type"]}
 
         elif cmd == "resize-space":
-            from archicad_builder.models.geometry import Polygon2D, Point2D
+            from archicad_builder.models.geometry import Point2D, Polygon2D
             s = building.get_story(story)
             if not s:
                 raise ValueError(f"Story '{story}' not found")
@@ -565,18 +564,20 @@ def _dispatch_action(building: Building, action: dict) -> dict:
         else:
             return {"action": cmd, "error": f"Unknown action: {cmd}"}
 
-    except Exception as e:
+    # Approved broad catch: every action failure is SURFACED in the JSON
+    # result (apply reports it and exits non-zero) — nothing is swallowed.
+    except Exception as e:  # noqa: BLE001
         return {"action": cmd, "error": str(e)}
 
 
 @app.command()
 def apply(
     project: str = typer.Argument(..., help="Project directory name"),
-    actions_json: Optional[str] = typer.Argument(None, help="JSON array of actions"),
-    file: Optional[str] = typer.Option(None, "--file", "-f", help="Read actions from JSON file"),
+    actions_json: str | None = typer.Argument(None, help="JSON array of actions"),
+    file: str | None = typer.Option(None, "--file", "-f", help="Read actions from JSON file"),
     stdin: bool = typer.Option(False, "--stdin", help="Read actions from stdin"),
     no_validate: bool = typer.Option(False, "--no-validate", help="Skip validation after apply"),
-    render_story: Optional[str] = typer.Option(None, "--render", "-r", help="Render story after apply"),
+    render_story: str | None = typer.Option(None, "--render", "-r", help="Render story after apply"),
 ):
     """Apply modifications to a building via JSON actions."""
     # Parse actions from one of: positional arg, --file, --stdin

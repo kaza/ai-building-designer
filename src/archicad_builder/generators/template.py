@@ -13,16 +13,6 @@ GlobalIds are regenerated to ensure uniqueness. Wall references
 from __future__ import annotations
 
 from archicad_builder.models.building import Building, Story
-from archicad_builder.models.elements import (
-    Door,
-    Roof,
-    Slab,
-    Staircase,
-    VirtualElement,
-    Wall,
-    Window,
-)
-from archicad_builder.models.spaces import Apartment, Space
 from archicad_builder.models.ifc_id import generate_ifc_id
 
 

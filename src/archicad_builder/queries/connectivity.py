@@ -13,13 +13,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.elements import Door, Wall
-from archicad_builder.models.geometry import Point2D
-from archicad_builder.models.spaces import Apartment, RoomType, Space
-
 
 # ── Graph data structures ────────────────────────────────────────────
 
@@ -243,7 +239,7 @@ def _synthesize_common_zones(story: Story) -> list[_Zone]:
     return zones
 
 
-def _zone_from_walls(walls: list[Wall], name: str, zone_type: str) -> Optional[_Zone]:
+def _zone_from_walls(walls: list[Wall], name: str, zone_type: str) -> _Zone | None:
     """Create a rectangular zone from the bounding box of a set of walls."""
     if not walls:
         return None
@@ -306,7 +302,7 @@ def _find_zone_at_point(
     zones: list[_Zone],
     tolerance: float = 0.15,
     prefer_common: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """Find which zone contains a given point.
 
     When multiple zones overlap, uses preference order:
@@ -451,12 +447,10 @@ def build_connectivity_graph(
 
         # If a side has no zone, check if it's exterior
         # (the point is outside the building footprint)
-        if zone_a is None:
-            if _is_outside_building(side_a[0], side_a[1], story):
-                zone_a = "Exterior"
-        if zone_b is None:
-            if _is_outside_building(side_b[0], side_b[1], story):
-                zone_b = "Exterior"
+        if zone_a is None and _is_outside_building(side_a[0], side_a[1], story):
+            zone_a = "Exterior"
+        if zone_b is None and _is_outside_building(side_b[0], side_b[1], story):
+            zone_b = "Exterior"
 
         # Create edge if we found two different zones
         from_node = zone_a or "Unknown"

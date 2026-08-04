@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
-from archicad_builder.models.geometry import Point2D, Polygon2D
+from archicad_builder.models.geometry import Polygon2D
 from archicad_builder.models.ifc_id import generate_ifc_id
 
 

@@ -824,7 +824,7 @@ def validate_phase5_rooms(building: Building) -> list[ValidationError]:
                 min_area = MASTER_BEDROOM_MIN_AREA if is_master else CHILD_BEDROOM_MIN_AREA
 
                 # E042: Bedroom width check
-                actual_width = min(br_width, br_depth)  # Shorter dimension
+                min(br_width, br_depth)  # Shorter dimension
                 facade_width = br_width  # Along façade (X axis)
                 if facade_width < min_width - 0.01:
                     errors.append(ValidationError(
@@ -876,18 +876,17 @@ def validate_phase5_rooms(building: Building) -> list[ValidationError]:
                         ))
 
             # E045: 2+ bedrooms but no separate WC
-            if len(bedrooms) >= 2:
-                if not toilets:
-                    errors.append(ValidationError(
-                        severity="error",
-                        element_type="Apartment",
-                        element_id=apt.global_id,
-                        message=(
-                            f"E045: Apartment '{apt.name}' has "
-                            f"{len(bedrooms)} bedrooms but no separate WC. "
-                            f"Mandatory for 2+ bedroom apartments."
-                        ),
-                    ))
+            if len(bedrooms) >= 2 and not toilets:
+                errors.append(ValidationError(
+                    severity="error",
+                    element_type="Apartment",
+                    element_id=apt.global_id,
+                    message=(
+                        f"E045: Apartment '{apt.name}' has "
+                        f"{len(bedrooms)} bedrooms but no separate WC. "
+                        f"Mandatory for 2+ bedroom apartments."
+                    ),
+                ))
 
             # W040: Vorraum > 10% of apartment area
             hallways = apt.get_space_by_type(RoomType.HALLWAY)
@@ -1358,18 +1357,17 @@ def validate_core_integrity(building: Building) -> list[ValidationError]:
 
         # E060: Core wall doors must be ≤ 1.20m
         for door in story.doors:
-            if door.wall_id in core_wall_ids:
-                if door.width > MAX_CORE_OPENING + 0.01:
-                    errors.append(ValidationError(
-                        severity="error",
-                        element_type="Door",
-                        element_id=door.global_id,
-                        message=(
-                            f"E060: Door '{door.name}' on core wall has "
-                            f"width {door.width:.2f}m — maximum for fire-rated "
-                            f"core opening is {MAX_CORE_OPENING}m."
-                        ),
-                    ))
+            if door.wall_id in core_wall_ids and door.width > MAX_CORE_OPENING + 0.01:
+                errors.append(ValidationError(
+                    severity="error",
+                    element_type="Door",
+                    element_id=door.global_id,
+                    message=(
+                        f"E060: Door '{door.name}' on core wall has "
+                        f"width {door.width:.2f}m — maximum for fire-rated "
+                        f"core opening is {MAX_CORE_OPENING}m."
+                    ),
+                ))
 
         # E061: No windows on core walls
         for window in story.windows:
@@ -1428,17 +1426,17 @@ def validate_interior_enclosure(building: Building) -> list[ValidationError]:
         for apt in story.apartments:
             # Collect all doors in this apartment's area
             apt_verts = apt.boundary.vertices
-            apt_min_x = min(v.x for v in apt_verts)
-            apt_max_x = max(v.x for v in apt_verts)
-            apt_min_y = min(v.y for v in apt_verts)
-            apt_max_y = max(v.y for v in apt_verts)
+            min(v.x for v in apt_verts)
+            max(v.x for v in apt_verts)
+            min(v.y for v in apt_verts)
+            max(v.y for v in apt_verts)
 
             # Find doors whose names match this apartment
             apt_doors = [
                 d for d in story.doors
                 if apt.name.lower() in (d.name or "").lower()
             ]
-            apt_door_names = set((d.name or "").lower() for d in apt_doors)
+            apt_door_names = {(d.name or "").lower() for d in apt_doors}
 
             # E070: Rooms that need doors
             for space in apt.spaces:
@@ -1640,7 +1638,6 @@ def _validate_dead_end_corridors(building: Building) -> list[ValidationError]:
 
             cw_start_x = min(cw.start.x, cw.end.x)
             cw_end_x = max(cw.start.x, cw.end.x)
-            cw_y = cw.start.y  # corridor wall y coord
 
             # Find entry doors on this corridor wall
             door_positions = []
@@ -1657,7 +1654,7 @@ def _validate_dead_end_corridors(building: Building) -> list[ValidationError]:
 
             # Direction vector
             dx = (cw.end.x - cw.start.x) / cw_length
-            dy = (cw.end.y - cw.start.y) / cw_length
+            (cw.end.y - cw.start.y) / cw_length
 
             # Convert door positions to world x coordinates
             door_world_xs = []

@@ -7,16 +7,16 @@ Pure functions that create or modify Building models:
 - Template stamping: replicate floor layouts
 """
 
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
+from archicad_builder.generators.shell import generate_shell
 from archicad_builder.generators.template import stamp_floor_template
-from archicad_builder.generators.apartments import subdivide_apartments
 
 __all__ = [
+    "carve_corridor",
     "generate_shell",
     "place_vertical_core",
-    "carve_corridor",
     "stamp_floor_template",
     "subdivide_apartments",
 ]

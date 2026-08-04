@@ -11,7 +11,6 @@ This is the first step in top-down generation: create the building envelope.
 from __future__ import annotations
 
 from archicad_builder.models.building import Building
-from archicad_builder.models.geometry import Point2D, Polygon2D
 
 
 def generate_shell(
@@ -73,7 +72,7 @@ def generate_shell(
         else:
             story_name = _ordinal_floor_name(floor_idx)
 
-        story = building.add_story(story_name, height=floor_height)
+        building.add_story(story_name, height=floor_height)
 
         # Exterior walls
         for start, end, direction in wall_segments:
@@ -95,7 +94,7 @@ def generate_shell(
             vertices=corners,
             thickness=slab_thickness,
             is_floor=True,
-            name=f"Floor Slab",
+            name="Floor Slab",
         )
 
     return building

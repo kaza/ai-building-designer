@@ -8,6 +8,8 @@ Error codes:
     E080: Room is completely unreachable (no doors at all) → ERROR
     E081: No path from building entrance to staircase → ERROR
     E082: No path from corridor to apartment → ERROR
+    E083: Room has doors but no path from the corridor (disconnected
+          cluster inside an otherwise reachable apartment) → ERROR
     W080: Room only reachable through another habitable room → WARNING
 """
 
@@ -157,9 +159,14 @@ def _validate_corridor_to_apartments(
 
     # For each apartment, check that at least one of its rooms
     # is reachable from the corridor
+    connected_nodes = set()
+    for edge in graph.edges:
+        connected_nodes.add(edge.from_node)
+        connected_nodes.add(edge.to_node)
+
+    reachable = graph.reachable_from(corridor)
     for apt in story.apartments:
         apt_space_names = {space.name for space in apt.spaces}
-        reachable = graph.reachable_from(corridor)
         apt_reachable = apt_space_names & reachable
 
         if not apt_reachable:
@@ -173,6 +180,26 @@ def _validate_corridor_to_apartments(
                     f"Apartment rooms: {sorted(apt_space_names)}."
                 ),
             ))
+            continue
+
+        # E083: the apartment IS reachable, but some of its rooms form a
+        # disconnected cluster — they have doors (so E080 stays silent)
+        # yet no path from the corridor reaches them.
+        for space in apt.spaces:
+            name = space.name
+            if (name in graph.nodes and name not in reachable
+                    and name in connected_nodes):
+                errors.append(ValidationError(
+                    severity="error",
+                    element_type="Space",
+                    element_id=space.global_id,
+                    message=(
+                        f"E083: Room '{name}' "
+                        f"({graph.nodes[name].node_type}) on "
+                        f"'{storey_name}' has doors but no path from "
+                        f"the corridor — disconnected room cluster."
+                    ),
+                ))
 
     return errors
 
@@ -203,10 +230,17 @@ def _validate_walk_through_rooms(graph: ConnectivityGraph) -> list[ValidationErr
         if node.node_type in _HABITABLE_TYPES
     }
 
+    # Rooms with no path AT ALL are not Durchgangszimmer — they are
+    # E080/E082 findings. W080 is only for rooms that ARE reachable,
+    # just not without crossing another habitable room.
+    reachable_at_all = graph.reachable_from(entry_node)
+
     # For each habitable room, check if it's only reachable via
     # another habitable room (excluding hallway, corridor, vestibule)
     for room_name in habitable:
         if room_name == entry_node:
+            continue
+        if room_name not in reachable_at_all:
             continue
 
         # Find all paths from entry to this room

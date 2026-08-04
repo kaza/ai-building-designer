@@ -7,13 +7,8 @@ W045: WC minimum width
 
 
 from archicad_builder.models import Building
-from archicad_builder.models.spaces import (
-    Apartment,
-    Point2D,
-    Polygon2D,
-    RoomType,
-    Space,
-)
+from archicad_builder.models.geometry import Point2D, Polygon2D
+from archicad_builder.models.spaces import Apartment, RoomType, Space
 from archicad_builder.validators.phases import validate_phase5_rooms
 
 

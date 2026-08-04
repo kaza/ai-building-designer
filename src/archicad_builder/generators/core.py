@@ -13,8 +13,6 @@ repeats identically on every floor.
 from __future__ import annotations
 
 from archicad_builder.models.building import Building
-from archicad_builder.models.elements import StaircaseType
-from archicad_builder.models.geometry import Point2D, Polygon2D
 
 
 def place_vertical_core(
@@ -58,7 +56,7 @@ def place_vertical_core(
     """
     # Core total dimensions
     core_width = elevator_width + stair_width
-    core_depth = max(elevator_depth, stair_depth)
+    max(elevator_depth, stair_depth)
 
     # Elevator shaft corners (left portion of core)
     elev_x0 = core_x
@@ -93,7 +91,7 @@ def place_vertical_core(
         # South wall of elevator (with door opening on corridor side)
         if corridor_side == "south":
             # South wall gets a door
-            elev_south = _add_core_wall(
+            _add_core_wall(
                 building, story_name,
                 (elev_x0, elev_y0), (elev_x1, elev_y0),
                 wh, wall_thickness, "Elevator South Wall")

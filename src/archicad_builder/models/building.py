@@ -6,7 +6,6 @@ Follows IFC conventions for spatial hierarchy and element naming.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
@@ -22,9 +21,9 @@ from archicad_builder.models.elements import (
     Wall,
     Window,
 )
-from archicad_builder.models.spaces import Apartment, RoomType, Space
 from archicad_builder.models.geometry import Point2D, Polygon2D
 from archicad_builder.models.ifc_id import generate_ifc_id
+from archicad_builder.models.spaces import Apartment, Space
 
 
 class Story(BaseModel):
@@ -457,7 +456,7 @@ class Building(BaseModel):
 
     @staticmethod
     def _update_boundaries_for_wall_move(
-        story: "Story",
+        story: Story,
         old_start: tuple[float, float],
         old_end: tuple[float, float],
         new_start: tuple[float, float],
@@ -473,7 +472,7 @@ class Building(BaseModel):
         ox1, oy1 = old_start
         ox2, oy2 = old_end
         nx1, ny1 = new_start
-        nx2, ny2 = new_end
+        _nx2, _ny2 = new_end
 
         is_vertical = abs(ox1 - ox2) < tol
         is_horizontal = abs(oy1 - oy2) < tol
@@ -607,9 +606,9 @@ class Building(BaseModel):
 
     def validate(self) -> list:
         """Run all validators across all stories. Returns list of errors."""
-        from archicad_builder.validators.structural import validate_story
-        from archicad_builder.validators.connectivity import validate_connectivity
         from archicad_builder.validators.building import validate_building
+        from archicad_builder.validators.connectivity import validate_connectivity
+        from archicad_builder.validators.structural import validate_story
 
         errors = []
         # Per-story validators

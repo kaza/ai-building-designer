@@ -13,19 +13,18 @@ import math
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")  # headless rendering
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import matplotlib.patheffects as pe
-from matplotlib.patches import Arc, FancyArrowPatch
-import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Arc
 
 # Halo effect for text readability on any background
 _TEXT_HALO = [pe.withStroke(linewidth=3, foreground="black")]
 
-from archicad_builder.models.building import Building, Story
-from archicad_builder.models.elements import DoorOperationType, Staircase, Wall, Door, Window
-from archicad_builder.models.spaces import Apartment, RoomType, Space
+from archicad_builder.models.building import Story
+from archicad_builder.models.elements import Door, DoorOperationType, Staircase, Wall, Window
+from archicad_builder.models.spaces import RoomType, Space
 
 
 def _wall_direction(wall: Wall) -> tuple[float, float]:
@@ -183,7 +182,7 @@ def render_floorplan(
             fontsize=8,
             verticalalignment="top",
             fontfamily="monospace",
-            bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8, edgecolor="#CCCCCC"),
+            bbox={"boxstyle": "round,pad=0.5", "facecolor": "white", "alpha": 0.8, "edgecolor": "#CCCCCC"},
             zorder=100,
         )
 
@@ -535,7 +534,7 @@ def _draw_staircase(
     min_y, max_y = min(ys), max(ys)
     cx = (min_x + max_x) / 2
     cy = (min_y + max_y) / 2
-    w = max_x - min_x
+    max_x - min_x
     h = max_y - min_y
 
     # Draw horizontal step lines across the staircase
@@ -550,7 +549,7 @@ def _draw_staircase(
     # Arrow showing ascent direction (up = +Y)
     ax.annotate(
         "", xy=(cx, max_y - 0.2), xytext=(cx, min_y + 0.2),
-        arrowprops=dict(arrowstyle="->", color="#7B1FA2", lw=1.5),
+        arrowprops={"arrowstyle": "->", "color": "#7B1FA2", "lw": 1.5},
         zorder=12,
     )
 

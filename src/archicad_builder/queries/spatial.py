@@ -10,9 +10,7 @@ import math
 from dataclasses import dataclass, field
 
 from archicad_builder.models.building import Building, Story
-from archicad_builder.models.elements import Wall, Door, Window, Slab, Staircase
 from archicad_builder.models.geometry import Point2D
-from archicad_builder.models.spaces import Apartment, Space
 
 
 @dataclass
@@ -99,8 +97,7 @@ def find_neighbors(
         for tp in target_ref_points:
             for wp in wall_points:
                 d = _distance(tp, wp)
-                if d < min_d:
-                    min_d = d
+                min_d = min(min_d, d)
 
         if min_d <= max_distance:
             # Check for endpoint connections (shared corners)
@@ -108,8 +105,7 @@ def find_neighbors(
             for tp in target_ref_points:
                 for wp in [wall.start, wall.end]:
                     d = _distance(tp, wp)
-                    if d < endpoint_dist:
-                        endpoint_dist = d
+                    endpoint_dist = min(endpoint_dist, d)
 
             rel = "nearby"
             if endpoint_dist < 0.05:

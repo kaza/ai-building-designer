@@ -6,21 +6,24 @@ Focuses on correct geometry and proper IFC hierarchy.
 
 from __future__ import annotations
 
-import math
-import time
-import uuid
 from pathlib import Path
 
 import ifcopenshell
 import ifcopenshell.api
 import ifcopenshell.guid
-import numpy as np
 
 from archicad_builder.models.building import Building, Story
-from archicad_builder.models.elements import Door, Slab, SlabType, Staircase, Wall, Window, Roof, RoofType
-from archicad_builder.models.spaces import Space
-from archicad_builder.models.geometry import Point2D
+from archicad_builder.models.elements import (
+    Door,
+    Roof,
+    Slab,
+    Staircase,
+    VirtualElement,
+    Wall,
+    Window,
+)
 from archicad_builder.models.ifc_id import generate_ifc_id
+from archicad_builder.models.spaces import Space
 
 
 def _new_guid() -> str:
@@ -361,10 +364,9 @@ class IFCExporter:
         return ifc_wall
 
     def _create_virtual_element(
-        self, ve: "VirtualElement", elevation: float
+        self, ve: VirtualElement, elevation: float
     ) -> ifcopenshell.entity_instance:
         """Create an IfcVirtualElement — a zero-thickness boundary line."""
-        from archicad_builder.models.elements import VirtualElement as VE
 
         dx = ve.end.x - ve.start.x
         dy = ve.end.y - ve.start.y

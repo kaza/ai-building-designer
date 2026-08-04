@@ -23,10 +23,8 @@ Construction constants (Austrian residential):
 from __future__ import annotations
 
 from archicad_builder.models.building import Building
-from archicad_builder.models.elements import StaircaseType
 from archicad_builder.models.geometry import Point2D, Polygon2D
 from archicad_builder.models.spaces import Apartment, RoomType, Space
-from archicad_builder.models.ifc_id import generate_ifc_id
 
 # ── Construction constants ────────────────────────────────────────────
 CLEAR_HEIGHT = 2.52        # Room clear height (m)
@@ -103,7 +101,7 @@ def generate_shell_v2(
         else:
             story_name = _ordinal_floor_name(floor_idx)
 
-        story = building.add_story(story_name, height=FLOOR_TO_FLOOR)
+        building.add_story(story_name, height=FLOOR_TO_FLOOR)
 
         for start, end, direction in wall_segments:
             wall = building.add_wall(
@@ -469,8 +467,7 @@ def subdivide_apartments_v2(
                 if corridor_wall:
                     wall_start_x = min(corridor_wall.start.x, corridor_wall.end.x)
                     door_pos = apt_center_x - wall_start_x - 0.45
-                    if door_pos < 0.1:
-                        door_pos = 0.1
+                    door_pos = max(door_pos, 0.1)
                     if door_pos + 0.9 > corridor_wall.length:
                         door_pos = corridor_wall.length - 1.0
                     building.add_door(
@@ -532,8 +529,7 @@ def subdivide_apartments_v2(
                 if corridor_wall:
                     wall_start_x = min(corridor_wall.start.x, corridor_wall.end.x)
                     door_pos = apt_center_x - wall_start_x - 0.45
-                    if door_pos < 0.1:
-                        door_pos = 0.1
+                    door_pos = max(door_pos, 0.1)
                     if door_pos + 0.9 > corridor_wall.length:
                         door_pos = corridor_wall.length - 1.0
                     building.add_door(
@@ -562,8 +558,7 @@ def _plan_apartments_for_facade(
     # n <= (facade_length + 0.15) / 6.65
 
     max_apts = int((facade_length + INT_WALL_THICKNESS) / (MIN_2ROOM_FACADE + INT_WALL_THICKNESS))
-    if max_apts < 1:
-        max_apts = 1
+    max_apts = max(max_apts, 1)
 
     # For 16m façade: (16 + 0.15) / 6.65 = 2.43 → 2 apartments
     num_apts = max_apts
@@ -721,8 +716,7 @@ def _create_apartment_v2(
     bath_x0 = vor_x0 - bath_w
     bath_x1 = vor_x0
     # Clamp to living zone
-    if bath_x0 < living_x0:
-        bath_x0 = living_x0
+    bath_x0 = max(bath_x0, living_x0)
     spaces.append(Space(
         name=f"{name} Bathroom",
         room_type=RoomType.BATHROOM,
@@ -844,7 +838,7 @@ def add_windows_v2(building: Building, core_info: dict) -> None:
     Every habitable room gets a window on the façade.
     Window width = 1.20m, height = 1.50m, sill = 0.90m.
     """
-    bw = core_info["building_width"]
+    core_info["building_width"]
     bd = core_info["building_depth"]
 
     for story in building.stories:
@@ -855,8 +849,8 @@ def add_windows_v2(building: Building, core_info: dict) -> None:
             verts = apt.boundary.vertices
             min_y = min(v.y for v in verts)
             max_y = max(v.y for v in verts)
-            min_x = min(v.x for v in verts)
-            max_x = max(v.x for v in verts)
+            min(v.x for v in verts)
+            max(v.x for v in verts)
 
             facade_wall_name = None
             if abs(min_y) < 0.01:  # South facade
@@ -889,8 +883,7 @@ def add_windows_v2(building: Building, core_info: dict) -> None:
                 win_pos = room_center_x - wall_start_x - win_width / 2
 
                 # Ensure window fits in wall
-                if win_pos < 0.3:
-                    win_pos = 0.3
+                win_pos = max(win_pos, 0.3)
                 if win_pos + win_width > facade_wall.length - 0.3:
                     continue  # Skip if can't fit
 
@@ -1251,8 +1244,8 @@ def subdivide_apartments_v3(
     """
     corridor_y = core_info["corridor_y"]
     cw = core_info["corridor_width"]
-    core_x = core_info["core_x"]
-    core_width = core_info["core_width"]
+    core_info["core_x"]
+    core_info["core_width"]
     bw = core_info["building_width"]
     bd = core_info["building_depth"]
     lobby_x0 = core_info["lobby_x0"]
@@ -1315,7 +1308,7 @@ def subdivide_apartments_v3(
 
         # ── North zone: corridor_y + cw to building_depth ──
         north_y0 = corridor_y + cw
-        north_depth = bd - north_y0
+        bd - north_y0
 
         mid_x = bw / 2.0
         north_apt_ranges = [
@@ -1372,7 +1365,7 @@ def _create_apartment_with_walls_v3(
     """
     w = x1 - x0
     h = y1 - y0
-    apt_area = w * h
+    w * h
     wh = FLOOR_TO_FLOOR
 
     # Choose bedroom width based on available space
@@ -1403,12 +1396,10 @@ def _create_apartment_with_walls_v3(
         # Corridor at y1, facade at y0
         svc_y0 = y1 - service_depth  # Bottom of service zone
         svc_y1 = y1                   # Top = corridor
-        corridor_side_y = y1
     else:
         # Corridor at y0, facade at y1
         svc_y0 = y0                   # Top of service zone = corridor
         svc_y1 = y0 + service_depth   # Bottom of service zone
-        corridor_side_y = y0
 
     # Service zone X coordinates (from left of living zone)
     bath_x0 = x0
@@ -1601,7 +1592,7 @@ def _create_apartment_with_walls_v3(
 def _find_corridor_wall_v3(story, apt_center_x: float, core_info: dict) -> str | None:
     """Find the correct corridor wall for apartment entry."""
     core_x = core_info["core_x"]
-    core_x_end = core_x + core_info["core_width"]
+    core_x + core_info["core_width"]
 
     # Determine which side of the core
     if apt_center_x < core_x:
@@ -1616,9 +1607,9 @@ def _find_corridor_wall_v3(story, apt_center_x: float, core_info: dict) -> str |
         if story.get_wall_by_name(name):
             # Check if apartment center Y is on the correct side
             wall = story.get_wall_by_name(name)
-            wall_y = (wall.start.y + wall.end.y) / 2
-            corridor_y = core_info["corridor_y"]
-            cw = core_info["corridor_width"]
+            (wall.start.y + wall.end.y) / 2
+            core_info["corridor_y"]
+            core_info["corridor_width"]
 
             # For south apartments, entry is on corridor south wall
             # For north apartments, entry is on corridor north wall
@@ -1637,7 +1628,7 @@ def add_windows_v3(building: Building, core_info: dict) -> None:
 
     NO windows on core walls. Only exterior walls get windows.
     """
-    bw = core_info["building_width"]
+    core_info["building_width"]
     bd = core_info["building_depth"]
 
     for story in building.stories:
@@ -1674,8 +1665,7 @@ def add_windows_v3(building: Building, core_info: dict) -> None:
                 win_width = 1.20
                 win_pos = room_center_x - wall_start_x - win_width / 2
 
-                if win_pos < 0.3:
-                    win_pos = 0.3
+                win_pos = max(win_pos, 0.3)
                 if win_pos + win_width > facade_wall.length - 0.3:
                     continue
 

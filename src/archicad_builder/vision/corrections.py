@@ -9,7 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-from dataclasses import dataclass, field as dataclass_field
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from typing import Any
 
 from archicad_builder.models.building import Building, Story
@@ -245,7 +246,7 @@ def _apply_compound_modify(
 ) -> None:
     """Handle compound field modifications (e.g., 'coordinates, length')."""
     tag = correction.element_tag
-    fields = [f.strip().lower() for f in correction.field.split(",")]
+    [f.strip().lower() for f in correction.field.split(",")]
     value = correction.corrected_value
 
     # Common pattern: "coordinates, length" with value like "(3.70,1.15)→(3.70,6.30), 5.15m"

@@ -14,12 +14,9 @@ Strategy:
 
 from __future__ import annotations
 
-import math
-
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.geometry import Point2D, Polygon2D
 from archicad_builder.models.spaces import Apartment, RoomType, Space
-from archicad_builder.models.ifc_id import generate_ifc_id
 
 
 def subdivide_apartments(
@@ -277,11 +274,9 @@ def _add_entry_door(
     # Find the corridor wall this apartment faces
     if abs(max_y - corridor_y) < 0.01:
         # South apartment: door on the north side (y=corridor_y)
-        target_wall_y = corridor_y
         wall_name = "Corridor South Wall"
     elif abs(min_y - corridor_north_y) < 0.01:
         # North apartment: door on the south side (y=corridor_north_y)
-        target_wall_y = corridor_north_y
         wall_name = "Corridor North Wall"
     else:
         return  # Can't determine corridor side

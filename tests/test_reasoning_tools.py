@@ -351,11 +351,14 @@ class TestReachabilityValidator:
         e081s = [e for e in errors if "E081" in e.message]
         assert len(e081s) == 0
 
-    def test_durchgangszimmer_warnings(self, v3_building: Building):
-        """W080: Rooms only reachable through habitable rooms."""
+    def test_no_durchgangszimmer_false_positives(self, v3_building: Building):
+        """Published 4apt has no true Durchgangszimmer — its old W080s were
+        false positives on unreachable rooms (isolated kitchens, bedrooms
+        with graph-swallowed doors). Real W080 detection is covered by
+        TestDefectFixture.test_w080_durchgangszimmer."""
         errors = validate_reachability(v3_building, "Ground Floor")
         w080s = [e for e in errors if "W080" in e.message]
-        assert len(w080s) > 0
+        assert w080s == []
 
     def test_prebuilt_graph_accepted(self, v3_building: Building, ground_graph: ConnectivityGraph):
         """Validator should accept a pre-built graph."""
@@ -700,19 +703,30 @@ class TestDefectFixture:
         assert any("Apt A Kitchen" in e.message for e in e080s)
 
     def test_w080_durchgangszimmer(self, defect_building: Building):
-        """Bedroom reachable only through the Living room -> W080.
+        """W080 = reachable, but ONLY through another habitable room.
 
-        Exact-set assertion so validator behavior changes surface loudly.
-        NOTE: 'Apt A Kitchen' (isolated, no door) and 'Apt B Living'
-        (apartment without entry) also get W080 — a known validator
-        false positive: rooms with NO path at all are not
-        Durchgangszimmer. If the validator is fixed, shrink this set.
+        Exactly the bedroom behind the living room. Rooms with NO path at
+        all (isolated kitchen -> E080, apartment without entry -> E082)
+        are not Durchgangszimmer and must not be double-flagged.
         """
         errors = validate_reachability(defect_building, "Ground Floor")
         w080_rooms = {
             e.message.split("'")[1] for e in errors if "W080" in e.message
         }
-        assert w080_rooms == {"Apt A Bedroom", "Apt A Kitchen", "Apt B Living"}
+        assert w080_rooms == {"Apt A Bedroom"}
+
+    def test_e083_flags_disconnected_cluster(self, defect_building: Building):
+        """Study+Closet have a door between them but no path to the entry.
+
+        E080 needs zero edges, E082 looks at whole apartments — this
+        cluster inside an otherwise-reachable apartment needs E083.
+        No E083 for Apt B rooms: E082 already covers that apartment.
+        """
+        errors = validate_reachability(defect_building, "Ground Floor")
+        e083_rooms = {
+            e.message.split("'")[1] for e in errors if "E083" in e.message
+        }
+        assert e083_rooms == {"Apt A Study", "Apt A Closet"}
 
     def test_bedroom_window_by_name(self, defect_building: Building):
         windows = get_room_windows(defect_building, "Ground Floor", "Apt A Bedroom")
