@@ -451,6 +451,9 @@ bpy.ops.render.render(write_still=True)
 print(f"Rendered {OUT_PERSP}")
 
 scene.view_settings.exposure = -0.6
+# Save the full scene for interactive viewing (open in Blender, orbit away)
+bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
+
 scene.camera = cam_top
 scene.render.resolution_x = 1100
 scene.render.resolution_y = 2000
