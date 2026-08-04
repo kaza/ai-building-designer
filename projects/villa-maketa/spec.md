@@ -113,11 +113,10 @@ project needs them.
 
 - Validators match by NAME: E022 needs a wall with "corridor" in its name; E070/E031
   need doors named "<apartment> <room> Door" / "<apartment> Entry Door".
-- `Building.add_wall()` never sets `is_external` — must be set manually on the returned
-  wall or facade checks (E044) see building depth 0.
-- E044 only checked north/south facades of the bounding box → false positives for
-  Living and Master. Fixed 2026-08-04 in the framework (specs/facade-detection.md);
-  `add_wall()` now takes `is_external=` directly.
+- Pass `is_external=True` to `Building.add_wall()` for facade walls — E044 relies
+  on the flag.
+- E044 previously checked only north/south facades of the bounding box → false
+  positives for Living and Master. Fixed 2026-08-04 (specs/facade-detection.md).
 - W001 targets exactly 2.52m clear height (block economics); villa keeps 2.63m → noise.
 
 ## Accepted validation results

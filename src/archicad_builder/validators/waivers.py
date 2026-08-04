@@ -44,6 +44,18 @@ class Waiver(BaseModel):
             raise ValueError("waiver reason must not be blank")
         return v
 
+    @field_validator("match")
+    @classmethod
+    def match_not_blank(cls, v: str | None) -> str | None:
+        # match="" would sort as "specific" yet match every message,
+        # shadowing real targeted waivers and dodging duplicate detection.
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("waiver match must not be blank")
+        return v
+
 
 class WaiverConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")

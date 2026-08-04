@@ -100,6 +100,11 @@ class TestSchema:
             WaiverConfig.model_validate(
                 {"waivers": [], "unknown_top": True})
 
+    def test_blank_match_rejected(self):
+        with pytest.raises(PydanticValidationError):
+            WaiverConfig.model_validate(
+                {"waivers": [{"rule": "W060", "reason": "x", "match": "  "}]})
+
     def test_bad_rule_pattern_rejected(self):
         with pytest.raises(PydanticValidationError):
             WaiverConfig.model_validate(

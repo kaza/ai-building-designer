@@ -40,8 +40,9 @@ Optional per-project file `projects/<name>/validation.json`:
   CLI exits with `ok: false` and the parse error. Never silently ignored.
 
 ## Boundaries & edge cases
-- Waiver key is the rule code only — no per-element granularity (YAGNI until a
-  project needs to waive E043 for one bedroom but not another).
+- Waiver identity is (`rule`, `match`) — `match` gives message-level targeting
+  (e.g. one named bedroom). Stable `element_id` targeting is unsupported because
+  GUIDs are regenerated on every build.py run.
 - No environment/test-set switching: profiles are per project directory, which
   already IS the per-building-type boundary.
 - Waiving a rule does not suppress it in `stale_waivers` accounting.

@@ -37,12 +37,14 @@ from walls flagged `is_external`. Two failures follow:
 - Rooms with polygon (not rect) boundaries: all edges are checked, not the bbox.
 
 ## Testing & verification
-- [ ] Room on west facade (window wall) → no E044
-- [ ] Interior room (no exterior edge) → E044
-- [ ] L-footprint: room whose only exterior edge is a notch segment → no E044
-- [ ] Story with apartments, no `is_external` walls → single W044, no per-room E044
-- [ ] `add_wall(is_external=True)` sets the flag
-- [ ] Block projects (3apt, 4apt) still validate to 0 errors
+- [x] Room on west facade (window wall) → no E044
+- [x] Interior room (no exterior edge) → E044
+- [x] L-footprint: room whose only exterior edge is a notch segment → no E044
+- [x] Story with apartments, no `is_external` walls → single W046, no per-room E044
+- [x] `add_wall(is_external=True)` sets the flag
+- [x] Block projects (3apt, 4apt) still validate to 0 errors
+
+(all in tests/test_facade_detection.py)
 
 ## Decision log
 | Date | Decision | Why | Who |

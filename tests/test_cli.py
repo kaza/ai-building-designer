@@ -52,8 +52,9 @@ class TestValidate:
 class TestValidateWaivers:
     def test_project_without_config_has_no_waiver_keys(self):
         data = run_cli("validate", "3apt-corner-core")
-        assert "waived" not in data["validation"]
-        assert "stale_waivers" not in data["validation"]
+        assert {"waived", "waived_count", "stale_waivers"}.isdisjoint(
+            data["validation"]
+        )
 
     def test_villa_waivers_applied(self):
         """villa-maketa ships validation.json waiving its villa-vs-block noise."""
@@ -61,7 +62,10 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        assert v["waived_count"] >= 4
+        assert v["waived_count"] == 5
+        assert {w["rule"] for w in v["waived"]} == {
+            "W001", "W040", "W042", "W060", "E041b",
+        }
         assert all(w["reason"] for w in v["waived"])
         assert v["stale_waivers"] == []
 
