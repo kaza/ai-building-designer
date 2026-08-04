@@ -39,3 +39,6 @@ examples/output/
 
 # Project outputs (IFC, images are regenerated from JSON)
 projects/*/output/
+
+# Claude harness artifacts
+.claude/

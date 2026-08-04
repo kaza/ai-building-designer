@@ -67,8 +67,8 @@ the wrong rooms. No validator fired.
   vice versa. Deterministic now, but the names contradict the layout.
 
 ## Testing & verification (result)
-All checklist items covered in tests/test_space_overlap.py; blocks report
-0 errors via CLI with E090 in the waived list (8 and 14 findings waived).
+All checklist items covered in tests/test_space_overlap.py; after the
+2026-08-04 repair both blocks report 0 errors with NO waiver files at all.
 
 ## Related
 [test-fixtures.md](test-fixtures.md), [validation-waivers.md](validation-waivers.md)
