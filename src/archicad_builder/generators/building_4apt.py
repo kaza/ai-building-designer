@@ -726,12 +726,16 @@ def _create_apartment_v2(
         ]),
     ))
 
+    # Leftmost edge of the service strip (grows if a WC is added)
+    service_x0 = bath_x0
+
     # ── Separate WC for 3-room apartments ──
     if apt_type >= 3:
         wc_w = min(WC_WIDTH, bath_x0 - living_x0)
         if wc_w >= 0.80:
             wc_x0 = bath_x0 - wc_w
             wc_x1 = bath_x0
+            service_x0 = wc_x0
             spaces.append(Space(
                 name=f"{name} WC",
                 room_type=RoomType.TOILET,
@@ -741,19 +745,10 @@ def _create_apartment_v2(
                 ]),
             ))
 
-    # ── Living room (full depth of living zone) ──
-    spaces.append(Space(
-        name=f"{name} Living",
-        room_type=RoomType.LIVING,
-        boundary=Polygon2D(vertices=[
-            Point2D(x=living_x0, y=y0), Point2D(x=living_x1, y=y0),
-            Point2D(x=living_x1, y=y1), Point2D(x=living_x0, y=y1),
-        ]),
-    ))
-
-    # ── Kitchen (open-plan, in living zone near façade for natural light) ──
+    # ── Kitchen geometry (open-plan zone, near façade for natural light) ──
     kitchen_w = min(KITCHEN_WIDTH, living_zone_w * 0.50)
     kitchen_depth = min(2.50, h * 0.40)
+    kit_x0 = living_x1 - kitchen_w
 
     if facade_side == "south":
         # Kitchen at facade side (bottom) in living zone
@@ -764,14 +759,47 @@ def _create_apartment_v2(
         kitchen_y0 = y1 - kitchen_depth
         kitchen_y1 = y1
 
+    # ── Living room (living zone minus service strip and kitchen zone) ──
+    # Rectilinear polygon with two notches: the service strip (Vorraum/
+    # Bath/WC, corridor side) and the open-plan kitchen (façade side) are
+    # excluded so no space polygons overlap (specs/space-overlap.md, E090).
+    if facade_side == "south":
+        living_vertices = [
+            Point2D(x=living_x0, y=y0),
+            Point2D(x=kit_x0, y=y0),
+            Point2D(x=kit_x0, y=kitchen_y1),
+            Point2D(x=living_x1, y=kitchen_y1),
+            Point2D(x=living_x1, y=service_y0),
+            Point2D(x=service_x0, y=service_y0),
+            Point2D(x=service_x0, y=y1),
+            Point2D(x=living_x0, y=y1),
+        ]
+    else:
+        living_vertices = [
+            Point2D(x=living_x0, y=y0),
+            Point2D(x=service_x0, y=y0),
+            Point2D(x=service_x0, y=service_y1),
+            Point2D(x=living_x1, y=service_y1),
+            Point2D(x=living_x1, y=kitchen_y0),
+            Point2D(x=kit_x0, y=kitchen_y0),
+            Point2D(x=kit_x0, y=y1),
+            Point2D(x=living_x0, y=y1),
+        ]
+
+    spaces.append(Space(
+        name=f"{name} Living",
+        room_type=RoomType.LIVING,
+        boundary=Polygon2D(vertices=living_vertices),
+    ))
+
     spaces.append(Space(
         name=f"{name} Kitchen",
         room_type=RoomType.KITCHEN,
         boundary=Polygon2D(vertices=[
-            Point2D(x=living_x1 - kitchen_w, y=kitchen_y0),
+            Point2D(x=kit_x0, y=kitchen_y0),
             Point2D(x=living_x1, y=kitchen_y0),
             Point2D(x=living_x1, y=kitchen_y1),
-            Point2D(x=living_x1 - kitchen_w, y=kitchen_y1),
+            Point2D(x=kit_x0, y=kitchen_y1),
         ]),
     ))
 
@@ -1438,18 +1466,10 @@ def _create_apartment_with_walls_v3(
         living_y0 = svc_y1
         living_y1 = y1
 
-    spaces.append(Space(
-        name=f"{name} Living",
-        room_type=RoomType.LIVING,
-        boundary=Polygon2D(vertices=[
-            Point2D(x=x0, y=living_y0), Point2D(x=bed_x0, y=living_y0),
-            Point2D(x=bed_x0, y=living_y1), Point2D(x=x0, y=living_y1),
-        ]),
-    ))
-
-    # Kitchen (sub-zone of living, near facade for natural light)
+    # Kitchen geometry (open-plan zone, near facade for natural light)
     kitchen_w = min(KITCHEN_WIDTH, living_zone_w * 0.50)
     kitchen_depth = min(2.50, h * 0.35)
+    kit_x0 = bed_x0 - kitchen_w
 
     if facade_side == "south":
         kit_y0 = y0
@@ -1458,14 +1478,41 @@ def _create_apartment_with_walls_v3(
         kit_y0 = y1 - kitchen_depth
         kit_y1 = y1
 
+    # Living room: L-shape that excludes the open-plan kitchen zone so the
+    # two spaces never overlap (specs/space-overlap.md, E090).
+    if facade_side == "south":
+        living_vertices = [
+            Point2D(x=x0, y=living_y0),
+            Point2D(x=kit_x0, y=living_y0),
+            Point2D(x=kit_x0, y=kit_y1),
+            Point2D(x=bed_x0, y=kit_y1),
+            Point2D(x=bed_x0, y=living_y1),
+            Point2D(x=x0, y=living_y1),
+        ]
+    else:
+        living_vertices = [
+            Point2D(x=x0, y=living_y0),
+            Point2D(x=bed_x0, y=living_y0),
+            Point2D(x=bed_x0, y=kit_y0),
+            Point2D(x=kit_x0, y=kit_y0),
+            Point2D(x=kit_x0, y=living_y1),
+            Point2D(x=x0, y=living_y1),
+        ]
+
+    spaces.append(Space(
+        name=f"{name} Living",
+        room_type=RoomType.LIVING,
+        boundary=Polygon2D(vertices=living_vertices),
+    ))
+
     spaces.append(Space(
         name=f"{name} Kitchen",
         room_type=RoomType.KITCHEN,
         boundary=Polygon2D(vertices=[
-            Point2D(x=bed_x0 - kitchen_w, y=kit_y0),
+            Point2D(x=kit_x0, y=kit_y0),
             Point2D(x=bed_x0, y=kit_y0),
             Point2D(x=bed_x0, y=kit_y1),
-            Point2D(x=bed_x0 - kitchen_w, y=kit_y1),
+            Point2D(x=kit_x0, y=kit_y1),
         ]),
     ))
 

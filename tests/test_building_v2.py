@@ -402,10 +402,7 @@ class TestFullPipeline:
         v2_errors = [
             e for e in errors
             if e.severity == "error"
-            # E090 excluded like the other later-era rules: the v2/v3
-            # generators draw open-plan sub-zones overlapping living rooms
-            # (legacy convention, see specs/space-overlap.md)
-            and not any(code in e.message for code in ["E060", "E061", "E070", "E071", "E049", "E090"])
+            and not any(code in e.message for code in ["E060", "E061", "E070", "E071", "E049"])
         ]
         if v2_errors:
             msgs = "\n".join(f"  {e.message}" for e in v2_errors)

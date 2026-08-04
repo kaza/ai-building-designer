@@ -57,8 +57,14 @@ the wrong rooms. No validator fired.
 ## Lessons learned
 - E090 revealed the overlap pattern is EVERYWHERE in legacy data: 3apt (8),
   4apt (14), and both v2/v3 *generators* draw open-plan sub-zones overlapping
-  living rooms. Blocks waive it via validation.json; generator tests exclude
-  E090 explicitly with comments. Generator geometry repair is the follow-up.
+  living rooms. Initially waived per-pair; **repaired 2026-08-04** (multi-agent
+  workflow): all space polygons snapped to centerlines with open-plan zones
+  carved out as rectilinear notches. Block waiver files deleted, generator
+  xfail canary flipped to a passing test. Side effect: bedroom door edges in
+  the 4apt connectivity graph came back.
+- Remaining (out of scope, new finding): 4apt window PLACEMENT is misnamed —
+  the window named "Bedroom Window" physically sits in the Living span and
+  vice versa. Deterministic now, but the names contradict the layout.
 
 ## Testing & verification (result)
 All checklist items covered in tests/test_space_overlap.py; blocks report

@@ -5,10 +5,10 @@ wall-room relationships, building API extensions, and floor plan slice.
 
 Fixtures:
 - v3_building: the published 4apt-centered-core project ("4-Storey Building
-  V3") — used for positive/structural assertions. NOTE: its space polygons
-  overlap wall centerlines in places (e.g. S1 Kitchen extends past the
-  bedroom wall), which swallows bedroom door edges in the graph — see the
-  synthetic fixture for intent-preserving connectivity tests.
+  V3") — used for positive/structural assertions. Its space polygons align
+  to wall centerlines (open-plan kitchen zones are carved out of the living
+  polygons, see specs/space-overlap.md), so bedroom doors resolve to the
+  Living on the apartment side.
 - defect_building: small synthetic building with deliberate defects
   (open-plan kitchen without door, apartment without entry) so the
   detection tests stay meaningful regardless of showcase-data evolution.
@@ -146,16 +146,17 @@ class TestConnectivityGraph:
         pytest.fail("Building Main Entry edge not found")
 
     def test_apartment_internal_connectivity(self, ground_graph: ConnectivityGraph):
-        """Within each south apartment the Vorraum connects to the Living.
+        """Within each south apartment: Vorraum -> Living -> Bedroom.
 
-        NOTE: the Living->Bedroom edge is missing in the published data —
-        S1/S2 Kitchen polygons overlap the bedroom wall, so the graph
-        resolves both door sides to the kitchen and drops the edge. The
-        bedroom-chain intent lives in TestDefectFixture (synthetic data).
+        The space polygons align to the wall centerlines (the kitchen
+        zones stop short of the bedroom doors), so each bedroom door
+        resolves to the Living on the apartment side.
         """
         for apt in ["Apt S1", "Apt S2"]:
             vorraum_neighbors = [n for n, _ in ground_graph.neighbors(f"{apt} Vorraum")]
             assert f"{apt} Living" in vorraum_neighbors
+            living_neighbors = [n for n, _ in ground_graph.neighbors(f"{apt} Living")]
+            assert f"{apt} Bedroom" in living_neighbors
 
     def test_kitchen_not_connected(self, ground_graph: ConnectivityGraph):
         """Kitchen spaces are open-plan (no door) — not connected in graph."""
@@ -351,14 +352,18 @@ class TestReachabilityValidator:
         e081s = [e for e in errors if "E081" in e.message]
         assert len(e081s) == 0
 
-    def test_no_durchgangszimmer_false_positives(self, v3_building: Building):
-        """Published 4apt has no true Durchgangszimmer — its old W080s were
-        false positives on unreachable rooms (isolated kitchens, bedrooms
-        with graph-swallowed doors). Real W080 detection is covered by
-        TestDefectFixture.test_w080_durchgangszimmer."""
+    def test_durchgangszimmer_flags_s1_bedroom_only(self, v3_building: Building):
+        """W080 flags exactly the S1 bedroom on the published 4apt.
+
+        S1 Bedroom is only reachable through the Living (a true
+        Durchgangszimmer). S2 Bedroom has a second, non-habitable access
+        via the Abstellraum, so it must NOT be flagged. Isolated kitchens
+        (E080) must not be double-flagged as W080."""
         errors = validate_reachability(v3_building, "Ground Floor")
-        w080s = [e for e in errors if "W080" in e.message]
-        assert w080s == []
+        w080_rooms = {
+            e.message.split("'")[1] for e in errors if "W080" in e.message
+        }
+        assert w080_rooms == {"Apt S1 Bedroom"}
 
     def test_prebuilt_graph_accepted(self, v3_building: Building, ground_graph: ConnectivityGraph):
         """Validator should accept a pre-built graph."""
@@ -737,16 +742,17 @@ class TestIntegration:
     """End-to-end integration tests."""
 
     def test_graph_reveals_building_issues(self, v3_building: Building):
-        """The connectivity graph reveals real issues in the published data."""
+        """The connectivity graph reflects the published data correctly."""
         g = build_connectivity_graph(v3_building, "Ground Floor")
 
-        # Issue 1: open-plan kitchens have no door edge
+        # Open-plan kitchens have no door edge (real issue: E080)
         for apt in ["Apt S1", "Apt S2", "Apt N1", "Apt N2"]:
             assert not g.neighbors(f"{apt} Kitchen")
 
-        # Issue 2: bedroom door edges swallowed by overlapping kitchen
-        # polygons (S1/S2 Kitchen crosses the bedroom wall centerline)
-        assert not g.neighbors("Apt S1 Bedroom")
+        # Bedroom doors resolve to the Living — the repaired space
+        # polygons no longer swallow them (specs/space-overlap.md)
+        bedroom_neighbors = [n for n, _ in g.neighbors("Apt S1 Bedroom")]
+        assert bedroom_neighbors == ["Apt S1 Living"]
 
     def test_validator_catches_graph_issues(self, v3_building: Building):
         """Reachability validator flags the open-plan kitchens the graph shows."""

@@ -1,6 +1,4 @@
 """Tests for E090 space-overlap validation (specs/space-overlap.md)."""
-import pytest
-
 from archicad_builder.models.building import Building
 from archicad_builder.models.spaces import Apartment, RoomType
 from archicad_builder.validators.spaces import validate_space_overlaps
@@ -87,15 +85,6 @@ class TestE090RealProjects:
                           / "villa-maketa" / "building.json")
         assert validate_space_overlaps(b) == []
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="v3 generator draws open-plan sub-zones overlapping living "
-               "rooms (specs/space-overlap.md); when the generator is "
-               "repaired this xfail turns into a hard failure — then remove "
-               "the E090 exclusions in test_building_v2/v3 and the block "
-               "projects' waivers.",
-    )
     def test_generator_produces_overlap_free_buildings(self):
-        """Debt canary: flips loudly when the generator gets fixed."""
         from archicad_builder.generators.building_4apt import generate_building_4apt
         assert validate_space_overlaps(generate_building_4apt()) == []
