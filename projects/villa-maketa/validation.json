@@ -9,11 +9,6 @@
       "reason": "single-villa hallway doubles as entry zone; Vorraum share rule is for blocks"
     },
     {
-      "rule": "W042",
-      "match": "Garage Stair",
-      "reason": "staircases are tunnel-shaped by definition"
-    },
-    {
       "rule": "W060",
       "match": "Master Bedroom Terrace Door",
       "reason": "genuine 1.4m double French door to the deck"

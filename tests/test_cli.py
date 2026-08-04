@@ -67,10 +67,10 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        assert v["waived_count"] == 6  # incl. two W060 doors (master + room 2)
+        assert v["waived_count"] == 5  # incl. two W060 doors (master + room 2)
         assert {w["rule"] for w in v["waived"]} == {
-            "W001", "W040", "W042", "W060", "E041b",
-        }
+            "W001", "W040", "W060", "E041b",
+        }  # W042 gone: the spiral stair is square, waiver was removed
         assert all(w["reason"] for w in v["waived"])
         assert v["stale_waivers"] == []
 

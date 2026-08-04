@@ -253,7 +253,8 @@ for obj in list(scene.objects):
     elif "Slab" in n:
         obj.data.materials.append(MATS["slab"])
     elif "Stair" in n:
-        obj.data.materials.append(MATS["stair"])
+        # Spiral stair: hide the IFC prism, build pole + helical steps below
+        obj.hide_render = True
     elif "Window" in n:
         obj.data.materials.append(MATS["glass"])
         # Frame: duplicated box turned into bars via wireframe modifier
@@ -273,12 +274,58 @@ for obj in list(scene.objects):
     else:
         obj.data.materials.append(MATS["wall"])
 
+# ── Spiral staircase (pole + helical wedge steps descending to garage) ──────
+
+def make_spiral_stair(cx, cy, radius=0.72, z_top=SLAB_TOP, drop=2.0, steps=12):
+    # Cut a real stairwell opening through the ground slab so the spiral
+    # is visible from above (a down-stair IS a hole in the floor).
+    bpy.ops.mesh.primitive_cylinder_add(radius=radius + 0.03, depth=1.0,
+                                        location=(cx, cy, z_top - 0.3))
+    cutter = bpy.context.active_object
+    cutter.name = "StairwellCutter"
+    cutter.hide_render = True
+    for obj in scene.objects:
+        if obj.type == "MESH" and "Slab" in obj.name and "Ground" in obj.name:
+            mod = obj.modifiers.new("Stairwell", "BOOLEAN")
+            mod.operation = "DIFFERENCE"
+            mod.object = cutter
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.06, depth=drop + 1.2,
+                                        location=(cx, cy, z_top - drop / 2 + 0.3))
+    pole = bpy.context.active_object
+    pole.name = "SpiralPole"
+    pole.data.materials.append(MATS["frame"])
+    for i in range(steps):
+        ang = math.radians(i * (360 / steps) * 1.25)
+        z = z_top - 0.02 - i * (drop / steps)
+        bpy.ops.mesh.primitive_cube_add(
+            size=1, location=(cx + (radius / 2 + 0.05) * math.cos(ang),
+                              cy + (radius / 2 + 0.05) * math.sin(ang), z))
+        step = bpy.context.active_object
+        step.name = f"SpiralStep{i}"
+        step.scale = (radius / 2 - 0.05, 0.13, 0.02)
+        step.rotation_euler = (0, 0, ang)
+        step.data.materials.append(MATS["stair"])
+
+
+building = json.loads(BUILDING.read_text())
+for story_ in building["stories"]:
+    for st in story_.get("staircases", []):
+        if st.get("stair_type") == "SPIRAL_STAIR":
+            vs = [(v["x"], v["y"]) for v in st["outline"]["vertices"]]
+            cx = sum(x for x, _ in vs) / len(vs)
+            cy = sum(y for _, y in vs) / len(vs)
+            r = min(max(x for x, _ in vs) - min(x for x, _ in vs),
+                    max(y for _, y in vs) - min(y for _, y in vs)) / 2
+            make_spiral_stair(cx, cy, radius=r)
+
 # ── Colored floors per space ─────────────────────────────────────────────────
 
 building = json.loads(BUILDING.read_text())
 for story in building["stories"]:
     for apt in story.get("apartments", []):
         for sp in apt.get("spaces", []):
+            if sp["room_type"] == "staircase":
+                continue  # stairwell is an opening, not a floor
             key = FLOOR_BY_ROOM.get(sp["room_type"], "floor_room")
             verts = [(v["x"], v["y"]) for v in sp["boundary"]["vertices"]]
             add_polygon(f"Floor_{sp['name']}", verts, SLAB_TOP + 0.01, MATS[key])

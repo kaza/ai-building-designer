@@ -23,7 +23,14 @@ from matplotlib.patches import Arc
 _TEXT_HALO = [pe.withStroke(linewidth=3, foreground="black")]
 
 from archicad_builder.models.building import Story
-from archicad_builder.models.elements import Door, DoorOperationType, Staircase, Wall, Window
+from archicad_builder.models.elements import (
+    Door,
+    DoorOperationType,
+    Staircase,
+    StaircaseType,
+    Wall,
+    Window,
+)
 from archicad_builder.models.spaces import RoomType, Space
 
 
@@ -528,30 +535,56 @@ def _draw_staircase(
         color="#7B1FA2", linewidth=1.0, zorder=11,
     )
 
-    # Draw diagonal lines (step indication)
     # Get bounding box
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
     cx = (min_x + max_x) / 2
     cy = (min_y + max_y) / 2
-    max_x - min_x
     h = max_y - min_y
 
-    # Draw horizontal step lines across the staircase
-    num_lines = int(h / 0.3)  # ~0.3m per step visualization
-    for i in range(1, num_lines):
-        line_y = min_y + i * (h / num_lines)
-        ax.plot(
-            [min_x, max_x], [line_y, line_y],
-            color="#7B1FA2", linewidth=0.3, alpha=0.5, zorder=6,
+    if staircase.stair_type == StaircaseType.SPIRAL_STAIR:
+        # Architectural spiral symbol: inscribed circle, center pole,
+        # radial treads every 30°, curved ascent arrow.
+        radius = min(max_x - min_x, max_y - min_y) / 2
+        circle = plt.Circle((cx, cy), radius, fill=False,
+                            color="#7B1FA2", linewidth=1.0, zorder=11)
+        ax.add_patch(circle)
+        ax.plot([cx], [cy], marker="o", markersize=3,
+                color="#7B1FA2", zorder=12)
+        for i in range(12):
+            ang = math.radians(i * 30)
+            ax.plot(
+                [cx + 0.12 * math.cos(ang), cx + radius * math.cos(ang)],
+                [cy + 0.12 * math.sin(ang), cy + radius * math.sin(ang)],
+                color="#7B1FA2", linewidth=0.3, alpha=0.6, zorder=6,
+            )
+        # Curved arrow (three-quarter sweep) showing rotation direction
+        arc_r = radius * 0.6
+        arc_angles = [math.radians(a) for a in range(-60, 181, 15)]
+        arc_x = [cx + arc_r * math.cos(a) for a in arc_angles]
+        arc_y = [cy + arc_r * math.sin(a) for a in arc_angles]
+        ax.plot(arc_x, arc_y, color="#7B1FA2", linewidth=1.2, zorder=12)
+        ax.annotate(
+            "", xy=(arc_x[-1], arc_y[-1] + 0.12), xytext=(arc_x[-1], arc_y[-1]),
+            arrowprops={"arrowstyle": "->", "color": "#7B1FA2", "lw": 1.2},
+            zorder=12,
         )
+    else:
+        # Straight-tread symbol: parallel step lines across the outline
+        num_lines = int(h / 0.3)  # ~0.3m per step visualization
+        for i in range(1, num_lines):
+            line_y = min_y + i * (h / num_lines)
+            ax.plot(
+                [min_x, max_x], [line_y, line_y],
+                color="#7B1FA2", linewidth=0.3, alpha=0.5, zorder=6,
+            )
 
-    # Arrow showing ascent direction (up = +Y)
-    ax.annotate(
-        "", xy=(cx, max_y - 0.2), xytext=(cx, min_y + 0.2),
-        arrowprops={"arrowstyle": "->", "color": "#7B1FA2", "lw": 1.5},
-        zorder=12,
-    )
+        # Arrow showing ascent direction (up = +Y)
+        ax.annotate(
+            "", xy=(cx, max_y - 0.2), xytext=(cx, min_y + 0.2),
+            arrowprops={"arrowstyle": "->", "color": "#7B1FA2", "lw": 1.5},
+            zorder=12,
+        )
 
     # Tag label
     if show_labels and staircase.tag:

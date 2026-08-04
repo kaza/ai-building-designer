@@ -105,12 +105,12 @@ b.add_slab(
 b.add_slab(GF, [(0.5, 14), (9, 14), (9, 17.5), (0.5, 17.5)], thickness=0.15, name="Pool")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
 
-# --- Staircase down to garage (garage storey = backlog) ---
+# --- Spiral staircase down to garage (matches the maquette) ---
 b.add_staircase(
     GF,
-    [(5.0, 0.2), (7.6, 0.2), (7.6, 1.5), (5.0, 1.5)],
-    width=1.3,
-    stair_type=StaircaseType.STRAIGHT_RUN_STAIR,
+    [(6.1, 0.2), (7.6, 0.2), (7.6, 1.7), (6.1, 1.7)],
+    width=0.7,
+    stair_type=StaircaseType.SPIRAL_STAIR,
     name="Garage Stair",
 )
 
@@ -128,7 +128,7 @@ def rect(x0, y0, x1, y1):
 
 
 hallway_verts = [
-    (4.5, 0), (5.0, 0), (5.0, 1.5), (7.6, 1.5), (7.6, 0),
+    (4.5, 0), (6.1, 0), (6.1, 1.7), (7.6, 1.7), (7.6, 0),
     (9.5, 0), (9.5, 8), (8, 8), (8, 2.5), (4.5, 2.5),
 ]
 
@@ -149,7 +149,7 @@ apartment = Apartment(
         space("Master Bedroom", RoomType.BEDROOM, rect(4.5, 4.5, 8, 8)),
         space("Room 2", RoomType.BEDROOM, rect(6.0, 8, 9.5, 12)),
         space("Hallway", RoomType.HALLWAY, hallway_verts),
-        space("Garage Stair", RoomType.STAIRCASE, rect(5.0, 0, 7.6, 1.5)),
+        space("Garage Stair", RoomType.STAIRCASE, rect(6.1, 0.2, 7.6, 1.7)),
     ],
 )
 

@@ -81,6 +81,7 @@ Kitchen↔Living is open plan — no wall between them.
 | Date | Decision | Why |
 |---|---|---|
 | 2026-08-03 | Straight-run stair, not spiral | Model has no spiral type; backlog |
+| 2026-08-04 | Spiral stair (SPIRAL_STAIR, 1.5×1.5m) replaces the straight run | matches the maquette; renderer support added (specs/spiral-stair-rendering.md) |
 | 2026-08-03 | Garage level not modeled in v1 | Focus on main floor; stair placed, leads down |
 | 2026-08-03 | Room 2 in v1 (not backlog) | Owner: "prava soba", part of the 12m depth |
 | 2026-08-03 | No storage room in v1 | No obvious spot; expect completeness warning |
@@ -118,7 +119,6 @@ everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
 
 ## Backlog
 
-- Spiral staircase type
 - Garage storey below (elevation −2.7)
 - Furniture symbols + room colors in the 2D matplotlib plan (#6)
 - Furniture in IFC (IfcFurnishingElement) if ArchiCAD needs it
