@@ -8,30 +8,22 @@ from __future__ import annotations
 import pytest
 
 from archicad_builder.generators.building_4apt import (
-    CLEAR_HEIGHT,
-    CORRIDOR_WIDTH,
-    FLOOR_STRUCTURE,
     FLOOR_TO_FLOOR,
     MIN_2ROOM_FACADE,
     STAIR_FLIGHT_WIDTH,
+    carve_corridor_v2,
     generate_building_4apt,
     generate_shell_v2,
     place_core_v2,
-    carve_corridor_v2,
     subdivide_apartments_v2,
-    add_windows_v2,
 )
+from archicad_builder.models.spaces import RoomType
 from archicad_builder.validators.phases import (
     validate_all_phases,
     validate_phase1_shell,
     validate_phase2_core,
-    validate_phase3_corridor,
-    validate_phase4_facade,
-    validate_phase5_rooms,
     validate_phase6_vertical,
 )
-from archicad_builder.models.spaces import RoomType
-
 
 # ══════════════════════════════════════════════════════════════════════
 # Phase 1: Shell Tests

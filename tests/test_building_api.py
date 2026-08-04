@@ -1,12 +1,9 @@
 """Tests for Building convenience API (high-level methods)."""
 
-import tempfile
-from pathlib import Path
-from uuid import uuid4
 
 import pytest
 
-from archicad_builder.models import Building, Story, Wall, Door, Window, Point2D, generate_ifc_id
+from archicad_builder.models import Building, Door
 
 
 class TestFileIO:

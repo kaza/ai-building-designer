@@ -5,13 +5,12 @@ W044: Kitchen minimum width
 W045: WC minimum width
 """
 
-import pytest
 
 from archicad_builder.models import Building
 from archicad_builder.models.spaces import (
     Apartment,
-    Polygon2D,
     Point2D,
+    Polygon2D,
     RoomType,
     Space,
 )

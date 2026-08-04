@@ -9,7 +9,6 @@ from archicad_builder.validators.connectivity import (
 )
 from archicad_builder.validators.snap import snap_endpoints
 
-
 # ── Fixtures ──────────────────────────────────────────────────────
 
 

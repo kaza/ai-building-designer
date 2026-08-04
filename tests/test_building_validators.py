@@ -1,19 +1,16 @@
 """Tests for building-level validators."""
 
-import pytest
 
-from archicad_builder.models import Building, Point2D, Wall, Slab, Staircase
-from archicad_builder.models.geometry import Polygon2D
-from archicad_builder.models.ifc_id import generate_ifc_id
+from archicad_builder.generators.core import place_vertical_core
+from archicad_builder.generators.shell import generate_shell
+from archicad_builder.models import Building
 from archicad_builder.validators.building import (
     validate_bearing_wall_alignment,
+    validate_building,
     validate_has_staircase,
     validate_slab_completeness,
     validate_wall_closure,
-    validate_building,
 )
-from archicad_builder.generators.shell import generate_shell
-from archicad_builder.generators.core import place_vertical_core
 
 
 class TestBearingWallAlignment:

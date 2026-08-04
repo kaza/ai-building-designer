@@ -52,7 +52,7 @@ def _save_building(building: Building, project: str) -> Path:
     return path
 
 
-def _validate_json(building: Building, waivers: "WaiverConfig | None" = None) -> dict:
+def _validate_json(building: Building, waivers: WaiverConfig | None = None) -> dict:
     """Run all validators and return structured results.
 
     With a WaiverConfig, waived findings move to 'waived' (with reasons),
@@ -86,7 +86,7 @@ def _validate_json(building: Building, waivers: "WaiverConfig | None" = None) ->
     return result
 
 
-def _load_project_waivers(project: str) -> "WaiverConfig | None":
+def _load_project_waivers(project: str) -> WaiverConfig | None:
     """Load projects/<name>/validation.json; exit with JSON error if malformed."""
     try:
         return load_waivers(PROJECTS_DIR / project / "validation.json")
@@ -127,7 +127,6 @@ def assess(project: str = typer.Argument(..., help="Project directory name")):
         for apt in story.apartments:
             spaces = []
             for sp in apt.spaces:
-                v = sp.boundary.vertices
                 area = sp.boundary.area
                 spaces.append({
                     "name": sp.name,

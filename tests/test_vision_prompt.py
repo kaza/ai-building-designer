@@ -10,7 +10,7 @@ from archicad_builder.vision.prompt import build_comparison_prompt
 def simple_building() -> Building:
     b = Building(name="Test")
     b.add_story("GF", height=2.7)
-    w = b.add_wall("GF", (0, 0), (6, 0), height=2.7, thickness=0.3, name="South")
+    b.add_wall("GF", (0, 0), (6, 0), height=2.7, thickness=0.3, name="South")
     b.add_wall("GF", (6, 0), (6, 4), height=2.7, thickness=0.3, name="East")
     b.add_door("GF", "South", position=2.0, width=0.9, height=2.1, name="Front Door")
     b.add_window("GF", "East", position=1.0, width=1.2, height=1.5, name="East Window")

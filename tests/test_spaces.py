@@ -1,18 +1,21 @@
 """Tests for Space/Apartment models and apartment subdivision."""
 
-import pytest
 
-from archicad_builder.models import (
-    Building, Point2D, Polygon2D, Space, Apartment, RoomType,
-)
-from archicad_builder.models.spaces import MIN_ROOM_AREAS
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
-from archicad_builder.generators.apartments import subdivide_apartments
+from archicad_builder.generators.shell import generate_shell
+from archicad_builder.models import (
+    Apartment,
+    Building,
+    Point2D,
+    Polygon2D,
+    RoomType,
+    Space,
+)
 from archicad_builder.validators.spaces import (
-    validate_room_sizes,
     validate_apartment_requirements,
+    validate_room_sizes,
     validate_spaces,
 )
 

@@ -13,7 +13,6 @@ from archicad_builder.vision.corrections import (
     summarize_round,
 )
 
-
 # ── Fixtures ──────────────────────────────────────────────────────
 
 
@@ -186,7 +185,7 @@ def test_apply_modify_wall_endpoint(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     wall = apartment_building.stories[0].walls[4]
     assert wall.end.x == 3.0
@@ -208,7 +207,7 @@ def test_apply_modify_door_position(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     door = apartment_building.stories[0].doors[0]
     assert door.position == 2.5
@@ -229,7 +228,7 @@ def test_apply_modify_door_width(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     door = apartment_building.stories[0].doors[0]
     assert door.width == 0.9
@@ -250,7 +249,7 @@ def test_apply_modify_window_sill(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     window = apartment_building.stories[0].windows[0]
     assert window.sill_height == 0.0
@@ -271,7 +270,7 @@ def test_apply_modify_host_wall(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     door = apartment_building.stories[0].doors[0]
     east_wall = apartment_building.stories[0].walls[1]
@@ -301,7 +300,7 @@ def test_apply_add_wall(apartment_building: Building):
         ],
     )
     initial_count = len(apartment_building.stories[0].walls)
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     assert len(apartment_building.stories[0].walls) == initial_count + 1
     new_wall = apartment_building.stories[0].walls[-1]
@@ -332,7 +331,7 @@ def test_apply_add_door(apartment_building: Building):
         ],
     )
     initial_count = len(apartment_building.stories[0].doors)
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     assert len(apartment_building.stories[0].doors) == initial_count + 1
     new_door = apartment_building.stories[0].doors[-1]
@@ -362,7 +361,7 @@ def test_apply_add_window(apartment_building: Building):
         ],
     )
     initial_count = len(apartment_building.stories[0].windows)
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     assert len(apartment_building.stories[0].windows) == initial_count + 1
     new_win = apartment_building.stories[0].windows[-1]
@@ -404,7 +403,7 @@ def test_apply_remove_door(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     story = apartment_building.stories[0]
     assert not any(d.tag == "D1" for d in story.doors)
@@ -459,7 +458,7 @@ def test_apply_add_wall_with_array_coordinates(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
     new_wall = apartment_building.stories[0].walls[-1]
     assert new_wall.start.x == 1.0
     assert new_wall.start.y == 2.0
@@ -487,7 +486,7 @@ def test_apply_modify_with_alias_fields(apartment_building: Building):
             ),
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     wall = apartment_building.stories[0].walls[4]
     assert wall.load_bearing is True
@@ -509,7 +508,7 @@ def test_apply_modify_wall_start_from_string(apartment_building: Building):
             )
         ],
     )
-    changelog = apply_corrections(apartment_building, "GF", result)
+    apply_corrections(apartment_building, "GF", result)
 
     wall = apartment_building.stories[0].walls[4]
     assert wall.start.x == 3.5

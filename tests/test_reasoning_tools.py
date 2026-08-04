@@ -1,38 +1,45 @@
 """Comprehensive tests for AI reasoning tools.
 
 Tests connectivity graph, mermaid export, reachability validator,
-wall-room relationships, building API extensions, and floor plan slice
-against the v3 building model.
+wall-room relationships, building API extensions, and floor plan slice.
+
+Fixtures:
+- v3_building: the published 4apt-centered-core project ("4-Storey Building
+  V3") — used for positive/structural assertions. NOTE: its space polygons
+  overlap wall centerlines in places (e.g. S1 Kitchen extends past the
+  bedroom wall), which swallows bedroom door edges in the graph — see the
+  synthetic fixture for intent-preserving connectivity tests.
+- defect_building: small synthetic building with deliberate defects
+  (open-plan kitchen without door, apartment without entry) so the
+  detection tests stay meaningful regardless of showcase-data evolution.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from archicad_builder.models.building import Building
 from archicad_builder.queries.connectivity import (
     ConnectivityGraph,
-    GraphEdge,
-    GraphNode,
-    build_connectivity_graph,
     _point_in_polygon,
     _point_in_polygon_with_tolerance,
     _synthesize_common_zones,
+    build_connectivity_graph,
 )
 from archicad_builder.queries.mermaid import graph_to_mermaid, graph_to_mermaid_simple
-from archicad_builder.validators.reachability import validate_reachability
+from archicad_builder.queries.slice import extract_apartment
 from archicad_builder.queries.wall_rooms import (
-    get_room_walls,
-    get_wall_rooms,
     get_room_exterior_walls,
+    get_room_walls,
     get_room_windows,
+    get_wall_rooms,
 )
-from archicad_builder.queries.slice import extract_apartment, ApartmentSlice
-
+from archicad_builder.validators.reachability import validate_reachability
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 
-V3_PATH = Path(__file__).parent.parent.parent / "projects" / "sample-4storey-v3" / "building.json"
+V3_PATH = Path(__file__).parent.parent / "projects" / "4apt-centered-core" / "building.json"
 
 
 @pytest.fixture
@@ -51,6 +58,82 @@ def ground_graph(v3_building: Building) -> ConnectivityGraph:
 def first_floor_graph(v3_building: Building) -> ConnectivityGraph:
     """Connectivity graph for 1st floor."""
     return build_connectivity_graph(v3_building, "1st Floor")
+
+
+@pytest.fixture
+def defect_building() -> Building:
+    """Synthetic single-storey building with deliberate defects.
+
+    Apt A (west): reachable from corridor; Kitchen is open-plan (no door,
+    E080); Bedroom reachable only through Living (Durchgangszimmer, W080).
+    Apt B (east): has NO entry door from the corridor (E082).
+    """
+    from archicad_builder.models.geometry import Point2D, Polygon2D
+    from archicad_builder.models.spaces import Apartment, RoomType, Space
+
+    b = Building(name="Defect Fixture")
+    b.add_story("Ground Floor", height=3.0)
+    GF = "Ground Floor"
+
+    def wall(name, s_, e_, thickness=0.25, external=False):
+        return b.add_wall(GF, s_, e_, height=3.0, thickness=thickness,
+                          name=name, is_external=external, load_bearing=external)
+
+    wall("South Wall", (0, 0), (12, 0), external=True)
+    wall("East Wall", (12, 0), (12, 8), external=True)
+    wall("North Wall", (12, 8), (0, 8), external=True)
+    wall("West Wall", (0, 8), (0, 0), external=True)
+    wall("Corridor South Wall", (0, 5.25), (12, 5.25))
+    wall("Corridor North Wall", (0, 6.75), (12, 6.75))
+    wall("Apt A Vorraum West Wall", (2, 3.25), (2, 5.25), 0.12)
+    wall("Apt A Vorraum South Wall", (2, 3.25), (4, 3.25), 0.12)
+    wall("Apt A Bedroom Wall", (4, 0), (4, 5.25), 0.12)
+    wall("Apt Divider Wall", (6, 0), (6, 5.25), 0.12)
+    wall("Apt B Vorraum West Wall", (8, 3.25), (8, 5.25), 0.12)
+    wall("Apt B Vorraum South Wall", (8, 3.25), (10, 3.25), 0.12)
+
+    b.add_door(GF, "Corridor South Wall", position=2.6, width=0.9, height=2.1,
+               name="Apt A Entry")
+    b.add_door(GF, "Apt A Vorraum South Wall", position=0.55, width=0.9,
+               height=2.1, name="Apt A Living Door")
+    b.add_door(GF, "Apt A Bedroom Wall", position=1.3, width=0.8, height=2.1,
+               name="Apt A Bedroom Door")
+    # Apt B: internal door only — deliberately NO entry from the corridor
+    b.add_door(GF, "Apt B Vorraum South Wall", position=0.55, width=0.9,
+               height=2.1, name="Apt B Living Door")
+
+    b.add_window(GF, "South Wall", position=4.5, width=1.2, height=1.4,
+                 name="Apt A Bedroom Window")
+
+    def rect(name, rt, x0, y0, x1, y1):
+        return Space(name=name, room_type=rt, boundary=Polygon2D(vertices=[
+            Point2D(x=x0, y=y0), Point2D(x=x1, y=y0),
+            Point2D(x=x1, y=y1), Point2D(x=x0, y=y1)]))
+
+    story = b.get_story(GF)
+    story.apartments.append(Apartment(
+        name="Apt A",
+        boundary=Polygon2D(vertices=[Point2D(x=0, y=0), Point2D(x=6, y=0),
+                                     Point2D(x=6, y=5.25), Point2D(x=0, y=5.25)]),
+        spaces=[
+            rect("Apt A Kitchen", RoomType.KITCHEN, 0, 0, 2, 3.25),
+            rect("Apt A Living", RoomType.LIVING, 2, 0, 4, 3.25),
+            rect("Apt A Vorraum", RoomType.HALLWAY, 2, 3.25, 4, 5.25),
+            rect("Apt A Bedroom", RoomType.BEDROOM, 4, 0, 6, 5.25),
+        ],
+    ))
+    story.apartments.append(Apartment(
+        name="Apt B",
+        boundary=Polygon2D(vertices=[Point2D(x=6, y=0), Point2D(x=12, y=0),
+                                     Point2D(x=12, y=5.25), Point2D(x=6, y=5.25)]),
+        spaces=[
+            # Living spans the full south band so the vorraum door (center
+            # x=9) actually lands in it — vorraum <-> living edge exists.
+            rect("Apt B Living", RoomType.LIVING, 6, 0, 12, 3.25),
+            rect("Apt B Vorraum", RoomType.HALLWAY, 8, 3.25, 10, 5.25),
+        ],
+    ))
+    return b
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -72,17 +155,24 @@ class TestConnectivityGraph:
         assert "exterior" in node_types
 
     def test_ground_floor_node_count(self, ground_graph: ConnectivityGraph):
-        """Ground floor: 20 apartment rooms + 5 common areas + Exterior = 26."""
-        assert len(ground_graph.nodes) == 26
+        """Ground floor: 19 apartment rooms + 5 common areas + Exterior = 25."""
+        assert len(ground_graph.nodes) == 25
 
     def test_first_floor_no_lobby(self, first_floor_graph: ConnectivityGraph):
         """1st floor should have no lobby (only ground floor has lobby)."""
         assert "Lobby" not in first_floor_graph.nodes
 
     def test_apartment_rooms_are_nodes(self, ground_graph: ConnectivityGraph):
-        """Each apartment room should be a node."""
-        for apt_prefix in ["Apt S1", "Apt S2", "Apt N1", "Apt N2"]:
-            for room in ["Vorraum", "Bathroom", "Living", "Kitchen", "Bedroom"]:
+        """Each apartment room should be a node (N apartments are 2-room)."""
+        expected = {
+            "Apt S1": ["Vorraum", "Bathroom", "Living", "Kitchen", "Bedroom"],
+            "Apt S2": ["Vorraum", "Bathroom", "Living", "Kitchen", "Bedroom",
+                       "Abstellraum"],
+            "Apt N1": ["Vorraum", "Bathroom", "Living", "Kitchen"],
+            "Apt N2": ["Vorraum", "Bathroom", "Living", "Kitchen"],
+        }
+        for apt_prefix, rooms in expected.items():
+            for room in rooms:
                 name = f"{apt_prefix} {room}"
                 assert name in ground_graph.nodes, f"Missing node: {name}"
 
@@ -124,14 +214,16 @@ class TestConnectivityGraph:
         pytest.fail("Building Main Entry edge not found")
 
     def test_apartment_internal_connectivity(self, ground_graph: ConnectivityGraph):
-        """Within each south apartment: Vorraum→Living→Bedroom chain."""
+        """Within each south apartment the Vorraum connects to the Living.
+
+        NOTE: the Living->Bedroom edge is missing in the published data —
+        S1/S2 Kitchen polygons overlap the bedroom wall, so the graph
+        resolves both door sides to the kitchen and drops the edge. The
+        bedroom-chain intent lives in TestDefectFixture (synthetic data).
+        """
         for apt in ["Apt S1", "Apt S2"]:
-            # Vorraum connected to Living
             vorraum_neighbors = [n for n, _ in ground_graph.neighbors(f"{apt} Vorraum")]
             assert f"{apt} Living" in vorraum_neighbors
-            # Living connected to Bedroom
-            living_neighbors = [n for n, _ in ground_graph.neighbors(f"{apt} Living")]
-            assert f"{apt} Bedroom" in living_neighbors
 
     def test_kitchen_not_connected(self, ground_graph: ConnectivityGraph):
         """Kitchen spaces are open-plan (no door) — not connected in graph."""
@@ -141,19 +233,20 @@ class TestConnectivityGraph:
             assert len(neighbors) == 0, f"{kitchen} should have no door connections"
 
     def test_has_path_within_apartment(self, ground_graph: ConnectivityGraph):
-        """Path should exist from corridor to S1 bedroom."""
-        assert ground_graph.has_path("Corridor", "Apt S1 Bedroom")
+        """Path should exist from corridor into the S1 apartment."""
+        assert ground_graph.has_path("Corridor", "Apt S1 Living")
 
     def test_has_path_returns_false_for_disconnected(self, ground_graph: ConnectivityGraph):
-        """No path from Exterior to apartments (lobby disconnected from corridor)."""
-        # This is a known building data issue: lobby has no door to corridor
-        assert not ground_graph.has_path("Exterior", "Apt S1 Vorraum")
+        """Open-plan kitchens have no door, so no graph path reaches them."""
+        assert not ground_graph.has_path("Exterior", "Apt S1 Kitchen")
+        assert not ground_graph.has_path("Corridor", "Apt S1 Kitchen")
 
     def test_reachable_from_exterior_limited(self, ground_graph: ConnectivityGraph):
-        """From Exterior, only Lobby is reachable (disconnected from rest)."""
+        """From Exterior the lobby and corridor are reachable, kitchens not."""
         reachable = ground_graph.reachable_from("Exterior")
         assert "Lobby" in reachable
-        assert "Corridor" not in reachable
+        assert "Corridor" in reachable
+        assert "Apt S1 Kitchen" not in reachable
 
     def test_graph_edge_count(self, ground_graph: ConnectivityGraph):
         """Ground floor should have edges for most doors (some may be skipped)."""
@@ -210,7 +303,7 @@ class TestConnectivityGraphHelpers:
         xs = [v[0] for v in corridor.vertices]
         ys = [v[1] for v in corridor.vertices]
         assert min(xs) == pytest.approx(0.0)
-        assert max(xs) == pytest.approx(16.0)
+        assert max(xs) == pytest.approx(12.5)
         assert min(ys) == pytest.approx(5.25)
         assert max(ys) == pytest.approx(6.75)
 
@@ -259,8 +352,6 @@ class TestMermaidExport:
     def test_mermaid_no_areas(self, ground_graph: ConnectivityGraph):
         """When show_area=False, no areas in labels."""
         output = graph_to_mermaid(ground_graph, show_area=False)
-        # Area markers should not appear in node definitions
-        lines = [l for l in output.split("\n") if "m²" in l]
         # Edges may contain "m" (for door width), but nodes shouldn't have "m²"
         node_lines = [l for l in output.split("\n") if "-->" not in l and "m²" in l]
         assert len(node_lines) == 0
@@ -300,12 +391,14 @@ class TestReachabilityValidator:
         kitchen_errors = [e for e in e080s if "Kitchen" in e.message]
         assert len(kitchen_errors) == 4  # 4 apartments, each has an open-plan kitchen
 
-    def test_catches_north_apartments_unreachable(self, v3_building: Building):
-        """E082: North apartments should be unreachable from corridor."""
+    def test_all_apartments_reachable(self, v3_building: Building):
+        """All published-building apartments are reachable — no E082.
+
+        (E082 detection itself is covered by TestDefectFixture.)
+        """
         errors = validate_reachability(v3_building, "Ground Floor")
         e082s = [e for e in errors if "E082" in e.message]
-        n_errors = [e for e in e082s if "N1" in e.message or "N2" in e.message]
-        assert len(n_errors) == 2  # Apt N1 and Apt N2
+        assert e082s == []
 
     def test_south_apartments_reachable(self, v3_building: Building):
         """South apartments should be reachable from corridor — no E082."""
@@ -377,12 +470,16 @@ class TestWallRoomRelationships:
         ext_names = [w.name for w in ext_walls]
         assert "South Wall" in ext_names
 
-    def test_bedroom_windows(self, v3_building: Building):
-        """Bedroom should have windows (habitable room)."""
-        windows = get_room_windows(v3_building, "1st Floor", "Apt S1 Bedroom")
+    def test_living_windows_belong_to_apartment(self, v3_building: Building):
+        """Living room windows all belong to the same apartment.
+
+        (Published-data quirk: overlapping space polygons shuffle WHICH
+        S1 window lands in which S1 room — exact name matching lives in
+        TestDefectFixture on clean synthetic data.)
+        """
+        windows = get_room_windows(v3_building, "1st Floor", "Apt S1 Living")
         assert len(windows) >= 1
-        win_names = [w.name for w in windows]
-        assert "Apt S1 Bedroom Window" in win_names
+        assert all(w.name.startswith("Apt S1") for w in windows)
 
     def test_living_room_windows(self, v3_building: Building):
         """Living room should have windows."""
@@ -634,26 +731,82 @@ class TestFloorPlanSlice:
 # ══════════════════════════════════════════════════════════════════════
 
 
+class TestDefectFixture:
+    """Detection intents on synthetic data with deliberate defects.
+
+    These preserve the original v3-sample test intents (unreachable
+    apartment, bedroom chain, Durchgangszimmer) independent of how the
+    published showcase data evolves.
+    """
+
+    def test_bedroom_chain_connected(self, defect_building: Building):
+        g = build_connectivity_graph(defect_building, "Ground Floor")
+        assert g.has_path("Corridor", "Apt A Bedroom")
+        living_neighbors = [n for n, _ in g.neighbors("Apt A Living")]
+        assert "Apt A Bedroom" in living_neighbors
+
+    def test_open_plan_kitchen_not_connected(self, defect_building: Building):
+        g = build_connectivity_graph(defect_building, "Ground Floor")
+        assert not g.neighbors("Apt A Kitchen")
+
+    def test_apartment_without_entry_unreachable(self, defect_building: Building):
+        g = build_connectivity_graph(defect_building, "Ground Floor")
+        # Apt B is internally connected (vorraum <-> living)...
+        assert g.has_path("Apt B Vorraum", "Apt B Living")
+        # ...but has no entry from the corridor.
+        assert not g.has_path("Corridor", "Apt B Vorraum")
+
+    def test_e082_flags_apartment_without_entry(self, defect_building: Building):
+        errors = validate_reachability(defect_building, "Ground Floor")
+        e082s = [e for e in errors if "E082" in e.message]
+        assert any("Apt B" in e.message for e in e082s)
+        assert not any("Apt A" in e.message for e in e082s)
+
+    def test_e080_flags_open_plan_kitchen(self, defect_building: Building):
+        errors = validate_reachability(defect_building, "Ground Floor")
+        e080s = [e for e in errors if "E080" in e.message]
+        assert any("Apt A Kitchen" in e.message for e in e080s)
+
+    def test_w080_durchgangszimmer(self, defect_building: Building):
+        """Bedroom reachable only through the Living room -> W080.
+
+        Exact-set assertion so validator behavior changes surface loudly.
+        NOTE: 'Apt A Kitchen' (isolated, no door) and 'Apt B Living'
+        (apartment without entry) also get W080 — a known validator
+        false positive: rooms with NO path at all are not
+        Durchgangszimmer. If the validator is fixed, shrink this set.
+        """
+        errors = validate_reachability(defect_building, "Ground Floor")
+        w080_rooms = {
+            e.message.split("'")[1] for e in errors if "W080" in e.message
+        }
+        assert w080_rooms == {"Apt A Bedroom", "Apt A Kitchen", "Apt B Living"}
+
+    def test_bedroom_window_by_name(self, defect_building: Building):
+        windows = get_room_windows(defect_building, "Ground Floor", "Apt A Bedroom")
+        assert [w.name for w in windows] == ["Apt A Bedroom Window"]
+
+
 class TestIntegration:
     """End-to-end integration tests."""
 
     def test_graph_reveals_building_issues(self, v3_building: Building):
-        """The connectivity graph should reveal known v3 building issues."""
+        """The connectivity graph reveals real issues in the published data."""
         g = build_connectivity_graph(v3_building, "Ground Floor")
 
-        # Issue 1: North apartments unreachable from corridor
-        reachable = g.reachable_from("Corridor")
-        assert "Apt N1 Vorraum" not in reachable
-        assert "Apt N2 Vorraum" not in reachable
+        # Issue 1: open-plan kitchens have no door edge
+        for apt in ["Apt S1", "Apt S2", "Apt N1", "Apt N2"]:
+            assert not g.neighbors(f"{apt} Kitchen")
 
-        # Issue 2: Lobby disconnected from corridor
-        assert not g.has_path("Lobby", "Corridor")
+        # Issue 2: bedroom door edges swallowed by overlapping kitchen
+        # polygons (S1/S2 Kitchen crosses the bedroom wall centerline)
+        assert not g.neighbors("Apt S1 Bedroom")
 
     def test_validator_catches_graph_issues(self, v3_building: Building):
-        """Reachability validator should flag the same issues."""
+        """Reachability validator flags the open-plan kitchens the graph shows."""
         errors = validate_reachability(v3_building, "Ground Floor")
         error_codes = [e.message[:4] for e in errors]
-        assert "E082" in error_codes  # Apartments unreachable
+        assert "E080" in error_codes  # rooms without any door
 
     def test_mermaid_from_graph(self, ground_graph: ConnectivityGraph):
         """Full pipeline: graph → mermaid should produce valid output."""

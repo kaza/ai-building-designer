@@ -4,8 +4,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 CLI = [sys.executable, "-m", "archicad_builder"]
 ROOT = Path(__file__).parent.parent
 
@@ -14,7 +12,7 @@ def run_cli(*args: str) -> dict:
     """Run CLI command and return parsed JSON output."""
     result = subprocess.run(
         [*CLI, *args],
-        capture_output=True, text=True, cwd=str(ROOT),
+        capture_output=True, text=True, cwd=str(ROOT), check=False,
     )
     assert result.returncode == 0, f"CLI failed: {result.stderr}\n{result.stdout}"
     return json.loads(result.stdout)
@@ -24,7 +22,7 @@ def run_cli_expect_fail(*args: str) -> dict:
     """Run CLI command expecting failure, return parsed JSON output."""
     result = subprocess.run(
         [*CLI, *args],
-        capture_output=True, text=True, cwd=str(ROOT),
+        capture_output=True, text=True, cwd=str(ROOT), check=False,
     )
     assert result.returncode != 0
     return json.loads(result.stdout)
@@ -178,7 +176,7 @@ class TestApply:
     def test_apply_invalid_json_fails(self):
         result = subprocess.run(
             [*CLI, "apply", "4apt-centered-core", "not json"],
-            capture_output=True, text=True, cwd=str(ROOT),
+            capture_output=True, text=True, cwd=str(ROOT), check=False,
         )
         assert result.returncode != 0
 

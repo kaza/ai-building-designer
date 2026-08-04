@@ -1,19 +1,18 @@
 """Tests for building code validators."""
 
-import pytest
 
-from archicad_builder.models import Building
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
-from archicad_builder.generators.apartments import subdivide_apartments
+from archicad_builder.generators.shell import generate_shell
+from archicad_builder.models import Building
 from archicad_builder.validators.codes import (
+    validate_building_codes,
+    validate_ceiling_height,
     validate_corridor_width,
+    validate_door_widths,
     validate_fire_escape_distance,
     validate_staircase_dimensions,
-    validate_door_widths,
-    validate_ceiling_height,
-    validate_building_codes,
 )
 
 
@@ -96,11 +95,11 @@ class TestStaircaseDimensions:
         b.add_staircase("Ground Floor",
                         vertices=[(0, 0), (2, 0), (2, 4), (0, 4)],
                         width=1.2, riser_height=0.21)  # > 0.20m max
-        errors = validate_staircase_dimensions(b)
+        validate_staircase_dimensions(b)
         # riser_height validator in Pydantic should prevent 0.21, but let's test
         # Actually Pydantic has le=0.21 so this is at the boundary.
         # Let me use a valid model value but check the validator
-        pass  # Pydantic prevents creating with riser > 0.21
+        # Pydantic prevents creating with riser > 0.21
 
     def test_step_formula_warning(self):
         """Step formula outside comfort range triggers warning."""
@@ -185,9 +184,10 @@ class TestCorridorConnectivity:
 
     def test_connected_corridor_passes(self):
         """All entries on same corridor segment as core → no E023 errors."""
-        from archicad_builder.validators.phases import validate_phase3_corridor
         import json
         from pathlib import Path
+
+        from archicad_builder.validators.phases import validate_phase3_corridor
         data = json.loads(
             Path("projects/3apt-corner-core/building.json").read_text()
         )
@@ -198,16 +198,15 @@ class TestCorridorConnectivity:
 
     def test_disconnected_corridor_fails(self):
         """Entry door on isolated corridor segment → E023 error."""
-        from archicad_builder.validators.phases import validate_phase3_corridor
+        from archicad_builder.models.elements import Door, Staircase, Wall
         from archicad_builder.models.geometry import Point2D, Polygon2D
-        from archicad_builder.models.elements import Wall, Door, Staircase
-        from archicad_builder.models.spaces import Apartment, Space, RoomType
+        from archicad_builder.models.spaces import Apartment, RoomType, Space
+        from archicad_builder.validators.phases import validate_phase3_corridor
 
         # Build a minimal building with a GAP in the corridor
-        story = Building(stories=[]).stories  # placeholder
         b = Building(stories=[])
 
-        from archicad_builder.models.building import Story, Slab
+        from archicad_builder.models.building import Slab, Story
         gf = Story(
             name="Ground Floor",
             elevation=0.0,
@@ -310,9 +309,10 @@ class TestCorridorConnectivity:
 
     def test_4apt_centered_core_passes(self):
         """4apt-centered-core has connected corridor → no E023."""
-        from archicad_builder.validators.phases import validate_phase3_corridor
         import json
         from pathlib import Path
+
+        from archicad_builder.validators.phases import validate_phase3_corridor
         data = json.loads(
             Path("projects/4apt-centered-core/building.json").read_text()
         )
@@ -327,9 +327,10 @@ class TestSupakDetector:
 
     def test_3apt_no_supak(self):
         """3apt-corner-core should have no šupak (0 E032 errors)."""
-        from archicad_builder.validators.phases import validate_phase4_facade
         import json
         from pathlib import Path
+
+        from archicad_builder.validators.phases import validate_phase4_facade
         data = json.loads(
             Path("projects/3apt-corner-core/building.json").read_text()
         )
@@ -340,9 +341,10 @@ class TestSupakDetector:
 
     def test_4apt_is_supak_free(self):
         """4apt-centered-core validates E032-clean (šupaks fixed pre-publication)."""
-        from archicad_builder.validators.phases import validate_phase4_facade
         import json
         from pathlib import Path
+
+        from archicad_builder.validators.phases import validate_phase4_facade
         data = json.loads(
             Path("projects/4apt-centered-core/building.json").read_text()
         )

@@ -5,11 +5,10 @@ from pathlib import Path
 
 import ifcopenshell
 
-from archicad_builder.models import Building
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
-from archicad_builder.generators.apartments import subdivide_apartments
+from archicad_builder.generators.shell import generate_shell
 
 
 class TestStaircaseIFCExport:

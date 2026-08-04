@@ -1,15 +1,14 @@
 """Tests for spatial query tools."""
 
-import pytest
 
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
-from archicad_builder.generators.apartments import subdivide_apartments
+from archicad_builder.generators.shell import generate_shell
 from archicad_builder.queries.spatial import (
-    find_neighbors,
-    find_above_below,
     extract_floor_context,
+    find_above_below,
+    find_neighbors,
 )
 
 

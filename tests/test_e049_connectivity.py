@@ -5,13 +5,12 @@ through internal doors or spatial overlap, without going through
 the building corridor.
 """
 
-import pytest
 
 from archicad_builder.models import Building
 from archicad_builder.models.spaces import (
     Apartment,
-    Polygon2D,
     Point2D,
+    Polygon2D,
     RoomType,
     Space,
 )

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import ifcopenshell
 
+from archicad_builder.export.ifc import IFCExporter
 from archicad_builder.models import (
     Building,
     Door,
@@ -17,7 +18,6 @@ from archicad_builder.models import (
     Wall,
     Window,
 )
-from archicad_builder.export.ifc import IFCExporter
 
 
 def _simple_building() -> Building:
@@ -243,7 +243,7 @@ class TestIFCExport:
 
     def test_virtual_element_export(self):
         """VirtualElements export as IfcVirtualElement."""
-        from archicad_builder.models import VirtualElement, Point2D
+        from archicad_builder.models import Point2D, VirtualElement
 
         building = _simple_building()
         building.stories[0].virtual_elements.append(

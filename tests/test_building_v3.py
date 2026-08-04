@@ -9,33 +9,17 @@ import pytest
 
 from archicad_builder.generators.building_4apt import (
     BEDROOM_WIDTH_V3,
-    DOOR_BATHROOM,
-    DOOR_BUILDING,
-    DOOR_ROOM,
-    LOBBY_WIDTH,
-    PARTITION_THICKNESS,
-    SERVICE_DEPTH,
-    generate_building_4apt_interior,
-    place_core_v3,
-    carve_corridor_v3,
-    subdivide_apartments_v3,
-    add_windows_v3,
-)
-from archicad_builder.generators.building_4apt import (
     FLOOR_TO_FLOOR,
-    generate_shell_v2,
+    LOBBY_WIDTH,
+    generate_building_4apt_interior,
 )
+from archicad_builder.models.building import Building
+from archicad_builder.models.spaces import RoomType
 from archicad_builder.validators.phases import (
     validate_all_phases,
     validate_core_integrity,
     validate_interior_enclosure,
-    validate_phase1_shell,
-    validate_phase2_core,
-    validate_phase5_rooms,
 )
-from archicad_builder.models.building import Building
-from archicad_builder.models.spaces import RoomType
-
 
 # ══════════════════════════════════════════════════════════════════════
 # v3 Full Pipeline Tests
@@ -377,8 +361,8 @@ class TestInteriorEnclosureValidators:
 
     def _make_apartment_building(self, has_walls=True, has_doors=True, bath_area=6.0):
         """Helper to create a minimal building with one apartment."""
-        from archicad_builder.models.spaces import Apartment, Space
         from archicad_builder.models.geometry import Point2D, Polygon2D
+        from archicad_builder.models.spaces import Apartment, Space
 
         b = Building(name="Test")
         story = b.add_story("GF", height=FLOOR_TO_FLOOR)
@@ -403,7 +387,6 @@ class TestInteriorEnclosureValidators:
         ])
 
         bath_w = bath_area / 2.0  # 2m deep bathroom
-        bath_d = 2.0
 
         spaces = [
             Space(name="Test Apt Bedroom", room_type=RoomType.BEDROOM,
@@ -440,14 +423,13 @@ class TestInteriorEnclosureValidators:
                              name="Test Apt Bath-Vorraum Wall")
             bw2.load_bearing = False
 
-        if has_doors:
-            if has_walls:
-                b.add_door("GF", wall_name="Test Apt Bedroom Wall",
-                           position=2.0, width=0.80, height=2.10,
-                           name="Test Apt Bedroom Door")
-                b.add_door("GF", wall_name="Test Apt Bath-Vorraum Wall",
-                           position=0.30, width=0.80, height=2.10,
-                           name="Test Apt Bathroom Door")
+        if has_doors and has_walls:
+            b.add_door("GF", wall_name="Test Apt Bedroom Wall",
+                       position=2.0, width=0.80, height=2.10,
+                       name="Test Apt Bedroom Door")
+            b.add_door("GF", wall_name="Test Apt Bath-Vorraum Wall",
+                       position=0.30, width=0.80, height=2.10,
+                       name="Test Apt Bathroom Door")
 
         return b
 

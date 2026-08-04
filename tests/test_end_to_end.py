@@ -9,18 +9,17 @@ import tempfile
 from pathlib import Path
 
 import ifcopenshell
-import pytest
 
-from archicad_builder.models import Building
-from archicad_builder.generators.shell import generate_shell
+from archicad_builder.generators.apartments import subdivide_apartments
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
-from archicad_builder.generators.apartments import subdivide_apartments
+from archicad_builder.generators.shell import generate_shell
 from archicad_builder.generators.template import stamp_floor_template
-from archicad_builder.validators.building import validate_building
-from archicad_builder.validators.spaces import validate_spaces
-from archicad_builder.validators.codes import validate_building_codes
+from archicad_builder.models import Building
 from archicad_builder.queries.spatial import extract_floor_context
+from archicad_builder.validators.building import validate_building
+from archicad_builder.validators.codes import validate_building_codes
+from archicad_builder.validators.spaces import validate_spaces
 
 
 def _generate_full_building(
@@ -116,7 +115,7 @@ class TestFullPipeline:
 
         # Structural + connectivity
         structural_errors = b.validate()
-        real_errors = [e for e in structural_errors if e.severity == "error"
+        [e for e in structural_errors if e.severity == "error"
                        and "staircase" not in e.message.lower()]  # staircase check is building-level
 
         # Building-level

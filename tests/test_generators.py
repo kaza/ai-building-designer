@@ -2,11 +2,11 @@
 
 import pytest
 
-from archicad_builder.models import Building, Staircase, StaircaseType
-from archicad_builder.generators.shell import generate_shell
 from archicad_builder.generators.core import place_vertical_core
 from archicad_builder.generators.corridor import carve_corridor
+from archicad_builder.generators.shell import generate_shell
 from archicad_builder.generators.template import stamp_floor_template
+from archicad_builder.models import Building, Staircase, StaircaseType
 
 
 class TestGenerateShell:
