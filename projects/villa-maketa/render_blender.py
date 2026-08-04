@@ -304,20 +304,26 @@ def make_bed(name, x0, y0, x1, y1, z0):
                 z0 + 0.45, z0 + 0.58, MATS["cushion"], bevel=0.05)
 
 
-def make_sofa(name, x0, y0, x1, y1, z0, h):
-    """Seat + back along the longer edge + cushions."""
+def make_sofa(name, x0, y0, x1, y1, z0, h, facing="S"):
+    """Seat + back + cushions; back sits opposite the facing direction."""
     horizontal = (x1 - x0) >= (y1 - y0)
     add_box(f"{name}_seat", x0, y0, x1, y1, z0, z0 + h * 0.55, MATS["sofa"],
             bevel=0.04)
     if horizontal:
-        add_box(f"{name}_back", x0, y1 - 0.22, x1, y1, z0, z0 + h * 1.7,
-                MATS["sofa"], bevel=0.04)
+        if facing == "N":  # looking north -> back on the south edge
+            back = (x0, y0, x1, y0 + 0.22)
+            cush_y = (y0 + 0.24, y1 - 0.05)
+        else:              # default: back on the north edge, faces south
+            back = (x0, y1 - 0.22, x1, y1)
+            cush_y = (y0 + 0.05, y1 - 0.24)
+        add_box(f"{name}_back", back[0], back[1], back[2], back[3],
+                z0, z0 + h * 1.7, MATS["sofa"], bevel=0.04)
         n = max(1, int((x1 - x0) / 0.65))
         cw = (x1 - x0 - 0.1) / n
         for i in range(n):
             cx0 = x0 + 0.05 + i * cw
-            add_box(f"{name}_cushion{i}", cx0 + 0.03, y0 + 0.05, cx0 + cw - 0.03,
-                    y1 - 0.24, z0 + h * 0.55, z0 + h * 0.85, MATS["cushion"],
+            add_box(f"{name}_cushion{i}", cx0 + 0.03, cush_y[0], cx0 + cw - 0.03,
+                    cush_y[1], z0 + h * 0.55, z0 + h * 0.85, MATS["cushion"],
                     bevel=0.05)
     else:
         add_box(f"{name}_back", x1 - 0.22, y0, x1, y1, z0, z0 + h * 1.7,
@@ -357,7 +363,7 @@ for item in furniture["items"]:
     if t == "bed":
         make_bed(name, x0, y0, x1, y1, z0)
     elif t == "sofa":
-        make_sofa(name, x0, y0, x1, y1, z0, h)
+        make_sofa(name, x0, y0, x1, y1, z0, h, facing=item.get("facing", "S"))
     elif t == "wood" and h >= 0.7:  # tables get legs
         make_table(name, x0, y0, x1, y1, z0, h)
     elif t == "counter":

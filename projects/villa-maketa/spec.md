@@ -61,6 +61,18 @@ Master (per maquette close-up): double French doors (1.4m) onto the deck on the 
 segment — no window. Bath 1 is the master **en-suite**, entered from the bedroom;
 guests use the hallway WC. White T-shaped piece east of master unidentified (Q: table?)
 — not modeled.
+
+Owner changes 2026-08-04 (glass north face + TV wall):
+- D7 (Room 2 → pool deck) widened to a 1.4m double door; beside it the rest of
+  W3 is a floor-to-ceiling sliding glass door (Win5, 1.85m, sill 0.05).
+- W6 (living north wall): full-width 4.2m sliding window (Win4, sill 0.15,
+  height 2.5). Sofa L long faces it (north); coffee table between.
+- West wall = TV wall: Win2/Win3 are clerestory bands (sill 1.80, top 2.55) —
+  natural light from above, TV sideboard below.
+- D5 (master door) sits 60cm from Master South Wall (W12).
+- "window w6" in the owner's dictation interpreted as the window ON wall W6
+  (= Win4) — consistent with "sofa looks toward it"; hallway window Win6
+  unchanged.
 Master gets its window on the short exterior north segment (x 4.5–6, faces terrace).
 Kitchen↔Living is open plan — no wall between them.
 

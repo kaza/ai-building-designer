@@ -56,28 +56,35 @@ b.add_door(GF, "Master South Wall", position=1.0, width=0.75, height=2.1,
            name="Vila Bath 1 Door")
 b.add_door(GF, "Corridor West Wall", position=1.0, width=0.75, height=2.1,
            name="Vila Guest Bathroom Door")
-b.add_door(GF, "Corridor West Wall", position=3.5, width=0.9, height=2.1,
-           name="Vila Master Bedroom Door")
+b.add_door(GF, "Corridor West Wall", position=2.6, width=0.9, height=2.1,
+           name="Vila Master Bedroom Door")  # 60cm from Master South Wall
 d_r2 = b.add_door(GF, "Room 2 South Wall East", position=0.3, width=0.9, height=2.1,
                   name="Vila Room 2 Door")
 # Hinge on the east side: the open leaf rests against the east facade wall
 d_r2.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Maquette close-up: terrace door is in the NORTH wall near the west corner
 # (opens onto the deck), not in the west wall.
-b.add_door(GF, "North Wall", position=2.4, width=0.9, height=2.1,
+# 1.4m double door to the pool deck (owner request 2026-08-04); W060 waived
+b.add_door(GF, "North Wall", position=2.0, width=1.4, height=2.1,
            name="Vila Room 2 Terrace Door")
 
 # --- Windows ---
 b.add_window(GF, "South Wall", position=1.5, width=1.5, height=1.4, name="Kitchen Window")
-b.add_window(GF, "West Wall", position=1.5, width=1.8, height=1.4, name="Living Window W1")
-b.add_window(GF, "West Wall", position=4.5, width=1.8, height=1.4, name="Living Window W2")
-b.add_window(GF, "Living North Wall", position=1.0, width=1.4, height=1.4, name="Living Window N")
+# West wall is the TV wall: clerestory windows only (sill 1.80, natural
+# light from above)
+b.add_window(GF, "West Wall", position=1.5, width=1.8, height=0.75,
+             sill_height=1.8, name="Living Window W1")
+b.add_window(GF, "West Wall", position=4.5, width=1.8, height=0.75,
+             sill_height=1.8, name="Living Window W2")
+b.add_window(GF, "Living North Wall", position=0.15, width=4.2, height=2.5,
+             sill_height=0.15, name="Living Sliding Window")
 # Maquette close-up: master has double French doors onto the deck, not a window.
 # 1.4m double door → W060 "suspicious width" warning, accepted (it IS a double door).
 b.add_door(GF, "Master North Wall", position=0.05, width=1.4, height=2.1,
            name="Vila Master Bedroom Terrace Door")
-# Maquette close-up: Room 2 window sits in the EAST facade, not the north wall
-b.add_window(GF, "East Wall", position=9.6, width=1.4, height=1.4, name="Room 2 Window E")
+# Room 2 north face is glass: sliding door floor-to-ceiling beside D7
+b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
+             sill_height=0.05, name="Room 2 Sliding Door")
 b.add_window(GF, "East Wall", position=6.3, width=1.0, height=1.4, name="Hallway Window")
 
 # --- Slab (full L footprint) ---
