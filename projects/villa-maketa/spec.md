@@ -94,6 +94,16 @@ Decisions: materials and furniture live at render layer because we have exactly 
 villa (YAGNI); promote into the data model / IfcFurnishingElement only when a second
 project needs them.
 
+**Preview v3 (2026-08-04, "make it great"):** procedural shaders (plank wood via
+wave texture, tiles with grout via brick texture, water, grass, plaster bump);
+sky-model lighting + explicit sun; window frames (planar-dissolve + wireframe
+modifier — plain wireframe draws triangulation diagonals as an X); procedural
+furniture (beds with mattress/duvet/pillows, sofas with cushions, tables with
+legs, counters with tops; everything beveled); per-shot exposure; perspective
+camera moved to the pool side (NE) — an all-white frame has no contrast anchor.
+Hard-won lesson: Blender 5 defaults to the AgX view transform, which desaturates
+everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
+
 ## Backlog
 
 - Spiral staircase type
