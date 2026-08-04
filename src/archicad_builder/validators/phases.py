@@ -24,7 +24,10 @@ import math
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.geometry import Point2D
-from archicad_builder.models.spaces import Apartment, RoomType, Space
+from archicad_builder.models.spaces import RoomType, Space
+from archicad_builder.validators.spaces import (
+    validate_space_overlaps as _validate_space_overlaps,
+)
 from archicad_builder.validators.structural import ValidationError
 
 # Construction constants
@@ -61,6 +64,8 @@ def validate_all_phases(building: Building) -> list[ValidationError]:
     # v3 additions
     errors.extend(validate_core_integrity(building))
     errors.extend(validate_interior_enclosure(building))
+    # Data invariants
+    errors.extend(_validate_space_overlaps(building))
     # Optimization validators
     errors.extend(validate_optimizations(building))
     return errors

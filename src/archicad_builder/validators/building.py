@@ -12,9 +12,8 @@ These complement the per-story validators in structural.py and connectivity.py.
 from __future__ import annotations
 
 import math
-from collections import defaultdict
 
-from archicad_builder.models.building import Building, Story
+from archicad_builder.models.building import Building
 from archicad_builder.models.geometry import Point2D
 from archicad_builder.validators.structural import ValidationError
 

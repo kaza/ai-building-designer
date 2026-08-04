@@ -1,0 +1,44 @@
+{
+  "waivers": [
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt S1 Bathroom' and 'Apt S1 WC' on 'Ground Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt S1 Living' and 'Apt S1 Kitchen' on 'Ground Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt N1 Bathroom' and 'Apt N1 WC' on 'Ground Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt N1 Living' and 'Apt N1 Kitchen' on 'Ground Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt S1 Living' and 'Apt S1 Kitchen' on '1st Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt S2 Living' and 'Apt S2 Kitchen' on '1st Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt N1 Bathroom' and 'Apt N1 WC' on '1st Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    },
+    {
+      "rule": "E090",
+      "match": "Spaces 'Apt N1 Living' and 'Apt N1 Kitchen' on '1st Floor'",
+      "reason": "legacy pre-E090 data (open-plan zone / bath-WC overlap); geometry repair pending, see specs/space-overlap.md"
+    }
+  ]
+}

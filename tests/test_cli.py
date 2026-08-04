@@ -48,11 +48,18 @@ class TestValidate:
 
 
 class TestValidateWaivers:
-    def test_project_without_config_has_no_waiver_keys(self):
-        data = run_cli("validate", "3apt-corner-core")
-        assert {"waived", "waived_count", "stale_waivers"}.isdisjoint(
-            data["validation"]
-        )
+    def test_no_waiver_config_means_no_waiver_keys(self):
+        """Without a WaiverConfig the output shape is unchanged.
+
+        Unit-level: every shipped project now carries a validation.json,
+        so the no-config path is exercised directly.
+        """
+        from archicad_builder.__main__ import _validate_json
+        from archicad_builder.models.building import Building
+
+        b = Building.load(ROOT / "projects" / "3apt-corner-core" / "building.json")
+        result = _validate_json(b, waivers=None)
+        assert {"waived", "waived_count", "stale_waivers"}.isdisjoint(result)
 
     def test_villa_waivers_applied(self):
         """villa-maketa ships validation.json waiving its villa-vs-block noise."""

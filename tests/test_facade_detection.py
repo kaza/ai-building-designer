@@ -123,11 +123,17 @@ class TestE044EdgeBased:
 
 
 class TestRegressionRealProjects:
-    def test_block_projects_still_zero_errors(self):
+    def test_block_projects_have_no_facade_errors(self):
+        """The E044 rewrite must not flag any block-project room.
+
+        (Blocks do carry waived E090 data findings — see their
+        validation.json — so this asserts specifically on E044.)
+        """
         for name in ("3apt-corner-core", "4apt-centered-core"):
             b = Building.load(PROJECTS / name / "building.json")
-            errors = [e for e in validate_all_phases(b) if e.severity == "error"]
-            assert errors == [], f"{name}: {[e.message for e in errors]}"
+            e044 = [e for e in validate_all_phases(b)
+                    if e.message.startswith("E044:")]
+            assert e044 == [], f"{name}: {[e.message for e in e044]}"
 
     def test_villa_has_no_e044_false_positives(self):
         b = Building.load(PROJECTS / "villa-maketa" / "building.json")

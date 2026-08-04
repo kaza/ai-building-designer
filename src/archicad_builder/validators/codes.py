@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 
-from archicad_builder.models.building import Building, Story
+from archicad_builder.models.building import Building
 from archicad_builder.models.geometry import Point2D
 from archicad_builder.validators.structural import ValidationError
 

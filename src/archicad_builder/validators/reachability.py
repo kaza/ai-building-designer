@@ -20,7 +20,6 @@ from archicad_builder.queries.connectivity import (
 )
 from archicad_builder.validators.structural import ValidationError
 
-
 # Room types that are "habitable" (can't be walk-through rooms)
 _HABITABLE_TYPES = {"living", "bedroom", "kitchen", "office"}
 
