@@ -22,6 +22,31 @@
       "rule": "W060",
       "match": "Room 2 Terrace Door",
       "reason": "genuine 1.4m double door to the pool deck (owner request)"
+    },
+    {
+      "rule": "E011",
+      "match": "'Garage' has no door to the vertical core",
+      "reason": "open private spiral stair, no enclosed core; fire-core rule is for multi-party blocks"
+    },
+    {
+      "rule": "E011",
+      "match": "'Ground Floor' has no door to the vertical core",
+      "reason": "open private spiral stair, no enclosed core; fire-core rule is for multi-party blocks"
+    },
+    {
+      "rule": "E012",
+      "match": "Garage Stair",
+      "reason": "0.7m flight is the physical width of a 1.5m-diameter private spiral; 1.2m minimum is for shared block stairs"
+    },
+    {
+      "rule": "E013",
+      "match": "No building entrance",
+      "reason": "entry exists (Vila Entry Door, GF South Wall); validator assumes stories[0] is ground level \u2014 a basement breaks that assumption (framework finding)"
+    },
+    {
+      "rule": "W060",
+      "match": "Garage Vehicle Door",
+      "reason": "2.4m vehicle door \u2014 garage doors are wide on purpose"
     }
   ]
 }

@@ -83,6 +83,8 @@ Kitchen↔Living is open plan — no wall between them.
 | 2026-08-03 | Straight-run stair, not spiral | Model has no spiral type; backlog |
 | 2026-08-04 | Spiral stair (SPIRAL_STAIR, 1.5×1.5m) replaces the straight run | matches the maquette; renderer support added (specs/spiral-stair-rendering.md) |
 | 2026-08-03 | Garage level not modeled in v1 | Focus on main floor; stair placed, leads down |
+| 2026-08-04 | Garage storey added: full L-footprint basement at −2.89m (2.52m clear), 2.4m vehicle door on the south wall, spiral shaft aligned with GF | E050 demands every GF load-bearing wall aligned below → basement mirrors the perimeter |
+| 2026-08-04 | E011/E012/E013 waived for the villa | enclosed fire-core, 1.2m flight width and "stories[0] is ground" are block assumptions; E013+basement is a framework finding (ground floor should be the storey at elevation 0) |
 | 2026-08-03 | Room 2 in v1 (not backlog) | Owner: "prava soba", part of the 12m depth |
 | 2026-08-03 | No storage room in v1 | No obvious spot; expect completeness warning |
 | 2026-08-03 | Second bath modeled as WC (toilet type) | E045 requires separate WC for 2+ bedrooms; maquette's 2nd bath has WC fixtures |
@@ -118,8 +120,6 @@ Hard-won lesson: Blender 5 defaults to the AgX view transform, which desaturates
 everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
 
 ## Backlog
-
-- Garage storey below (elevation −2.7)
 - Furniture symbols + room colors in the 2D matplotlib plan (#6)
 - Furniture in IFC (IfcFurnishingElement) if ArchiCAD needs it
 

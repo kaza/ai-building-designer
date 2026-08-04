@@ -16,7 +16,38 @@ H = 3.0          # storey height (clear height must be >= 2.5 after 0.37 structu
 EXT = 0.30       # exterior wall thickness
 INT = 0.12       # interior wall thickness
 
-b = Building(name="Villa Maketa", description="Single-storey villa from cardboard maquette, v1")
+b = Building(name="Villa Maketa", description="Villa from cardboard maquette: garage + ground floor")
+
+# ── Garage storey (full L-footprint basement; E050 needs every GF
+#    load-bearing wall aligned with one below) ─────────────────────────
+GAR = "Garage"
+GH = 2.89  # clear 2.52 after 0.37 structure — exactly the W001 target
+b.add_story(GAR, height=GH, elevation=-GH)
+
+
+def gwall(name, start, end):
+    return b.add_wall(GAR, start, end, height=GH, thickness=EXT, name=name,
+                      is_external=True, load_bearing=True)
+
+
+gwall("Garage South Wall", (0, 0), (9.5, 0))
+gwall("Garage East Wall", (9.5, 0), (9.5, 12))
+gwall("Garage North Wall", (9.5, 12), (6.0, 12))
+gwall("Garage West Wall Upper", (6.0, 12), (6.0, 8))
+gwall("Garage North Wall West", (6.0, 8), (4.5, 8))
+gwall("Garage Northwest Wall", (4.5, 8), (0, 8))
+gwall("Garage West Wall", (0, 8), (0, 0))
+
+# vehicle door on the south wall (driveway from the south)
+b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
+           name="Garage Vehicle Door")
+b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
+           thickness=0.25, name="Garage Slab")
+# spiral stair shaft aligned with the ground-floor one (E051)
+b.add_staircase(GAR, [(6.1, 0.2), (7.6, 0.2), (7.6, 1.7), (6.1, 1.7)],
+                width=0.7, stair_type=StaircaseType.SPIRAL_STAIR,
+                name="Garage Stair Lower")
+
 b.add_story(GF, height=H, elevation=0.0)
 
 
@@ -156,6 +187,13 @@ apartment = Apartment(
 story = b.get_story(GF)
 assert story is not None
 story.apartments.append(apartment)
+
+garage_story = b.get_story(GAR)
+assert garage_story is not None
+garage_story.spaces.append(space(
+    "Garage", RoomType.UTILITY,
+    [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
+))
 
 out = Path(__file__).parent / "building.json"
 b.save(out)
