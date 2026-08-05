@@ -415,7 +415,10 @@ ASSET_NATIVE_FACING = {
     "deck_sofa": "S",
     "dining_chair": "S",
     "dining_table": "S",
-    "platform_bed": "S",
+    # nightstand world positions proved the bed faces EAST natively (head
+    # west) — the "head north" assumption survived two visual checks because
+    # head-west happened to look plausible in both rooms
+    "platform_bed": "E",
 }
 
 _asset_protos = {}  # asset id -> list of objects (imported prototype hierarchy)

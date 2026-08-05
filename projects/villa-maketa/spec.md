@@ -194,7 +194,11 @@ auditioned via headless-Blender thumbnail contact sheets). Current mapping:
 walkthrough ships as a product page, a visible credits section is REQUIRED.
 Objaverse GLBs are pinned by uid + sha256 in fetch_assets.py. Sketchfab models
 have no orientation standard — `ASSET_NATIVE_FACING` in render_blender.py
-records each model's verified native direction (all five happen to face -Y).
+records each model's verified native direction (four face −Y; `platform_bed`
+faces **+X** — the nightstands' world positions are what proved it, after the
+"head north" assumption survived two visual checks because head-west looked
+plausible in both bedrooms. Verify orientation against a known off-center child
+object, not against the silhouette).
 Still procedural (acceptable, revisit on demand): kitchen counters, wardrobes,
 sanitary ware, loungers, deck tables.
 outdoor_table_chair_set_01 was dropped earlier — a combined table+chairs set
