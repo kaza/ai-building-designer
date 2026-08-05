@@ -119,9 +119,37 @@ camera moved to the pool side (NE) — an all-white frame has no contrast anchor
 Hard-won lesson: Blender 5 defaults to the AgX view transform, which desaturates
 everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
 
+## Walkthrough web app (v1 — free-fly)
+
+Goal: open one HTML file in a browser and fly through the villa with WASD + mouse
+(pointer lock), default lighting good enough to read the space. Owner request 2026-08-05.
+
+| # | Piece | How |
+|---|---|---|
+| 1 | `export_glb.py` | Blender headless: load `output/villa.blend`, drop render-only helpers (cameras, sky), make materials glTF-safe (procedural textures don't export — set a flat per-material `baseColorFactor` from a name→color map, same palette as render_blender.py), export `output/villa.glb` |
+| 2 | `make_walkthrough.py` | plain-Python templating: base64-embed `villa.glb` into an HTML file with Three.js (CDN import map), `PointerLockControls`, WASD + mouse look, Shift = fast, Space/C = up/down; `HemisphereLight` + `DirectionalLight` sun; start camera at the SE entrance looking north; writes `output/walkthrough.html` |
+| 3 | Pipeline | two new steps after the Blender render (order matters: reads villa.blend) |
+
+Decisions:
+- **Free-fly, no collision** — walking + wall collision is backlog; free-fly answers
+  "how does the space feel" today (two-way door).
+- **Single self-contained HTML with base64 GLB** — the GLB came out at 594KB
+  (798KB HTML); double-click beats running a local web server. Three.js itself
+  comes from CDN, pinned import map (needs internet).
+- **Materials as flat colors** — procedural shaders can't ride along into glTF without
+  baking; flat colors are enough to tell floor from wall from pool. Baking = backlog.
+  Unmapped procedural materials turn MAGENTA + a stdout warning (review finding, Gemini).
+- **Glass keeps transmission** (KHR_materials_transmission, supported by Three.js) —
+  no alpha-hack (review finding, Codex).
+- **Open top accepted** — the villa has no roof/ceiling modeled; looking up = sky.
+  That IS the maquette look; a roof is a modeling task, not a walkthrough task.
+- **`#debug[=x,y,z[,yawDeg]]` URL hash** skips pointer lock and places the camera —
+  used for headless-Chrome screenshot verification and future triage.
+
 ## Backlog
 - Furniture symbols + room colors in the 2D matplotlib plan (#6)
 - Furniture in IFC (IfcFurnishingElement) if ArchiCAD needs it
+- Walkthrough: walk mode with gravity + wall collision; baked textures in the GLB
 
 ## How to build / verify
 
@@ -144,6 +172,10 @@ Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
 .venv/bin/python projects/villa-maketa/ifc_to_obj.py                   # 6. OBJ for Blender
 /Applications/Blender.app/Contents/MacOS/Blender -b -P \
     projects/villa-maketa/render_blender.py                            # 7. 3D renders + blend
+/Applications/Blender.app/Contents/MacOS/Blender -b \
+    projects/villa-maketa/output/villa.blend \
+    -P projects/villa-maketa/export_glb.py                             # 8. GLB (reads villa.blend)
+.venv/bin/python projects/villa-maketa/make_walkthrough.py            # 9. walkthrough HTML
 ```
 
 Outputs (all in `output/`, gitignored, regenerable):
@@ -156,6 +188,8 @@ Outputs (all in `output/`, gitignored, regenerable):
 | `top_down.png` | orthographic maquette view |
 | `villa-maketa.ifc` | BIM model (ArchiCAD/Revit/FreeCAD) |
 | `villa.blend` | interactive scene with materials/furniture |
+| `villa.glb` | flat-color glTF for the walkthrough |
+| `walkthrough.html` | self-contained browser walkthrough (WASD + mouse, free-fly) |
 
 Viewers:
 
@@ -174,6 +208,11 @@ Viewers:
 - E044 previously checked only north/south facades of the bounding box → false
   positives for Living and Master. Fixed 2026-08-04 (specs/facade-detection.md).
 - W001 targets exactly 2.52m clear height (block economics); villa keeps 2.63m → noise.
+- glTF `export_apply=True` can't realize a modifier whose target object was already
+  deleted — the first walkthrough GLB shipped WITHOUT the stairwell hole (Codex code
+  review caught it by counting Ground_Slab vertices; the "looks right" screenshot
+  didn't). export_glb.py now applies helper-dependent modifiers before pruning, and
+  verification counts vertices instead of eyeballing.
 
 ## Accepted validation results
 
