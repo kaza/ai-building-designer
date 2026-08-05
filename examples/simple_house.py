@@ -23,6 +23,7 @@ Layout (top view):
 
 from pathlib import Path
 
+from archicad_builder.export.ifc import IFCExporter
 from archicad_builder.models import (
     Building,
     Door,
@@ -35,7 +36,6 @@ from archicad_builder.models import (
     Wall,
     Window,
 )
-from archicad_builder.export.ifc import IFCExporter
 from archicad_builder.validators.structural import validate_story
 
 # Room dimensions

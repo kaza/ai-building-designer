@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from archicad_builder.models.elements import (
     Door,
+    DoorOperationType,
     Roof,
     RoofType,
     Slab,
@@ -251,6 +252,9 @@ class Building(BaseModel):
         height: float,
         name: str = "",
         description: str = "",
+        *,
+        operation_type: DoorOperationType | None = None,
+        swing_inward: bool | None = None,
     ) -> Door:
         """Add a door to a wall (by wall name). Returns the created door."""
         story = self._require_story(story_name)
@@ -260,6 +264,11 @@ class Building(BaseModel):
             raise ValueError(
                 f"Wall '{wall_name}' not found in '{story_name}'. Available: {available}"
             )
+        extra: dict = {}
+        if operation_type is not None:
+            extra["operation_type"] = operation_type
+        if swing_inward is not None:
+            extra["swing_inward"] = swing_inward
         door = Door(
             name=name,
             description=description,
@@ -267,6 +276,7 @@ class Building(BaseModel):
             position=position,
             width=width,
             height=height,
+            **extra,
         )
         story.doors.append(door)
         return door

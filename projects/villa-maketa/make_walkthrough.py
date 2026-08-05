@@ -1,14 +1,18 @@
-"""Bundle villa.glb into a single self-contained walkthrough HTML.
+"""Build the walkthrough HTML that loads villa.glb as a separate file.
 
     .venv/bin/python projects/villa-maketa/make_walkthrough.py
 
-Validates the GLB (magic, version, chunk lengths, no cameras/cutters left),
-base64-embeds it into an HTML template with Three.js pointer-lock free-fly
-controls, and writes output/walkthrough.html. Three.js itself is pinned from
-a CDN (import map) — the page needs internet, but no local web server:
-GLTFLoader.parseAsync() gets the bytes directly, so file:// double-click works.
+Validates the GLB (magic, version, chunk lengths, no cameras/cutters left)
+and writes output/walkthrough.html, which fetches ./villa.glb at runtime.
+This is a WEB-SERVER deliverable (owner decision 2026-08-05 — the walkthrough
+becomes a hosted feature): browsers block fetch() from file://, so for local
+viewing serve the output directory:
+
+    python3 -m http.server 8000 -d projects/villa-maketa/output
+    open http://localhost:8000/walkthrough.html
+
+The page detects file:// and says exactly that instead of failing silently.
 """
-import base64
 import json
 import struct
 import sys
@@ -96,14 +100,40 @@ TEMPLATE = """<!DOCTYPE html>
     position: absolute; left: 12px; bottom: 12px; max-width: 60ch; z-index: 20;
     color: #ff6b6b; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap;
   }
+  #reticle {
+    position: absolute; left: 50%; top: 50%; width: 14px; height: 14px;
+    margin: -7px 0 0 -7px; z-index: 5; pointer-events: none;
+    mix-blend-mode: difference; display: none;
+  }
+  #reticle::before, #reticle::after {
+    content: ""; position: absolute; background: #fff;
+  }
+  #reticle::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #reticle::after { left: 0; top: 6px; width: 14px; height: 2px; }
+  #hud {
+    position: absolute; right: 12px; top: 12px; z-index: 6; max-width: 34ch;
+    color: #e8e4da; font: 13px/1.5 ui-monospace, monospace; text-align: right;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: pre-line;
+    pointer-events: none;
+  }
+  #labels { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .mlabel {
+    color: #fff; background: rgba(16, 20, 24, 0.85); padding: 2px 8px;
+    border-radius: 4px; font: 13px/1.4 ui-monospace, monospace;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
 </style>
 </head>
 <body>
 <div id="overlay"><h1>Villa Maketa</h1>
   <div id="overlay-msg">Loading scene…</div>
-  <div>WASD — kretanje &nbsp;·&nbsp; miš — pogled &nbsp;·&nbsp; Shift — brzo<br>
-       Space / C — gore / dolje &nbsp;·&nbsp; Esc — izlaz</div>
+  <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
+       Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
+       I — what am I looking at &nbsp;·&nbsp; M — measure</div>
 </div>
+<div id="reticle"></div>
+<div id="hud"></div>
+<div id="labels"></div>
 <div id="error"></div>
 <script type="importmap">
 {
@@ -113,11 +143,11 @@ TEMPLATE = """<!DOCTYPE html>
   }
 }
 </script>
-<script id="glb" type="application/octet-stream">__GLB_BASE64__</script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
 const overlay = document.getElementById('overlay');
 const overlayMsg = document.getElementById('overlay-msg');
@@ -142,26 +172,36 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
+// CSS2D layer for measurement labels (crisp DOM text, no textures)
+const labelRenderer = new CSS2DRenderer({ element: document.getElementById('labels') });
+labelRenderer.setSize(innerWidth, innerHeight);
+
 scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x8a7a66, 1.1));
 const sun = new THREE.DirectionalLight(0xfff1dd, 2.4);
 sun.position.set(35, 60, 25);
 scene.add(sun);
 
-// --- load the embedded GLB -------------------------------------------------
+// --- load villa.glb ----------------------------------------------------------
 let ready = false;
+let modelRoot = null;  // raycast target: the loaded villa only
 try {
-  // fetch() decodes the base64 natively — faster than a JS byte loop, and a
-  // decode failure lands in the same catch as a parse failure.
-  const b64 = document.getElementById('glb').textContent.trim();
-  const buffer = await (await fetch('data:application/octet-stream;base64,' + b64)).arrayBuffer();
-  const gltf = await new GLTFLoader().parseAsync(buffer, '');
+  if (location.protocol === 'file:') {
+    throw new Error(
+      'Browsers block loading villa.glb from file://. Serve this folder instead:\\n' +
+      '  python3 -m http.server 8000 -d <this directory>\\n' +
+      'then open http://localhost:8000/walkthrough.html');
+  }
+  const resp = await fetch('villa.glb');
+  if (!resp.ok) throw new Error('fetching villa.glb failed: HTTP ' + resp.status);
+  const gltf = await new GLTFLoader().parseAsync(await resp.arrayBuffer(), '');
   scene.add(gltf.scene);
+  modelRoot = gltf.scene;
   const bbox = new THREE.Box3().setFromObject(gltf.scene);
   const size = bbox.getSize(new THREE.Vector3());
   console.log('villa bbox (m):', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
   if (size.length() < 1) throw new Error('scene bounding box is degenerate: ' + size.toArray());
   ready = true;
-  overlayMsg.textContent = 'Klikni za start';
+  overlayMsg.textContent = 'Click to start';
   // #debug[=x,y,z[,yawDeg]]: show the scene without pointer lock, optionally
   // placing the camera (three.js coords) — headless screenshots, triage.
   if (location.hash.startsWith('#debug')) {
@@ -181,14 +221,156 @@ try {
   fatal(err);
 }
 
+// --- measurement + info tools (specs/walkthrough-measurement.md) -------------
+const hud = document.getElementById('hud');
+const reticle = document.getElementById('reticle');
+const raycaster = new THREE.Raycaster();
+const CENTER = new THREE.Vector2(0, 0);
+const measureGroup = new THREE.Group();
+scene.add(measureGroup);
+
+let measureMode = false;
+let pendingPoint = null;   // first click of the current measurement
+let rubberLine = null;     // live preview line
+let infoText = '';
+
+function setHud() {
+  const mode = measureMode
+    ? (pendingPoint ? 'MEASURE — click second point' : 'MEASURE — click first point')
+    : '';
+  hud.textContent = [mode, infoText].filter(Boolean).join('\\n');
+}
+
+function centerHit() {
+  if (!modelRoot) return null;
+  raycaster.setFromCamera(CENTER, camera);
+  const hits = raycaster.intersectObject(modelRoot, true);
+  return hits.length ? hits[0] : null;
+}
+
+// Walk up to the semantic ancestor: imported asset children are 'Object_N',
+// instance roots end in '_root'. The topmost semantic name below the model
+// root labels the object; its node gives the WHOLE object's bbox.
+function semanticNode(obj) {
+  let node = obj;
+  let named = /^Object_\\d+$/.test(obj.name) ? null : obj;
+  while (node.parent && node.parent !== modelRoot && node.parent !== scene) {
+    node = node.parent;
+    if (node.name && !/^Object_\\d+$/.test(node.name)) named = node;
+  }
+  const label = ((named || node).name || 'unnamed').replace(/_root$/, '');
+  return { node: named || node, label };
+}
+
+function showInfo() {
+  const hit = centerHit();
+  if (!hit) { infoText = 'no surface hit'; setHud(); return; }
+  const { node, label } = semanticNode(hit.object);
+  const size = new THREE.Box3().setFromObject(node).getSize(new THREE.Vector3());
+  infoText = label + '\\n' +
+    'W ' + size.x.toFixed(2) + ' × D ' + size.z.toFixed(2) +
+    ' × H ' + size.y.toFixed(2) + ' m\\n' +
+    'distance ' + hit.distance.toFixed(2) + ' m';
+  setHud();
+}
+
+function disposeLine(line) {
+  line.geometry.dispose();
+  line.material.dispose();
+}
+
+function clearMeasurement() {
+  for (const child of [...measureGroup.children]) {
+    if (child.isLine) disposeLine(child);
+    if (child.isCSS2DObject) child.element.remove();
+    measureGroup.remove(child);
+  }
+  pendingPoint = null;
+  rubberLine = null;
+  delete document.body.dataset.measureReady;
+}
+
+const lineMat = () => {
+  const m = new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false });
+  return m;
+};
+
+function commitMeasurement(a, b) {
+  clearMeasurement();
+  const geo = new THREE.BufferGeometry().setFromPoints([a, b]);
+  const line = new THREE.Line(geo, lineMat());
+  line.renderOrder = 999;
+  measureGroup.add(line);
+  const div = document.createElement('div');
+  div.className = 'mlabel';
+  div.textContent = a.distanceTo(b).toFixed(2) + ' m';
+  const label = new CSS2DObject(div);
+  label.position.copy(a.clone().add(b).multiplyScalar(0.5));
+  measureGroup.add(label);
+  const d = b.clone().sub(a);
+  infoText = 'measured ' + a.distanceTo(b).toFixed(2) + ' m\\n' +
+    'ΔX ' + Math.abs(d.x).toFixed(2) + '  ΔY ' + Math.abs(d.z).toFixed(2) +
+    '  ΔH ' + Math.abs(d.y).toFixed(2);
+  setHud();
+  document.body.dataset.measureReady = '1';  // headless-test readiness marker
+}
+
+function exitMeasureMode() {
+  measureMode = false;
+  clearMeasurement();
+  infoText = '';
+  setHud();
+}
+
+function measureClick() {
+  const hit = centerHit();
+  if (!hit) { infoText = 'no surface hit'; setHud(); return; }
+  if (!pendingPoint) {
+    pendingPoint = hit.point.clone();
+    const geo = new THREE.BufferGeometry().setFromPoints([pendingPoint, pendingPoint]);
+    rubberLine = new THREE.Line(geo, lineMat());
+    rubberLine.renderOrder = 999;
+    rubberLine.frustumCulled = false;  // endpoints move; stale bounds would cull it
+    measureGroup.add(rubberLine);
+  } else {
+    commitMeasurement(pendingPoint, hit.point.clone());
+  }
+  setHud();
+}
+
+// scripted measurement for headless verification: only honored under #debug
+if (location.hash.startsWith('#debug')) {
+  const q = new URLSearchParams(location.search).get('measure');
+  if (q && ready) {
+    const parts = q.split(',');
+    const nums = parts.map(Number);
+    if (nums.length === 6 && parts.every(t => t.trim() !== '') &&
+        nums.every(Number.isFinite)) {
+      commitMeasurement(new THREE.Vector3(...nums.slice(0, 3)),
+                        new THREE.Vector3(...nums.slice(3)));
+    } else {
+      fatal(new Error('?measure= needs exactly six finite numbers, got: ' + q));
+    }
+  }
+  reticle.style.display = 'block';
+}
+
 // --- controls ---------------------------------------------------------------
 const controls = new PointerLockControls(camera, renderer.domElement);
 const keys = new Set();
 const clearKeys = () => keys.clear();
 
 overlay.addEventListener('click', () => { if (ready) controls.lock(); });
-controls.addEventListener('lock', () => overlay.classList.add('hidden'));
-controls.addEventListener('unlock', () => { clearKeys(); overlay.classList.remove('hidden'); });
+controls.addEventListener('lock', () => {
+  overlay.classList.add('hidden');
+  reticle.style.display = 'block';
+});
+controls.addEventListener('unlock', () => {
+  clearKeys();
+  overlay.classList.remove('hidden');
+  reticle.style.display = 'none';
+  exitMeasureMode();  // Esc also abandons any measurement in progress
+});
 document.addEventListener('pointerlockerror', () =>
   fatal(new Error('pointer lock rejected by the browser — click the page again')));
 addEventListener('blur', clearKeys);
@@ -196,12 +378,22 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) clear
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space') e.preventDefault();
   keys.add(e.code);
+  if (!controls.isLocked) return;
+  if (e.code === 'KeyI') showInfo();
+  if (e.code === 'KeyM' && !e.repeat) {
+    if (measureMode) exitMeasureMode();
+    else { measureMode = true; infoText = ''; setHud(); }
+  }
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
+renderer.domElement.addEventListener('click', () => {
+  if (controls.isLocked && measureMode) measureClick();
+});
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
 });
 
 const clock = new THREE.Clock();
@@ -221,7 +413,15 @@ renderer.setAnimationLoop(() => {
     const up = (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0);
     camera.position.y += up * speed * dt;
   }
+  // rubber-band: live preview from the first point to the current aim
+  if (pendingPoint && rubberLine) {
+    const hit = centerHit();
+    if (hit) {
+      rubberLine.geometry.setFromPoints([pendingPoint, hit.point]);
+    }
+  }
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
 });
 </script>
 </body>
@@ -230,12 +430,10 @@ renderer.setAnimationLoop(() => {
 
 
 def main():
-    data = GLB.read_bytes()
-    validate_glb(data)
-    b64 = base64.b64encode(data).decode("ascii")
-    html = TEMPLATE.replace("__THREE_VERSION__", THREE_VERSION).replace("__GLB_BASE64__", b64)
+    validate_glb(GLB.read_bytes())
+    html = TEMPLATE.replace("__THREE_VERSION__", THREE_VERSION)
     HTML.write_text(html, encoding="utf-8")
-    print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB)")
+    print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; loads ./villa.glb at runtime)")
 
 
 main()

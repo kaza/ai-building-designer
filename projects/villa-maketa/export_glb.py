@@ -52,6 +52,12 @@ def principled_of(mat):
 
 def flatten_materials():
     for mat in bpy.data.materials:
+        # Only OUR procedural materials get flattened (render_blender.py tags
+        # them). Imported PBR assets keep their texture chains — the exporter
+        # handles TEX_IMAGE natively, and name-matching would be fooled by
+        # collisions like an imported 'Sofa'.
+        if not mat.get("ab_procedural"):
+            continue
         bsdf = principled_of(mat)
         if bsdf is None:
             continue
@@ -84,7 +90,10 @@ def prune_objects():
     doomed = {
         o
         for o in bpy.data.objects
-        if o.type in {"CAMERA", "LIGHT", "EMPTY"}
+        if o.type in {"CAMERA", "LIGHT"}
+        # childless empties only — asset instance roots are empties WITH
+        # children, and deleting those would orphan the whole hierarchy
+        or (o.type == "EMPTY" and not o.children)
         or o.name.startswith("StairwellCutter")
         or o.hide_render
     }

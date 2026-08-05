@@ -400,6 +400,120 @@ def make_counter(name, x0, y0, x1, y1, z0, h):
             z0 + h - 0.04, z0 + h, MATS["countertop"], bevel=0.01)
 
 
+# ── CC0 asset furniture (Poly Haven, see fetch_assets.py) ───────────────────
+
+ASSETS_DIR = HERE / "assets"
+
+# Poly Haven models sit on the origin facing -Y (their documented standard),
+# so "faces south" is the identity and the rest is a Z spin.
+FACING_TO_ROT = {"S": 0.0, "E": 90.0, "N": 180.0, "W": 270.0}
+
+# Objaverse (Sketchfab) models have NO orientation standard — this records
+# which world direction each pinned model natively faces (verified visually).
+ASSET_NATIVE_FACING = {
+    "sectional_sofa": "S",
+    "deck_sofa": "S",
+    "dining_chair": "S",
+    "dining_table": "S",
+    "platform_bed": "S",
+}
+
+_asset_protos = {}  # asset id -> list of objects (imported prototype hierarchy)
+
+
+def _import_asset(asset_id):
+    candidates = sorted((ASSETS_DIR / asset_id).glob("*.gltf")) + \
+        sorted((ASSETS_DIR / asset_id).glob("*.glb"))
+    if not candidates:
+        raise FileNotFoundError(
+            f"asset '{asset_id}' not downloaded — run fetch_assets.py first")
+    if len(candidates) > 1:
+        raise RuntimeError(
+            f"asset '{asset_id}' has {len(candidates)} model files — stale pin? "
+            f"re-run fetch_assets.py: {[c.name for c in candidates]}")
+    gltf_path = candidates[0]
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(gltf_path))
+    return [o for o in bpy.data.objects if o not in before]
+
+
+def _copy_hierarchy(objs):
+    """Linked-duplicate a hierarchy: new objects, shared mesh data/materials."""
+    mapping = {}
+    for o in objs:
+        c = o.copy()
+        scene.collection.objects.link(c)
+        mapping[o] = c
+    for o, c in mapping.items():
+        if o.parent in mapping:
+            c.parent = mapping[o.parent]
+            c.matrix_parent_inverse = o.matrix_parent_inverse.copy()
+    return list(mapping.values())
+
+
+def _world_bbox(objs):
+    """World-space AABB over every EVALUATED mesh in the hierarchy.
+
+    Evaluated objects, not base data — a modifier/GN/armature on an asset
+    would otherwise be measured pre-deformation (origins lie either way).
+    """
+    from mathutils import Vector
+    dg = bpy.context.evaluated_depsgraph_get()
+    lo = Vector((1e9, 1e9, 1e9))
+    hi = Vector((-1e9, -1e9, -1e9))
+    for o in objs:
+        if o.type != "MESH":
+            continue
+        oe = o.evaluated_get(dg)
+        for corner in oe.bound_box:
+            w = oe.matrix_world @ Vector(corner)
+            lo = Vector(map(min, lo, w))
+            hi = Vector(map(max, hi, w))
+    return lo, hi
+
+
+def place_asset(name, asset_id, x0, y0, x1, y1, z0, facing):
+    """Instance a Poly Haven asset fitted into the item's footprint.
+
+    Order matters: facing rotation FIRST, then measure, then uniform
+    containment scale (min ratio — never stretch), center XY, ground by
+    mesh min-z (plan-review decisions, 2026-08-05).
+    """
+    if asset_id in _asset_protos:
+        objs = _copy_hierarchy(_asset_protos[asset_id])
+    else:
+        objs = _import_asset(asset_id)
+        _asset_protos[asset_id] = objs  # prototype doubles as first instance
+    root = bpy.data.objects.new(f"{name}_root", None)
+    scene.collection.objects.link(root)
+    for o in objs:
+        if o.parent is None or o.parent not in objs:
+            o.parent = root
+    native = ASSET_NATIVE_FACING.get(asset_id, "S")
+    root.rotation_euler[2] = math.radians(
+        (FACING_TO_ROT[facing] - FACING_TO_ROT[native]) % 360)
+    bpy.context.view_layer.update()
+    lo, hi = _world_bbox(objs)
+    w, d = hi.x - lo.x, hi.y - lo.y
+    if w <= 0 or d <= 0:
+        raise RuntimeError(
+            f"asset '{asset_id}' has a degenerate XY bounding box "
+            f"({w:.3f}x{d:.3f}) — no mesh data, or a flat model")
+    s = min((x1 - x0) / w, (y1 - y0) / d)
+    root.scale = (s, s, s)
+    bpy.context.view_layer.update()
+    lo, hi = _world_bbox(objs)
+    root.location.x += (x0 + x1) / 2 - (lo.x + hi.x) / 2
+    root.location.y += (y0 + y1) / 2 - (lo.y + hi.y) / 2
+    root.location.z += z0 - lo.z
+    print(f"asset {name}: {asset_id} native {w:.2f}x{d:.2f} scale {s:.2f}")
+
+
+# Everything created so far is ours; export_glb.py flattens ONLY tagged
+# materials, leaving imported PBR assets untouched.
+for _m in bpy.data.materials:
+    _m["ab_procedural"] = True
+
 furniture = json.loads(FURNITURE.read_text())
 for item in furniture["items"]:
     x0, y0, x1, y1 = item["bounds"]
@@ -407,7 +521,10 @@ for item in furniture["items"]:
     z0 = item.get("z", SLAB_TOP)
     t = item["type"]
     name = f"F_{item['name']}"
-    if t == "bed":
+    if item.get("asset"):
+        place_asset(name, item["asset"], x0, y0, x1, y1, z0,
+                    item.get("facing", "S"))
+    elif t == "bed":
         make_bed(name, x0, y0, x1, y1, z0)
     elif t == "sofa":
         make_sofa(name, x0, y0, x1, y1, z0, h, facing=item.get("facing", "S"))
@@ -494,6 +611,16 @@ for vt in ("Khronos PBR Neutral", "Filmic", "Standard"):
         continue
 scene.view_settings.exposure = -0.6
 print("View transform:", scene.view_settings.view_transform)
+
+import os
+
+if os.environ.get("VILLA_SKIP_RENDER"):
+    # Scene-only build: save the .blend (feeds export_glb.py) and skip the
+    # two Cycles renders — placement iteration in seconds, not minutes.
+    scene.view_settings.exposure = -0.6
+    bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
+    print("VILLA_SKIP_RENDER set — saved villa.blend, skipped renders")
+    raise SystemExit(0)
 
 scene.camera = cam_persp
 scene.view_settings.exposure = -0.85

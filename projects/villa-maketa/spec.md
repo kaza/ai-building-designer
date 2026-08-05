@@ -1,5 +1,10 @@
 # Villa Maketa — v1
 
+> **Project implementation record** (tier 2), not a framework spec — see
+> [ADR-004](../../specs/decisions/004-framework-vs-project-spec-split.md).
+> Product intent lives in [`specs/`](../../specs/); this file records what was actually built
+> for this one building: dimensions, assets, pipeline order, verification commands.
+
 Single-storey villa reconstructed from a physical cardboard maquette (photo, 2026-08-03).
 North part of the maquette (pool + deck terrace) is out of scope for v1.
 
@@ -121,8 +126,12 @@ everything to pastel — set "Khronos PBR Neutral" (or Filmic) for arch-viz.
 
 ## Walkthrough web app (v1 — free-fly)
 
-Goal: open one HTML file in a browser and fly through the villa with WASD + mouse
-(pointer lock), default lighting good enough to read the space. Owner request 2026-08-05.
+Product vision and roadmap live in the FRAMEWORK spec:
+[specs/browser-walkthrough.md](../../specs/browser-walkthrough.md). This section
+is the villa v1 implementation record.
+
+Goal (v1): fly through the villa with WASD + mouse (pointer lock), default
+lighting good enough to read the space.
 
 | # | Piece | How |
 |---|---|---|
@@ -133,9 +142,15 @@ Goal: open one HTML file in a browser and fly through the villa with WASD + mous
 Decisions:
 - **Free-fly, no collision** — walking + wall collision is backlog; free-fly answers
   "how does the space feel" today (two-way door).
-- **Single self-contained HTML with base64 GLB** — the GLB came out at 594KB
-  (798KB HTML); double-click beats running a local web server. Three.js itself
-  comes from CDN, pinned import map (needs internet).
+- **Separate villa.glb, fetched at runtime** (owner decision 2026-08-05,
+  supersedes the original base64-embedded single file): the walkthrough will be
+  served from a webserver as a product feature, and a separate GLB streams,
+  caches, and scales to textured furniture — an embedded blob does none of that.
+  Browsers block fetch() from file://, so local viewing needs
+  `python3 -m http.server 8000 -d projects/villa-maketa/output` →
+  http://localhost:8000/walkthrough.html; the page detects file:// and prints
+  exactly that instead of failing silently. Three.js itself comes from CDN,
+  pinned import map (needs internet).
 - **Materials as flat colors** — procedural shaders can't ride along into glTF without
   baking; flat colors are enough to tell floor from wall from pool. Baking = backlog.
   Unmapped procedural materials turn MAGENTA + a stdout warning (review finding, Gemini).
@@ -146,10 +161,60 @@ Decisions:
 - **`#debug[=x,y,z[,yawDeg]]` URL hash** skips pointer lock and places the camera —
   used for headless-Chrome screenshot verification and future triage.
 
+## Furniture v2 — CC0 assets + 2D plan symbols
+
+Owner request 2026-08-05: "standard open source furniture … in floor layout and
+improved rendering". Two deliverables:
+
+| # | Piece | How |
+|---|---|---|
+| 1 | `fetch_assets.py` | downloads a PINNED list of CC0 models from the Poly Haven API (`api.polyhaven.com/files/<id>`, glTF + 1k textures) into `assets/<id>/` (gitignored — reproducible via script, not committed binaries) |
+| 2 | `furniture.json` | items gain optional `"asset": "<id>"`; items without it keep today's procedural boxes (per-item migration) |
+| 3 | `render_blender.py` | asset loader: import glTF, uniform-scale to the item's footprint, drop to floor z, rotate per `facing`; fallback = existing procedural path |
+| 4 | `render_furnished_plan.py` | parametric matplotlib symbols per type (bed w/ pillows + fold at the `head` edge, sofa backrest + cushions, toilet oriented by `facing`, sink, shower X, tub with drain, table + chairs, wardrobe rail) replacing plain rectangles — backlog #6 done in the same pass |
+| 5 | Walkthrough | no code change — the page fetches `villa.glb` at runtime, and export_glb.py preserves TEX_IMAGE materials; GLB grew 0.6 → 8.5MB with 1k textures, fine for the separate-file delivery |
+
+**Asset set v2 (owner, 2026-08-05: "modern, not Louis XIV — procedural is
+banned"):** Poly Haven's furniture is largely antique, so the modern pieces
+come from **Objaverse** (HuggingFace rehost of Sketchfab models; ~70 models
+auditioned via headless-Blender thumbnail contact sheets). Current mapping:
+
+| Item(s) | Asset | Source / license |
+|---|---|---|
+| Sofa L (one sectional replaces both L pieces) | Escuadra Victoria Izquierda II | Objaverse, CC-BY (Pablo.Portela) |
+| Master + Room2 beds (incl. nightstands) | Stylized lowpoly bed | Objaverse, CC-BY (tharadelamo) |
+| Dining chairs ×6 | Silla (navy cantilever) | Objaverse, CC-BY (gabymrtnz) |
+| Dining table | 653 (white pedestal) | Objaverse, CC-BY (GulinAlex) |
+| Deck sofa | Feathers 5 Seat | Objaverse, CC-BY (mohitoz) |
+| Armchair | mid_century_lounge_chair | Poly Haven, CC0 |
+| Coffee table | modern_coffee_table_01 | Poly Haven, CC0 |
+| TV sideboard | modern_wooden_cabinet | Poly Haven, CC0 |
+
+**CC-BY obligation:** authors are recorded in `assets/licenses.json`; when the
+walkthrough ships as a product page, a visible credits section is REQUIRED.
+Objaverse GLBs are pinned by uid + sha256 in fetch_assets.py. Sketchfab models
+have no orientation standard — `ASSET_NATIVE_FACING` in render_blender.py
+records each model's verified native direction (all five happen to face -Y).
+Still procedural (acceptable, revisit on demand): kitchen counters, wardrobes,
+sanitary ware, loungers, deck tables.
+outdoor_table_chair_set_01 was dropped earlier — a combined table+chairs set
+scaled into a 0.9m deck-table footprint turns into dollhouse furniture.
+Plan-review decisions (Gemini + Codex, 2026-08-05):
+| Decision | Why |
+|---|---|
+| Poly Haven standard trusted: origin at base, faces −Y → facing map S 0°/E +90°/N 180°/W −90°, no manual axis correction | documented PH technical standard; each asset visually validated once |
+| Fit = facing rotation FIRST, then evaluated-mesh world bounds, uniform `scale = min(w-ratio, d-ratio)`, center XY, ground by mesh `min_z` | object origins lie; aspect ratios differ — containment beats stretching |
+| Our procedural materials get a `ab_procedural` custom property; export_glb flattens ONLY tagged ones | name-based palette matching breaks on imported material name collisions (Codex) |
+| export_glb keeps EMPTY objects that have children | blanket empty-pruning would orphan imported asset hierarchies |
+| Import once per asset, linked-duplicate hierarchies per instance; prototype becomes the first instance | no stray prototype at origin; memory-cheap repeats (6 chairs) |
+| Fetcher: atomic tmp→rename, md5-verified, User-Agent header, `.complete` marker, auto-generated `licenses.json` | aborted downloads must not pass the cache check (Gemini) |
+| 2D symbols edge-parametrized per N/S/E/W facing, drawn directly in data coords | everything is axis-aligned, so per-edge geometry needs no rotation transform at all (simpler than the Affine2D route Codex suggested) |
+| Rejected: separate Eevee "asset test grid" script | placement logging + existing top-down render covers it (YAGNI) |
+
 ## Backlog
-- Furniture symbols + room colors in the 2D matplotlib plan (#6)
 - Furniture in IFC (IfcFurnishingElement) if ArchiCAD needs it
 - Walkthrough: walk mode with gravity + wall collision; baked textures in the GLB
+- Quaternius/Kenney low-poly packs if we ever want a stylized asset set
 
 ## How to build / verify
 
@@ -164,6 +229,7 @@ Decisions:
 Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
 
 ```bash
+.venv/bin/python projects/villa-maketa/fetch_assets.py                 # 0. CC0 furniture (gitignored cache)
 .venv/bin/python projects/villa-maketa/build.py                        # 1. JSON
 .venv/bin/python -m archicad_builder validate villa-maketa             # 2. gate
 .venv/bin/python -m archicad_builder render villa-maketa               # 3. 2D plan
@@ -176,7 +242,11 @@ Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
     projects/villa-maketa/output/villa.blend \
     -P projects/villa-maketa/export_glb.py                             # 8. GLB (reads villa.blend)
 .venv/bin/python projects/villa-maketa/make_walkthrough.py            # 9. walkthrough HTML
+.venv/bin/python projects/villa-maketa/check_furniture.py             # 10. W100 gate (exit 1 on violations)
 ```
+
+`VILLA_SKIP_RENDER=1` on step 7 saves villa.blend and skips the two Cycles
+renders — placement iteration in seconds.
 
 Outputs (all in `output/`, gitignored, regenerable):
 
@@ -189,7 +259,7 @@ Outputs (all in `output/`, gitignored, regenerable):
 | `villa-maketa.ifc` | BIM model (ArchiCAD/Revit/FreeCAD) |
 | `villa.blend` | interactive scene with materials/furniture |
 | `villa.glb` | flat-color glTF for the walkthrough |
-| `walkthrough.html` | self-contained browser walkthrough (WASD + mouse, free-fly) |
+| `walkthrough.html` | browser walkthrough (WASD + mouse, free-fly); fetches `villa.glb` — serve the folder: `python3 -m http.server 8000 -d projects/villa-maketa/output` |
 
 Viewers:
 

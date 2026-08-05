@@ -96,8 +96,10 @@ d_r2.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Maquette close-up: terrace door is in the NORTH wall near the west corner
 # (opens onto the deck), not in the west wall.
 # 1.4m double door to the pool deck (owner request 2026-08-04); W060 waived
+# Opens OUTWARD onto the deck (terrace doors do) — keeps the 1.4m swing arc
+# out of the bedroom (W100)
 b.add_door(GF, "North Wall", position=2.0, width=1.4, height=2.1,
-           name="Vila Room 2 Terrace Door")
+           name="Vila Room 2 Terrace Door", swing_inward=False)
 
 # --- Windows ---
 b.add_window(GF, "South Wall", position=1.5, width=1.5, height=1.4, name="Kitchen Window")
@@ -112,7 +114,7 @@ b.add_window(GF, "Living North Wall", position=0.15, width=4.2, height=2.5,
 # Maquette close-up: master has double French doors onto the deck, not a window.
 # 1.4m double door → W060 "suspicious width" warning, accepted (it IS a double door).
 b.add_door(GF, "Master North Wall", position=0.05, width=1.4, height=2.1,
-           name="Vila Master Bedroom Terrace Door")
+           name="Vila Master Bedroom Terrace Door", swing_inward=False)
 # Room 2 north face is glass: sliding door floor-to-ceiling beside D7
 b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door")

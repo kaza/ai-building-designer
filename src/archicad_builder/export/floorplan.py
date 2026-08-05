@@ -25,13 +25,13 @@ _TEXT_HALO = [pe.withStroke(linewidth=3, foreground="black")]
 from archicad_builder.models.building import Story
 from archicad_builder.models.elements import (
     Door,
-    DoorOperationType,
     Staircase,
     StaircaseType,
     Wall,
     Window,
 )
 from archicad_builder.models.spaces import RoomType, Space
+from archicad_builder.validators.clearance import door_swing_geometry
 
 
 def _wall_direction(wall: Wall) -> tuple[float, float]:
@@ -343,58 +343,42 @@ def _draw_door(
     ]
     ax.fill(corners_x, corners_y, color="#FAFAFA", zorder=12)
 
-    # Determine hinge position from operation_type
-    is_right = door.operation_type == DoorOperationType.SINGLE_SWING_RIGHT
+    # Swing geometry comes from the SAME helper the W100 validator uses —
+    # the drawn arc and the checked sector cannot drift apart.
+    geom = door_swing_geometry(door, wall)
+    if geom is not None:
+        hinge_x, hinge_y = geom.hinge
+        angle_closed = math.degrees(math.atan2(geom.closed_ray[1], geom.closed_ray[0]))
+        angle_open = math.degrees(math.atan2(geom.open_ray[1], geom.open_ray[0]))
+        diff = (angle_open - angle_closed) % 360
+        if diff > 180:
+            theta1, theta2 = angle_open, angle_open + (360 - diff)
+        else:
+            theta1, theta2 = angle_closed, angle_closed + diff
+        arc = Arc(
+            (hinge_x, hinge_y),
+            door.width * 2,
+            door.width * 2,
+            angle=0,
+            theta1=theta1,
+            theta2=theta2,
+            color="#2196F3",
+            linewidth=1.0,
+            linestyle="--",
+            zorder=15,
+        )
+        ax.add_patch(arc)
 
-    if is_right:
-        hinge_x, hinge_y = door_end_x, door_end_y
-        # Closed position: door panel points back toward door start (-wall direction)
-        closed_dx, closed_dy = -dx, -dy
-    else:
-        hinge_x, hinge_y = door_start_x, door_start_y
-        # Closed position: door panel points toward door end (wall direction)
-        closed_dx, closed_dy = dx, dy
-
-    # Determine swing direction
-    swing_sign = 1 if door.swing_inward else -1
-    open_dx = swing_sign * nx
-    open_dy = swing_sign * ny
-
-    # Compute arc angles (matplotlib Arc uses CCW from theta1 to theta2)
-    angle_closed = math.degrees(math.atan2(closed_dy, closed_dx))
-    angle_open = math.degrees(math.atan2(open_dy, open_dx))
-
-    # Ensure 90° arc going the short way
-    diff = (angle_open - angle_closed) % 360
-    if diff > 180:
-        theta1, theta2 = angle_open, angle_open + (360 - diff)
-    else:
-        theta1, theta2 = angle_closed, angle_closed + diff
-
-    arc = Arc(
-        (hinge_x, hinge_y),
-        door.width * 2,
-        door.width * 2,
-        angle=0,
-        theta1=theta1,
-        theta2=theta2,
-        color="#2196F3",
-        linewidth=1.0,
-        linestyle="--",
-        zorder=15,
-    )
-    ax.add_patch(arc)
-
-    # Door leaf line (open position)
-    leaf_x = hinge_x + open_dx * door.width
-    leaf_y = hinge_y + open_dy * door.width
-    ax.plot(
-        [hinge_x, leaf_x],
-        [hinge_y, leaf_y],
-        color="#2196F3",
-        linewidth=1.5,
-        zorder=15,
-    )
+        # Door leaf line (open position)
+        leaf_x = hinge_x + geom.open_ray[0] * door.width
+        leaf_y = hinge_y + geom.open_ray[1] * door.width
+        ax.plot(
+            [hinge_x, leaf_x],
+            [hinge_y, leaf_y],
+            color="#2196F3",
+            linewidth=1.5,
+            zorder=15,
+        )
 
     # Tag label
     if show_labels and door.tag:

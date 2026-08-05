@@ -15,10 +15,11 @@ OBJ = HERE / "output" / "villa-maketa.obj"
 model = ifcopenshell.open(IFC)
 
 settings = ifcopenshell.geom.settings()
-try:
-    settings.set("use-world-coords", True)
-except Exception:
+# ifcopenshell 0.8 takes string keys; older builds expose enum constants
+if hasattr(settings, "USE_WORLD_COORDS"):
     settings.set(settings.USE_WORLD_COORDS, True)
+else:
+    settings.set("use-world-coords", True)
 
 lines: list[str] = ["# villa-maketa"]
 v_offset = 1

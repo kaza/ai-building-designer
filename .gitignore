@@ -42,3 +42,4 @@ projects/*/output/
 
 # Claude harness artifacts
 .claude/
+projects/villa-maketa/assets/
