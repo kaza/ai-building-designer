@@ -57,6 +57,10 @@ src/archicad_builder/
 └── cli/           Typer CLI — all operations through command line
 ```
 
+Design docs: [`specs/`](specs/) — one spec per feature, plus a
+[subsystem map with spec coverage](specs/architecture.md) and
+[architectural decisions](specs/decisions/). Current status: [`ROADMAP.md`](ROADMAP.md).
+
 ### Validator System
 
 Three severity levels, same as linting:
@@ -76,7 +80,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Run all 398 tests
+# Run all 519 tests
 pytest
 
 # Validate a building
@@ -97,7 +101,7 @@ python -m archicad_builder stats projects/4apt-centered-core
 | | |
 |---|---|
 | Python source | 11,600 lines |
-| Tests | 398 |
+| Tests | 519 |
 | Building designs | 2 complete variants |
 | Time to build | 3 days |
 | Tokens consumed | 207.5 million |
@@ -108,6 +112,8 @@ python -m archicad_builder stats projects/4apt-centered-core
 [📖 The full story — from an emergency room to AI-designed apartments in a weekend.](docs/STORY.md)
 
 ## What's Next
+
+Tracked in [`ROADMAP.md`](ROADMAP.md). The big ones:
 
 - Scoring function (single quality metric from all validators)
 - Constraint solver (CSP) for macro-layout optimization
