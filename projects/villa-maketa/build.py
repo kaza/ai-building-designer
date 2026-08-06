@@ -43,11 +43,6 @@ gwall("Garage West Wall", (0, 8), (0, 0))
 # vehicle door on the south wall (driveway from the south)
 b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
            name="Garage Vehicle Door")
-# Glazed strip in the stone band (maquette west facade photo)
-b.add_window(GAR, "Garage West Wall", position=2.2, width=1.8, height=0.8,
-             sill_height=1.4, name="Garage Window W1")
-b.add_window(GAR, "Garage West Wall", position=4.6, width=1.8, height=0.8,
-             sill_height=1.4, name="Garage Window W2")
 b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
            thickness=0.25, name="Garage Slab")
 # spiral stair shaft aligned with the ground-floor one (E051)
