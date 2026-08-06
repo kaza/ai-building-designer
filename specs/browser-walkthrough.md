@@ -13,25 +13,13 @@ the walkthrough is for *feeling the space* — that's what sells a design.
 
 Quality bar: would you show it to a client without apologizing.
 
-## What exists today (v1, villa-maketa project layer)
-- `projects/villa-maketa/export_glb.py` — Blender scene → `villa.glb`
-  (flat-color materials, helpers pruned, stairwell boolean applied).
-- `projects/villa-maketa/make_walkthrough.py` — validates the GLB container
-  and writes `walkthrough.html`: Three.js (pinned CDN import map),
-  PointerLockControls free-fly (WASD, Shift, Space/C), hemisphere + sun
-  lighting, `#debug` camera hash for headless triage.
-- **Dollhouse mode (R)** — toggles the roof group (roof slabs, soffit
-  boards, frames) so aerial captures see the interior, mirroring the
-  maquette's removable lid (owner request 2026-08-06). Hidden roofs are
-  also skipped by info/measure raycasts (Three.js raycasting ignores
-  `.visible` on its own). Test seam: `?roof=0` under `#debug` only —
-  same pattern as `?measure`.
-- Delivery: **separate `villa.glb` fetched at runtime** (owner decision
-  2026-08-05; supersedes the base64-embedded single file). A separate GLB
-  streams, caches, and scales to textured assets — a blob does none of that.
-  Browsers block `fetch()` from `file://`, so local viewing is
-  `python3 -m http.server 8000 -d projects/villa-maketa/output`; the page
-  detects `file://` and says exactly that.
+## What exists today (v1)
+Implemented at the project layer for villa-maketa: GLB export + generated
+Three.js walkthrough page with free-fly controls, object info (I), measuring
+(M), and dollhouse roof toggle (R); the model streams as a separate `.glb`
+fetched at runtime. Implementation record, file list, and the decisions
+behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md)
+§ Walkthrough (ADR 004 — project detail lives at the project tier).
 
 ## Roadmap (not commissioned yet)
 - Webserver feature: serve any project's walkthrough (`/projects/<name>/walk`).
@@ -47,7 +35,8 @@ Quality bar: would you show it to a client without apologizing.
 | 2026-08-05 | v1 lives at project layer | one villa (YAGNI); promote when a second project or the webserver needs it | Almir + Claude |
 | 2026-08-05 | Separate GLB, not base64 embed | product direction = hosted feature; streaming/caching/size | Almir |
 | 2026-08-05 | Free-fly first, collision later | answers "how does the space feel" with half the work | Almir + Claude |
-| 2026-08-05 | Open-top scenes accepted | maquette look; roofs are a modeling feature, not a viewer concern | Claude |
+| 2026-08-05 | ~~Open-top scenes accepted~~ superseded 2026-08-06 | the villa now has a roof; the viewer toggles it (dollhouse mode, R) like the maquette's lid | Claude |
+| 2026-08-06 | Dollhouse roof toggle is a viewer feature (R key + `?roof=0` debug seam) | aerial capture needs the lid off; hidden roofs must not swallow info/measure raycasts | Almir |
 
 ## Related
 Villa v1 implementation details + review lessons: `projects/villa-maketa/spec.md`

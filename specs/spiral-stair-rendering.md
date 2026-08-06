@@ -5,21 +5,17 @@ implemented
 
 ## Why this exists
 `StaircaseType.SPIRAL_STAIR` exists in the model and exports to IFC correctly,
-but the 2D floor plan drew every staircase as parallel straight treads and the
-Blender pipeline rendered a plain prism — a spiral stair was indistinguishable
-from a straight one. villa-maketa's maquette has a spiral stair to the garage.
+but the 2D floor plan drew every staircase as parallel straight treads — a
+spiral stair was indistinguishable from a straight one on the drawing.
 
 ## What it does
 - 2D floor plan (`export/floorplan.py`): when `stair_type == SPIRAL_STAIR`,
   draw the architectural spiral symbol — outline, inscribed circle, center
   pole dot, radial treads (every 30°), and a curved ascent arrow. Other types
   keep the existing straight-tread symbol.
-- Blender preview (villa project script): a `SPIRAL_STAIR` staircase renders
-  as a real spiral — center pole + helical wedge steps descending toward the
-  garage level, clipped by the ground plane.
-- villa-maketa switches its Garage Stair to `SPIRAL_STAIR` with a compact
-  1.5×1.5m outline (matches the maquette); the hallway polygon carve-out and
-  the W042 waiver (tunnel-shaped stair — now square) are updated accordingly.
+- 3D previews are a project-renderer concern (a project script may build a
+  real spiral — pole + helical steps). Worked example: villa-maketa's Garage
+  Stair (1.5×1.5 m, [project spec](../projects/villa-maketa/spec.md)).
 
 ## Boundaries & edge cases
 - Non-rectangular spiral outlines: the inscribed circle uses the bounding-box

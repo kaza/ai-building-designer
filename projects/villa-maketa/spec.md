@@ -138,7 +138,7 @@ lighting good enough to read the space.
 | # | Piece | How |
 |---|---|---|
 | 1 | `export_glb.py` | Blender headless: load `output/villa.blend`, drop render-only helpers (cameras, sky), make materials glTF-safe (procedural textures don't export — set a flat per-material `baseColorFactor` from a name→color map, same palette as render_blender.py), export `output/villa.glb` |
-| 2 | `make_walkthrough.py` | plain-Python templating: base64-embed `villa.glb` into an HTML file with Three.js (CDN import map), `PointerLockControls`, WASD + mouse look, Shift = fast, Space/C = up/down; `HemisphereLight` + `DirectionalLight` sun; start camera at the SE entrance looking north; writes `output/walkthrough.html` |
+| 2 | `make_walkthrough.py` | plain-Python templating: validates the GLB container and writes `output/walkthrough.html` — Three.js (pinned CDN import map), `PointerLockControls`, WASD + mouse look, Shift = fast, Space/C = up/down; `HemisphereLight` + `DirectionalLight` sun; start camera at the SE entrance looking north; loads `./villa.glb` at runtime |
 | 3 | Pipeline | two new steps after the Blender render (order matters: reads villa.blend) |
 
 Decisions:
@@ -158,8 +158,12 @@ Decisions:
   Unmapped procedural materials turn MAGENTA + a stdout warning (review finding, Gemini).
 - **Glass keeps transmission** (KHR_materials_transmission, supported by Three.js) —
   no alpha-hack (review finding, Codex).
-- **Open top accepted** — the villa has no roof/ceiling modeled; looking up = sky.
-  That IS the maquette look; a roof is a modeling task, not a walkthrough task.
+- ~~**Open top accepted**~~ superseded 2026-08-06: the villa gained a real
+  roof ([facade.md](facade.md)); the walkthrough compensates with
+  **dollhouse mode — R toggles the roof group** (roof slabs, soffit boards),
+  mirroring the maquette's removable lid. Hidden roofs are skipped by
+  info/measure raycasts (Three.js raycasting ignores `.visible` on its own).
+  Test seam `?roof=0`, honored only under `#debug` — same rule as `?measure`.
 - **`#debug[=x,y,z[,yawDeg]]` URL hash** skips pointer lock and places the camera —
   used for headless-Chrome screenshot verification and future triage.
 
@@ -216,6 +220,14 @@ Plan-review decisions (Gemini + Codex, 2026-08-05):
 | Import once per asset, linked-duplicate hierarchies per instance; prototype becomes the first instance | no stray prototype at origin; memory-cheap repeats (6 chairs) |
 | Fetcher: atomic tmp→rename, md5-verified, User-Agent header, `.complete` marker, auto-generated `licenses.json` | aborted downloads must not pass the cache check (Gemini) |
 | 2D symbols edge-parametrized per N/S/E/W facing, drawn directly in data coords | everything is axis-aligned, so per-edge geometry needs no rotation transform at all (simpler than the Affine2D route Codex suggested) |
+
+W100 door-swing gate ([framework spec](../../specs/furniture-door-clearance.md)):
+`check_furniture.py` builds footprints from furniture.json (id = item name,
+made unique with `#n` on duplicates), runs the GF check, exits 1 on findings —
+pipeline step 10. The very first run found **5 real violations** (0.18–0.71 m²);
+fixes: both 1.4 m terrace doors became outward-swinging (architecturally
+correct for deck doors — later superseded for D8 by the maquette-alignment
+inward pair), Master desk, Room2 wardrobe and both loungers moved.
 | Rejected: separate Eevee "asset test grid" script | placement logging + existing top-down render covers it (YAGNI) |
 
 ## Backlog

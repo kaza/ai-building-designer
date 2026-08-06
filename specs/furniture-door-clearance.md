@@ -30,12 +30,11 @@ furniture item in furniture.json until the warning clears.
     `W100: Furniture 'Sofa L long' blocks door 'Vila Entry Door' swing
     (overlap 0.31m²).` Severity: warning. Findings deterministically ordered
     by (door name, footprint id).
-- **Project** (`projects/villa-maketa/check_furniture.py`): loads
-  building.json + furniture.json, builds footprints (id = item name — unique
-  in the villa), runs the GF check, prints findings as JSON, exits 1 if any
-  (pipeline gate). The checked-in villa must exit 0 — any violation found is
-  fixed by MOVING furniture; exit-1 behavior is tested with a deliberately
-  colliding fixture, not with the shipped villa.
+- **Project usage**: a project script builds footprints from its furniture
+  data and runs the check as a pipeline gate (exit 1 on findings; the
+  checked-in project must exit 0 — violations are fixed by MOVING furniture).
+  Worked example: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md)
+  § Furniture v2 (`check_furniture.py`).
 
 ## Boundaries & edge cases
 - **W100 is a conservative plan-view (2D) check** — furniture height is
@@ -82,11 +81,10 @@ furniture item in furniture.json until the warning clears.
 | 2026-08-05 | Conservative 2D semantics, no height inference | vertical exemptions need leaf modeling that doesn't exist; false-positive rug beats false-negative sofa |
 | 2026-08-05 | Overlap = area > 0.02 m² (not mere intersection) | matches E090 precedent; corner-brushes are noise |
 | 2026-08-05 | add_door gains keyword-only operation_type / swing_inward | Door supported the fields but the builder API couldn't express them (same gap as add_wall/is_external before) |
-| 2026-08-05 | Villa fixes: both 1.4m terrace doors now swing OUTWARD onto the deck; Master desk, Room2 wardrobe and both loungers moved | first W100 run found 5 real violations; outward-opening terrace doors are architecturally correct anyway |
 
 ## Lessons learned
-- The very first run on the villa found 5 real violations (0.18–0.71 m²) —
-  the rule paid for itself before it was even committed.
+- The very first run on a real project found 5 genuine violations — the rule
+  paid for itself before it was even committed (details in the villa spec).
 - Code-review round folded: threshold epsilon (float jitter made mirrored
   geometry disagree at exactly 0.02 m² — Codex tested it empirically), door
   ordering by authored data only (wall_id is a REGENERATED IFC id, orderings
