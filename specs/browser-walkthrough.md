@@ -20,6 +20,12 @@ Quality bar: would you show it to a client without apologizing.
   and writes `walkthrough.html`: Three.js (pinned CDN import map),
   PointerLockControls free-fly (WASD, Shift, Space/C), hemisphere + sun
   lighting, `#debug` camera hash for headless triage.
+- **Dollhouse mode (R)** — toggles the roof group (roof slabs, soffit
+  boards, frames) so aerial captures see the interior, mirroring the
+  maquette's removable lid (owner request 2026-08-06). Hidden roofs are
+  also skipped by info/measure raycasts (Three.js raycasting ignores
+  `.visible` on its own). Test seam: `?roof=0` under `#debug` only —
+  same pattern as `?measure`.
 - Delivery: **separate `villa.glb` fetched at runtime** (owner decision
   2026-08-05; supersedes the base64-embedded single file). A separate GLB
   streams, caches, and scales to textured assets — a blob does none of that.

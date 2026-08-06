@@ -150,7 +150,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-msg">Loading scene…</div>
   <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
-       I — what am I looking at &nbsp;·&nbsp; M — measure</div>
+       I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off</div>
 </div>
 <div id="reticle"></div>
 <div id="hud"></div>
@@ -205,6 +205,13 @@ scene.add(sun);
 // --- load villa.glb ----------------------------------------------------------
 let ready = false;
 let modelRoot = null;  // raycast target: the loaded villa only
+const roofNodes = [];  // dollhouse mode: nodes hidden by the R toggle
+let roofVisible = true;
+function toggleRoof() {
+  if (!roofNodes.length) return;
+  roofVisible = !roofVisible;
+  for (const n of roofNodes) n.visible = roofVisible;
+}
 try {
   if (location.protocol === 'file:') {
     throw new Error(
@@ -217,6 +224,12 @@ try {
   const gltf = await new GLTFLoader().parseAsync(await resp.arrayBuffer(), '');
   scene.add(gltf.scene);
   modelRoot = gltf.scene;
+  // Dollhouse mode: the roof group (roof slabs + soffit boards + their
+  // frames) toggles with R, like lifting the maquette's cardboard lid.
+  modelRoot.traverse((n) => {
+    if (/^IfcSlab_Roof_|^Soffit/.test(n.name)) roofNodes.push(n);
+  });
+  if (!roofNodes.length) console.warn('no roof nodes found — R toggle disabled');
   const bbox = new THREE.Box3().setFromObject(gltf.scene);
   const size = bbox.getSize(new THREE.Vector3());
   console.log('villa bbox (m):', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
@@ -237,6 +250,9 @@ try {
         camera.rotation.set(pitchRad, yaw * Math.PI / 180, 0, 'YXZ');
       }
     }
+    // ?roof=0 — test seam for the R toggle (headless screenshots), same
+    // #debug gating as ?measure.
+    if (new URLSearchParams(location.search).get('roof') === '0') toggleRoof();
   }
 } catch (err) {
   fatal(err);
@@ -266,7 +282,10 @@ function centerHit() {
   if (!modelRoot) return null;
   raycaster.setFromCamera(CENTER, camera);
   const hits = raycaster.intersectObject(modelRoot, true);
-  return hits.length ? hits[0] : null;
+  // Raycaster does NOT respect .visible — skip hits inside a hidden chain
+  // (a roof toggled off must not swallow info/measure rays).
+  const visible = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  return hits.find((h) => visible(h.object)) ?? null;
 }
 
 // Walk up to the semantic ancestor: imported asset children are 'Object_N',
@@ -416,6 +435,7 @@ document.addEventListener('keydown', (e) => {
     if (measureMode) exitMeasureMode();
     else { measureMode = true; infoText = ''; setHud(); }
   }
+  if (e.code === 'KeyR' && !e.repeat) toggleRoof();
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 renderer.domElement.addEventListener('click', () => {
