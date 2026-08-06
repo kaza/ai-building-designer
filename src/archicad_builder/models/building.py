@@ -153,10 +153,14 @@ class Building(BaseModel):
         return cls.model_validate_json(path.read_text())
 
     def save(self, path: str | Path) -> Path:
-        """Save the building to a JSON file. Creates parent dirs if needed."""
+        """Save the building to a JSON file. Creates parent dirs if needed.
+
+        exclude_none keeps files free of "finish": null noise — no model
+        field uses None as a meaningful non-default value.
+        """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.model_dump_json(indent=2))
+        path.write_text(self.model_dump_json(indent=2, exclude_none=True))
         return path
 
     # ── Lookups ───────────────────────────────────────────────────────
@@ -224,6 +228,7 @@ class Building(BaseModel):
         *,
         is_external: bool = False,
         load_bearing: bool = False,
+        finish: str | None = None,
     ) -> Wall:
         """Add a wall to a story. Returns the created wall.
 
@@ -239,6 +244,7 @@ class Building(BaseModel):
             thickness=thickness,
             is_external=is_external,
             load_bearing=load_bearing,
+            finish=finish,
         )
         story.walls.append(wall)
         return wall
@@ -320,6 +326,8 @@ class Building(BaseModel):
         is_floor: bool = True,
         name: str = "",
         description: str = "",
+        *,
+        finish: str | None = None,
     ) -> Slab:
         """Add a slab to a story. Vertices as list of (x, y) tuples."""
         story = self._require_story(story_name)
@@ -331,6 +339,7 @@ class Building(BaseModel):
             ),
             thickness=thickness,
             is_floor=is_floor,
+            finish=finish,
         )
         story.slabs.append(slab)
         return slab
@@ -371,6 +380,8 @@ class Building(BaseModel):
         thickness: float = 0.3,
         name: str = "",
         description: str = "",
+        *,
+        finish: str | None = None,
     ) -> Roof:
         """Add a roof to a story. Vertices as list of (x, y) tuples."""
         story = self._require_story(story_name)
@@ -383,6 +394,7 @@ class Building(BaseModel):
             roof_type=roof_type,
             pitch=pitch,
             thickness=thickness,
+            finish=finish,
         )
         story.roofs.append(roof)
         return roof

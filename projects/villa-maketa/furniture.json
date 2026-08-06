@@ -1,54 +1,42 @@
 {
-  "_comment": "Axis-aligned furniture boxes for the Blender preview. bounds=[x0,y0,x1,y1] in meters, h=height, z=bottom elevation. Types map to materials in render_blender.py.",
+  "_comment": "Axis-aligned furniture boxes for the Blender preview. bounds=[x0,y0,x1,y1] in meters, h=height, z=bottom elevation. Types map to materials in render_blender.py. Positions per maquette-alignment.md (2026-08-05).",
   "items": [
     {
       "name": "Sofa L long",
       "type": "sofa",
-      "bounds": [
-        0.75,
-        4.9,
-        2.5,
-        6.2
-      ],
+      "bounds": [3.45, 5.0, 4.4, 7.15],
       "h": 0.45,
-      "facing": "N",
+      "facing": "W",
       "asset": "sectional_sofa"
     },
     {
       "name": "Coffee table",
       "type": "wood",
-      "bounds": [
-        0.9,
-        6.5,
-        1.8,
-        7.1
-      ],
+      "bounds": [2.3, 5.2, 3.1, 6.6],
       "h": 0.4,
       "asset": "modern_coffee_table_01",
-      "facing": "E"
+      "facing": "N"
     },
     {
       "name": "Armchair",
       "type": "sofa",
-      "bounds": [
-        3.1,
-        5.1,
-        3.95,
-        5.95
-      ],
+      "bounds": [3.3, 7.15, 4.15, 7.95],
       "h": 0.45,
       "asset": "mid_century_lounge_chair",
-      "facing": "W"
+      "facing": "S"
+    },
+    {
+      "name": "Armchair 2",
+      "type": "sofa",
+      "bounds": [2.9, 4.1, 3.75, 4.95],
+      "h": 0.45,
+      "asset": "mid_century_lounge_chair",
+      "facing": "N"
     },
     {
       "name": "Dining table",
       "type": "wood",
-      "bounds": [
-        0.9,
-        3.1,
-        2.3,
-        4.3
-      ],
+      "bounds": [0.7, 3.15, 2.5, 4.1],
       "h": 0.75,
       "asset": "dining_table",
       "facing": "S"
@@ -56,64 +44,39 @@
     {
       "name": "Chair 1",
       "type": "wood",
-      "bounds": [
-        0.45,
-        3.25,
-        0.85,
-        3.65
-      ],
+      "bounds": [0.7, 4.15, 1.1, 4.55],
       "h": 0.45,
       "asset": "dining_chair",
-      "facing": "E"
+      "facing": "S"
     },
     {
       "name": "Chair 2",
       "type": "wood",
-      "bounds": [
-        0.45,
-        3.8,
-        0.85,
-        4.2
-      ],
+      "bounds": [1.4, 4.15, 1.8, 4.55],
       "h": 0.45,
       "asset": "dining_chair",
-      "facing": "E"
+      "facing": "S"
     },
     {
       "name": "Chair 3",
       "type": "wood",
-      "bounds": [
-        2.35,
-        3.25,
-        2.75,
-        3.65
-      ],
+      "bounds": [2.1, 4.15, 2.5, 4.55],
       "h": 0.45,
       "asset": "dining_chair",
-      "facing": "W"
+      "facing": "S"
     },
     {
       "name": "Chair 4",
       "type": "wood",
-      "bounds": [
-        2.35,
-        3.8,
-        2.75,
-        4.2
-      ],
+      "bounds": [0.7, 2.7, 1.1, 3.1],
       "h": 0.45,
       "asset": "dining_chair",
-      "facing": "W"
+      "facing": "N"
     },
     {
       "name": "Chair 5",
       "type": "wood",
-      "bounds": [
-        1.2,
-        2.6,
-        1.6,
-        3.0
-      ],
+      "bounds": [1.4, 2.7, 1.8, 3.1],
       "h": 0.45,
       "asset": "dining_chair",
       "facing": "N"
@@ -121,12 +84,7 @@
     {
       "name": "Chair 6",
       "type": "wood",
-      "bounds": [
-        1.7,
-        2.6,
-        2.1,
-        3.0
-      ],
+      "bounds": [2.1, 2.7, 2.5, 3.1],
       "h": 0.45,
       "asset": "dining_chair",
       "facing": "N"
@@ -134,34 +92,56 @@
     {
       "name": "Kitchen counter S",
       "type": "counter",
-      "bounds": [
-        0.35,
-        0.2,
-        4.3,
-        0.85
-      ],
+      "bounds": [0.35, 0.2, 4.3, 0.8],
       "h": 0.9
     },
     {
       "name": "Kitchen counter W",
       "type": "counter",
-      "bounds": [
-        0.35,
-        0.85,
-        1.0,
-        2.2
-      ],
+      "bounds": [0.35, 0.8, 1.0, 2.2],
       "h": 0.9
+    },
+    {
+      "name": "Kitchen sink",
+      "type": "ceramic",
+      "bounds": [2.9, 0.25, 3.5, 0.72],
+      "h": 0.05,
+      "z": 1.15
+    },
+    {
+      "name": "Kitchen island",
+      "type": "counter",
+      "bounds": [1.45, 1.55, 3.1, 2.05],
+      "h": 0.9
+    },
+    {
+      "name": "Bar stool 1",
+      "type": "wood",
+      "bounds": [1.5, 2.1, 1.9, 2.5],
+      "h": 0.65,
+      "asset": "dining_chair",
+      "facing": "S"
+    },
+    {
+      "name": "Bar stool 2",
+      "type": "wood",
+      "bounds": [2.2, 2.1, 2.6, 2.5],
+      "h": 0.65,
+      "asset": "dining_chair",
+      "facing": "S"
+    },
+    {
+      "name": "Bar stool 3",
+      "type": "wood",
+      "bounds": [2.85, 2.1, 3.25, 2.5],
+      "h": 0.65,
+      "asset": "dining_chair",
+      "facing": "S"
     },
     {
       "name": "Master bed",
       "type": "bed",
-      "bounds": [
-        4.65,
-        5.6,
-        6.65,
-        7.8
-      ],
+      "bounds": [4.65, 5.0, 6.65, 7.1],
       "h": 0.5,
       "asset": "platform_bed",
       "facing": "E",
@@ -170,23 +150,29 @@
     {
       "name": "Master desk",
       "type": "wood",
-      "bounds": [
-        7.35,
-        6.9,
-        7.9,
-        7.9
-      ],
-      "h": 0.75
+      "bounds": [7.39, 6.2, 7.94, 7.85],
+      "h": 0.75,
+      "asset": "office_desk",
+      "facing": "W"
+    },
+    {
+      "name": "Master desk chair",
+      "type": "wood",
+      "bounds": [6.9, 7.1, 7.35, 7.6],
+      "h": 0.45,
+      "asset": "dining_chair",
+      "facing": "E"
+    },
+    {
+      "name": "Master dresser",
+      "type": "wardrobe",
+      "bounds": [6.05, 4.6, 7.05, 4.95],
+      "h": 0.9
     },
     {
       "name": "Room2 bed",
       "type": "bed",
-      "bounds": [
-        6.3,
-        8.9,
-        8.5,
-        10.9
-      ],
+      "bounds": [6.3, 8.9, 8.5, 10.9],
       "h": 0.5,
       "asset": "platform_bed",
       "facing": "S"
@@ -194,104 +180,65 @@
     {
       "name": "Room2 wardrobe",
       "type": "wardrobe",
-      "bounds": [
-        8.55,
-        9.0,
-        9.35,
-        10.5
-      ],
+      "bounds": [8.55, 9.0, 9.35, 10.5],
       "h": 2.0
     },
     {
-      "name": "Bathtub",
+      "name": "Bath sink 1",
       "type": "ceramic",
-      "bounds": [
-        4.65,
-        2.65,
-        6.35,
-        3.4
-      ],
-      "h": 0.55
+      "bounds": [4.62, 3.65, 5.0, 4.25],
+      "h": 0.85
     },
     {
-      "name": "Bath sink",
+      "name": "Bath sink 2",
       "type": "ceramic",
-      "bounds": [
-        6.05,
-        3.95,
-        6.5,
-        4.4
-      ],
+      "bounds": [4.62, 3.0, 5.0, 3.6],
       "h": 0.85
     },
     {
       "name": "Bath toilet",
       "type": "ceramic",
-      "bounds": [
-        6.05,
-        2.7,
-        6.5,
-        3.25
-      ],
+      "bounds": [5.5, 2.7, 5.95, 3.3],
       "h": 0.42,
-      "facing": "W"
+      "facing": "N"
     },
     {
       "name": "Guest toilet",
       "type": "ceramic",
-      "bounds": [
-        6.7,
-        3.95,
-        7.15,
-        4.42
-      ],
+      "bounds": [6.7, 2.85, 7.15, 3.3],
       "h": 0.42,
-      "facing": "S"
+      "facing": "E"
     },
     {
       "name": "Guest sink",
       "type": "ceramic",
-      "bounds": [
-        6.68,
-        3.3,
-        7.08,
-        3.7
-      ],
+      "bounds": [6.64, 3.32, 7.04, 3.62],
       "h": 0.85
+    },
+    {
+      "name": "Guest shower",
+      "type": "ceramic",
+      "bounds": [6.64, 3.64, 7.94, 4.44],
+      "h": 0.12
     },
     {
       "name": "Lounger 1",
       "type": "wood",
-      "bounds": [
-        7.7,
-        12.2,
-        8.4,
-        13.9
-      ],
+      "bounds": [7.7, 12.2, 8.4, 13.9],
       "h": 0.35,
       "z": 0.15
     },
     {
       "name": "Lounger 2",
       "type": "wood",
-      "bounds": [
-        8.6,
-        12.2,
-        9.3,
-        13.9
-      ],
+      "bounds": [8.6, 12.2, 9.3, 13.9],
       "h": 0.35,
       "z": 0.15
     },
     {
       "name": "Deck sofa",
       "type": "sofa",
-      "bounds": [
-        0.4,
-        9.2,
-        2.1,
-        10.1
-      ],
+      "bounds": [0.4, 9.2, 2.1, 10.1],
       "h": 0.45,
       "z": 0.15,
       "asset": "deck_sofa",
@@ -300,61 +247,24 @@
     {
       "name": "Deck table 1",
       "type": "wood",
-      "bounds": [
-        1.3,
-        10.5,
-        2.2,
-        11.1
-      ],
+      "bounds": [1.3, 10.5, 2.2, 11.1],
       "h": 0.4,
       "z": 0.15
     },
     {
       "name": "Deck table 2",
       "type": "wood",
-      "bounds": [
-        2.6,
-        10.4,
-        3.3,
-        10.9
-      ],
+      "bounds": [2.6, 10.4, 3.3, 10.9],
       "h": 0.4,
       "z": 0.15
     },
     {
-      "name": "Guest shower",
-      "type": "ceramic",
-      "bounds": [
-        6.64,
-        2.56,
-        7.94,
-        3.36
-      ],
-      "h": 0.12
-    },
-    {
       "name": "TV sideboard",
       "type": "wood",
-      "bounds": [
-        0.2,
-        4.8,
-        0.65,
-        6.3
-      ],
+      "bounds": [0.2, 4.8, 0.65, 6.3],
       "h": 0.45,
       "asset": "modern_wooden_cabinet",
       "facing": "E"
-    },
-    {
-      "name": "Master dresser",
-      "type": "wardrobe",
-      "bounds": [
-        6.3,
-        4.62,
-        7.6,
-        5.02
-      ],
-      "h": 0.9
     }
   ]
 }

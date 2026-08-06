@@ -32,6 +32,11 @@ PALETTE = {
     "FloorTiles": (0.55, 0.72, 0.80, 1.0),
     "FloorHall": (0.78, 0.72, 0.60, 1.0),
     "FloorKitchen": (0.72, 0.66, 0.55, 1.0),
+    # facade finishes (facade-finishes.md) — linear from photo-sampled sRGB
+    "StoneRubble": (0.479, 0.423, 0.332, 1.0),
+    "Accent": (0.905, 0.533, 0.072, 1.0),
+    "RoofBrown": (0.156, 0.076, 0.033, 1.0),
+    "Soffit": (0.92, 0.92, 0.90, 1.0),
 }
 FALLBACK = (1.0, 0.0, 1.0, 1.0)  # magenta: an unmapped procedural material
 

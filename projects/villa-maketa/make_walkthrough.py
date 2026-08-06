@@ -21,6 +21,7 @@ from pathlib import Path
 OUT_DIR = Path(__file__).parent / "output"
 GLB = OUT_DIR / "villa.glb"
 HTML = OUT_DIR / "walkthrough.html"
+BUILDING = Path(__file__).parent / "building.json"
 
 THREE_VERSION = "0.170.0"
 
@@ -79,6 +80,26 @@ def validate_glb(data: bytes) -> dict:
         f"{len(doc['meshes'])} meshes, {len(doc['materials'])} materials"
     )
     return doc
+
+
+def element_tags() -> dict:
+    """Sanitized element name -> plan tag (W3, D5, Win4, ST1).
+
+    Mirrors Story.ensure_tags() numbering (per story, in element order) so
+    the walkthrough info card and the 2D plan speak the same ids — that is
+    how the owner references elements.
+    """
+    doc = json.loads(BUILDING.read_text())
+    tags: dict[str, str] = {}
+    for story in doc.get("stories", []):
+        for key, prefix in (("walls", "W"), ("doors", "D"),
+                            ("windows", "Win"), ("staircases", "ST")):
+            for i, el in enumerate(story.get(key, []), start=1):
+                tag = el.get("tag") or f"{prefix}{i}"
+                name = el.get("name", "")
+                if name:
+                    tags.setdefault(name.replace(" ", "_"), tag)
+    return tags
 
 
 TEMPLATE = """<!DOCTYPE html>
@@ -262,12 +283,23 @@ function semanticNode(obj) {
   return { node: named || node, label };
 }
 
+// element plan tags (W3, D5, Win4...) — same ids as the 2D floor plan
+const TAGS = __TAGS__;
+
+function displayName(label) {
+  // IfcWindow_Living_Window_W1 / IfcWindow_..._frame -> tag + readable name
+  const clean = label.replace(/^Ifc\\w+?_/, '').replace(/_frame$/, '');
+  const tag = TAGS[clean];
+  const pretty = clean.replace(/_/g, ' ');
+  return tag ? tag + ' — ' + pretty : (label.startsWith('F_') ? label.slice(2) : pretty);
+}
+
 function showInfo() {
   const hit = centerHit();
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
   const { node, label } = semanticNode(hit.object);
   const size = new THREE.Box3().setFromObject(node).getSize(new THREE.Vector3());
-  infoText = label + '\\n' +
+  infoText = displayName(label) + '\\n' +
     'W ' + size.x.toFixed(2) + ' × D ' + size.z.toFixed(2) +
     ' × H ' + size.y.toFixed(2) + ' m\\n' +
     'distance ' + hit.distance.toFixed(2) + ' m';
@@ -431,9 +463,13 @@ renderer.setAnimationLoop(() => {
 
 def main():
     validate_glb(GLB.read_bytes())
-    html = TEMPLATE.replace("__THREE_VERSION__", THREE_VERSION)
+    tags = element_tags()
+    html = (TEMPLATE
+            .replace("__THREE_VERSION__", THREE_VERSION)
+            .replace("__TAGS__", json.dumps(tags, sort_keys=True)))
     HTML.write_text(html, encoding="utf-8")
-    print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; loads ./villa.glb at runtime)")
+    print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; "
+          f"{len(tags)} element tags; loads ./villa.glb at runtime)")
 
 
 main()

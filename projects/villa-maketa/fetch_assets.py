@@ -63,6 +63,12 @@ OBJAVERSE = {
         "sha256": "5d0682406b751601754be00da984acad525ca4234acdedf3bf6e61ce98438b40",
         "name": "Stylized lowpoly bed", "author": "tharadelamo",
     },
+    "office_desk": {
+        "uid": "1837f10d9b064fd88a607a3d391a17af",
+        "path": "glbs/000-068/1837f10d9b064fd88a607a3d391a17af.glb",
+        "sha256": "1e315596341cb0f33cd39c5ded2d9ca66940af01c52eac2c1ca603280e072aec",
+        "name": "Meja Komputer", "author": "sutikno",
+    },
 }
 
 

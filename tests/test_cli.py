@@ -67,9 +67,10 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        # 11 findings waived: villa-vs-block noise incl. garage-storey core
-        # rules (E011/E012/E013) and three deliberately wide doors (W060)
-        assert v["waived_count"] == 11
+        # 10 findings waived: villa-vs-block noise incl. garage-storey core
+        # rules (E011/E012/E013) and two deliberately wide doors (W060) —
+        # the master terrace door became a 0.9+0.5 pair (maquette-alignment.md)
+        assert v["waived_count"] == 10
         assert {w["rule"] for w in v["waived"]} == {
             "W001", "W040", "W060", "E041b", "E011", "E012", "E013",
         }

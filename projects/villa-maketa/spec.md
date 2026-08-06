@@ -85,6 +85,8 @@ Kitchen↔Living is open plan — no wall between them.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-08-05 | Full realignment to the printed maquette plan: D8 split into a 0.9+0.5 inward glass pair (D8/D9), D3 flipped south into Bath 1, D5 to the SE corner, both baths refitted, living/dining/kitchen furniture repositioned | photo comparison by 4 independent readers — full discrepancy table + owner questions in [maquette-alignment.md](maquette-alignment.md) |
+| 2026-08-05 | SW pantry (reviewers' read of 15.png) added, then REMOVED same day on owner veto | owner decides what rooms exist, not photo inference — logged in maquette-alignment.md |
 | 2026-08-03 | Straight-run stair, not spiral | Model has no spiral type; backlog |
 | 2026-08-04 | Spiral stair (SPIRAL_STAIR, 1.5×1.5m) replaces the straight run | matches the maquette; renderer support added (specs/spiral-stair-rendering.md) |
 | 2026-08-03 | Garage level not modeled in v1 | Focus on main floor; stair placed, leads down |
@@ -186,6 +188,7 @@ auditioned via headless-Blender thumbnail contact sheets). Current mapping:
 | Dining chairs ×6 | Silla (navy cantilever) | Objaverse, CC-BY (gabymrtnz) |
 | Dining table | 653 (white pedestal) | Objaverse, CC-BY (GulinAlex) |
 | Deck sofa | Feathers 5 Seat | Objaverse, CC-BY (mohitoz) |
+| Master desk (+ desk chair = Silla) | Meja Komputer | Objaverse, CC-BY (sutikno) |
 | Armchair | mid_century_lounge_chair | Poly Haven, CC0 |
 | Coffee table | modern_coffee_table_01 | Poly Haven, CC0 |
 | TV sideboard | modern_wooden_cabinet | Poly Haven, CC0 |

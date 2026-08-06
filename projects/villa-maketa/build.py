@@ -26,8 +26,10 @@ b.add_story(GAR, height=GH, elevation=-GH)
 
 
 def gwall(name, start, end):
+    # Stone rubble facade per the owner's maquette photo (facade-finishes.md)
     return b.add_wall(GAR, start, end, height=GH, thickness=EXT, name=name,
-                      is_external=True, load_bearing=True)
+                      is_external=True, load_bearing=True,
+                      finish="stone_rubble")
 
 
 gwall("Garage South Wall", (0, 0), (9.5, 0))
@@ -41,6 +43,11 @@ gwall("Garage West Wall", (0, 8), (0, 0))
 # vehicle door on the south wall (driveway from the south)
 b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
            name="Garage Vehicle Door")
+# Glazed strip in the stone band (maquette west facade photo)
+b.add_window(GAR, "Garage West Wall", position=2.2, width=1.8, height=0.8,
+             sill_height=1.4, name="Garage Window W1")
+b.add_window(GAR, "Garage West Wall", position=4.6, width=1.8, height=0.8,
+             sill_height=1.4, name="Garage Window W2")
 b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
            thickness=0.25, name="Garage Slab")
 # spiral stair shaft aligned with the ground-floor one (E051)
@@ -83,12 +90,15 @@ b.add_door(GF, "South Wall", position=8.5, width=1.0, height=2.1, name="Vila Ent
 b.add_door(GF, "Living East Wall", position=1.6, width=0.9, height=2.1, name="Vila Kitchen Door")
 # Maquette close-up: Bath 1 is the master en-suite — entered from the bedroom,
 # not from the passage. Guests use the hallway WC.
-b.add_door(GF, "Master South Wall", position=1.0, width=0.75, height=2.1,
-           name="Vila Bath 1 Door")
-b.add_door(GF, "Corridor West Wall", position=1.0, width=0.75, height=2.1,
+# Print (maquette-alignment.md D-3): x5.25-6.0, hinge west, opens SOUTH into bath
+b.add_door(GF, "Master South Wall", position=0.75, width=0.75, height=2.1,
+           name="Vila Bath 1 Door", swing_inward=False)
+# Print (D-4, provisional): shifted south so the swing clears the north shower
+b.add_door(GF, "Corridor West Wall", position=0.3, width=0.75, height=2.1,
            name="Vila Guest Bathroom Door")
-b.add_door(GF, "Corridor West Wall", position=2.6, width=0.9, height=2.1,
-           name="Vila Master Bedroom Door")  # 60cm from Master South Wall
+# Print (D-2): hard against the SE corner, y4.6-5.5
+b.add_door(GF, "Corridor West Wall", position=2.1, width=0.9, height=2.1,
+           name="Vila Master Bedroom Door")
 d_r2 = b.add_door(GF, "Room 2 South Wall East", position=0.3, width=0.9, height=2.1,
                   name="Vila Room 2 Door")
 # Hinge on the east side: the open leaf rests against the east facade wall
@@ -111,10 +121,17 @@ b.add_window(GF, "West Wall", position=4.5, width=1.8, height=0.75,
              sill_height=1.8, name="Living Window W2")
 b.add_window(GF, "Living North Wall", position=0.15, width=4.2, height=2.5,
              sill_height=0.15, name="Living Sliding Window")
-# Maquette close-up: master has double French doors onto the deck, not a window.
-# 1.4m double door → W060 "suspicious width" warning, accepted (it IS a double door).
-b.add_door(GF, "Master North Wall", position=0.05, width=1.4, height=2.1,
-           name="Vila Master Bedroom Terrace Door", swing_inward=False)
+# Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
+# approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
+# (x4.55), BOTH swinging south into the master. Wall runs (6,8)->(4.5,8), so
+# door_start is the east side: large leaf = LEFT hinge at pos 0.05.
+b.add_door(GF, "Master North Wall", position=0.05, width=0.9, height=2.1,
+           name="Vila Master Bedroom Terrace Door",
+           operation_type=DoorOperationType.SINGLE_SWING_LEFT)
+d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.5,
+                             height=2.1,
+                             name="Vila Master Bedroom Terrace Door Small")
+d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Room 2 north face is glass: sliding door floor-to-ceiling beside D7
 b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door")
@@ -137,6 +154,21 @@ b.add_slab(
 )
 b.add_slab(GF, [(0.5, 14), (9, 14), (9, 17.5), (0.5, 17.5)], thickness=0.15, name="Pool")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
+
+# --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
+# skylight aperture over the deck). Two polygons frame the hole — a C-shaped
+# west part and an east strip (facade-finishes.md). ---
+b.add_roof(
+    GF,
+    [(-0.6, -0.6), (4.3, -0.6), (4.3, 9.2), (2.3, 9.2),
+     (2.3, 11.2), (4.3, 11.2), (4.3, 12.6), (-0.6, 12.6)],
+    thickness=0.25, name="Roof West", finish="roof_brown",
+)
+b.add_roof(
+    GF,
+    [(4.3, -0.6), (10.1, -0.6), (10.1, 12.6), (4.3, 12.6)],
+    thickness=0.25, name="Roof East", finish="roof_brown",
+)
 
 # --- Spiral staircase down to garage (matches the maquette) ---
 b.add_staircase(

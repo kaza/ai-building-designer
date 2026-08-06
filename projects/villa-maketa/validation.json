@@ -9,11 +9,6 @@
       "reason": "single-villa hallway doubles as entry zone; Vorraum share rule is for blocks"
     },
     {
-      "rule": "W060",
-      "match": "Master Bedroom Terrace Door",
-      "reason": "genuine 1.4m double French door to the deck"
-    },
-    {
       "rule": "E041b",
       "match": "Bath 1",
       "reason": "4.2m2 master en-suite; adaptable-housing minimum waived by owner"

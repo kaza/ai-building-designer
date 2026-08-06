@@ -153,18 +153,93 @@ def grass_mat(name):
 
 
 def glass_mat(name):
+    # Light blue tint + low roughness = the maquette's mirrored-blue panes
     m, _, bsdf = _new_mat(name)
-    bsdf.inputs["Base Color"].default_value = (0.8, 0.9, 0.95, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.03
+    bsdf.inputs["Base Color"].default_value = (0.62, 0.78, 0.92, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.02
     for key in ("Transmission Weight", "Transmission"):
         if key in bsdf.inputs:
-            bsdf.inputs[key].default_value = 0.95
+            bsdf.inputs[key].default_value = 0.85
             break
     return m
 
 
+def srgb_hex_to_linear(hex_str):
+    """sRGB hex (photo-sampled) -> linear RGBA for Blender sockets."""
+    r, g, b = (int(hex_str.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    def lin(c):
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    return (lin(r), lin(g), lin(b), 1.0)
+
+
+def stone_mat(name):
+    """Rubble masonry: brick texture, per-stone tint variation, deep mortar.
+
+    Brick textures sample (x, y) of their vector — flat death on a vertical
+    wall whose plane holds one of those constant. Walls here are axis-aligned,
+    so u = x + y varies along ANY wall; v = z keeps courses horizontal.
+    """
+    m, nt, bsdf = _new_mat(name)
+    bsdf.inputs["Roughness"].default_value = 0.9
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    u = nt.nodes.new("ShaderNodeMath")
+    u.operation = "ADD"
+    comb = nt.nodes.new("ShaderNodeCombineXYZ")
+    brick = nt.nodes.new("ShaderNodeTexBrick")
+    brick.offset = 0.5
+    brick.inputs["Scale"].default_value = 1.0
+    brick.inputs["Color1"].default_value = srgb_hex_to_linear("#B8AE9C")
+    brick.inputs["Color2"].default_value = srgb_hex_to_linear("#7E7464")
+    brick.inputs["Mortar"].default_value = srgb_hex_to_linear("#3E362C")
+    brick.inputs["Mortar Size"].default_value = 0.014
+    if "Brick Width" in brick.inputs:
+        brick.inputs["Brick Width"].default_value = 0.5   # ~0.5m stones
+        brick.inputs["Row Height"].default_value = 0.28   # ~0.28m courses
+    # brownish patches so single stones read as different minerals
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 4.0
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.inputs[7].default_value = srgb_hex_to_linear("#6B5A44")  # B color
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.35
+    nt.links.new(coord.outputs["Object"], sep.inputs["Vector"])
+    nt.links.new(sep.outputs["X"], u.inputs[0])
+    nt.links.new(sep.outputs["Y"], u.inputs[1])
+    nt.links.new(u.outputs["Value"], comb.inputs["X"])
+    nt.links.new(sep.outputs["Z"], comb.inputs["Y"])
+    nt.links.new(comb.outputs["Vector"], brick.inputs["Vector"])
+    nt.links.new(comb.outputs["Vector"], noise.inputs["Vector"])
+    nt.links.new(brick.outputs["Color"], mix.inputs[6])          # A color
+    nt.links.new(noise.outputs["Fac"], mix.inputs["Factor"])
+    nt.links.new(mix.outputs[2], bsdf.inputs["Base Color"])
+    nt.links.new(brick.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    return m
+
+
+# Door meshes rendered as glass panels (matched by substring against the
+# IfcDoor object name). Owner request 2026-08-05.
+GLASS_DOORS = (
+    "Master_Bedroom_Terrace_Door",   # matches the Small leaf too
+    "Bath_1_Door",
+)
+
+# finish tag (building.json) -> MATS key. Unknown tags fail loud below.
+FINISH_TO_MAT = {
+    "stone_rubble": "stone",
+    "accent": "accent",
+    "roof_brown": "roof_brown",
+}
+
 MATS = {
     "wall": plaster_mat("Plaster", (0.8, 0.78, 0.74, 1.0)),
+    "stone": stone_mat("StoneRubble"),
+    "accent": flat_mat("Accent", srgb_hex_to_linear("#F4C14C"), roughness=0.5),
+    "roof_brown": flat_mat("RoofBrown", srgb_hex_to_linear("#6E4E33"),
+                           roughness=0.8),
+    "soffit": flat_mat("Soffit", (0.92, 0.92, 0.9, 1.0), roughness=0.8),
     "slab": flat_mat("Slab", (0.78, 0.77, 0.74, 1.0), roughness=0.9),
     "stair": wood_mat("StairWood"),
     "glass": glass_mat("Glass"),
@@ -238,13 +313,57 @@ def add_polygon(name, verts2d, z, mat):
 
 # ── Building shell from OBJ ──────────────────────────────────────────────────
 
+# ── Finish map: building.json element names -> finish tags ──────────────────
+# OBJ object names are "Ifc<Type>_<name with spaces underscored>" (ifc_to_obj).
+_bjson = json.loads((HERE / "building.json").read_text())
+FINISHES = {}
+for _story in _bjson["stories"]:
+    for _kind, _prefix in (("walls", "IfcWallStandardCase"),
+                           ("slabs", "IfcSlab"), ("roofs", "IfcSlab")):
+        for _el in _story.get(_kind, []):
+            _fin = _el.get("finish")
+            if _fin is None:
+                continue
+            if not _fin:
+                raise RuntimeError(
+                    f"Empty finish tag on '{_el.get('name')}' — use null/omit "
+                    f"for default, or a tag from FINISH_TO_MAT")
+            if _fin not in FINISH_TO_MAT:
+                raise RuntimeError(
+                    f"Unknown finish tag '{_fin}' on '{_el.get('name')}' — "
+                    f"add it to FINISH_TO_MAT (facade-finishes.md)")
+            _key = f"{_prefix}_{(_el.get('name') or '').replace(' ', '_')}"
+            if FINISHES.get(_key, _fin) != _fin:
+                raise RuntimeError(
+                    f"Ambiguous finish for '{_key}': duplicate element names "
+                    f"with different finish tags")
+            FINISHES[_key] = _fin
+
+
+_finish_hits: dict[str, int] = {}
+
+
+def finish_material(obj_name):
+    """Material for a finish-tagged element, or None. Exact name match —
+    Blender only suffixes ('.001') on name collisions, which for unique OBJ
+    objects means something is wrong, so we count hits and fail below."""
+    fin = FINISHES.get(obj_name)
+    if fin is None:
+        return None
+    _finish_hits[obj_name] = _finish_hits.get(obj_name, 0) + 1
+    return MATS[FINISH_TO_MAT[fin]]
+
+
 bpy.ops.wm.obj_import(filepath=str(OBJ), forward_axis="Y", up_axis="Z")
 
 for obj in list(scene.objects):
     if obj.type != "MESH":
         continue
     n = obj.name
-    if "Pool" in n:
+    _fmat = finish_material(n)
+    if _fmat is not None:
+        obj.data.materials.append(_fmat)
+    elif "Pool" in n:
         obj.data.materials.append(MATS["pool"])
     elif "Deck" in n:
         obj.data.materials.append(MATS["deck"])
@@ -270,9 +389,31 @@ for obj in list(scene.objects):
         mod.thickness = 0.05
         scene.collection.objects.link(frame)
     elif "Door" in n:
-        obj.data.materials.append(MATS["door"])
+        # Owner 2026-08-05: terrace pair (D8/D9) and Bath 1 door (D3) are glass
+        if any(g in n for g in GLASS_DOORS):
+            obj.data.materials.append(MATS["glass"])
+            frame = obj.copy()
+            frame.data = obj.data.copy()
+            frame.data.materials.clear()
+            frame.data.materials.append(MATS["frame"])
+            frame.name = obj.name + "_frame"
+            dec = frame.modifiers.new("Planar", "DECIMATE")
+            dec.decimate_type = "DISSOLVE"  # drop box-face diagonals first
+            dec.angle_limit = math.radians(5)
+            mod = frame.modifiers.new("Frame", "WIREFRAME")
+            mod.thickness = 0.04
+            scene.collection.objects.link(frame)
+        else:
+            obj.data.materials.append(MATS["door"])
     else:
         obj.data.materials.append(MATS["wall"])
+
+# Every finish-tagged element must have matched exactly one imported object —
+# stale OBJ output or naming drift must not silently render as plaster.
+_finish_misses = {k: _finish_hits.get(k, 0) for k in FINISHES
+                  if _finish_hits.get(k, 0) != 1}
+if _finish_misses:
+    raise RuntimeError(f"Finish join mismatches (name: hit count): {_finish_misses}")
 
 # ── Spiral staircase (pole + helical wedge steps descending to garage) ──────
 
@@ -419,6 +560,7 @@ ASSET_NATIVE_FACING = {
     # west) — the "head north" assumption survived two visual checks because
     # head-west happened to look plausible in both rooms
     "platform_bed": "E",
+    "office_desk": "S",  # hypothesis from audition thumbnail — verify in probe
 }
 
 _asset_protos = {}  # asset id -> list of objects (imported prototype hierarchy)
@@ -568,8 +710,33 @@ sun = bpy.data.objects.new("Sun", sun_data)
 sun.rotation_euler = (math.radians(50), math.radians(-10), math.radians(105))
 scene.collection.objects.link(sun)
 
-bpy.ops.mesh.primitive_plane_add(size=200, location=(4.75, 8, -0.29))
-bpy.context.active_object.data.materials.append(MATS["ground"])
+# Sloped site (maquette photo): high ground in the north keeps deck+pool at
+# GF level; low ground south/west exposes the garage's stone band. Solid
+# boxes so the terrace step face is closed. Render-only site geometry.
+bpy.ops.mesh.primitive_cube_add(size=1, location=(4.75, 60 + 7.5, -0.29 - 1.5))
+_g_high = bpy.context.active_object
+_g_high.scale = (200, 120, 3.0)
+_g_high.data.materials.append(MATS["ground"])
+_g_high.name = "GroundHigh"
+bpy.ops.mesh.primitive_cube_add(size=1, location=(4.75, 7.5 - 60, -3.15 - 1.5))
+_g_low = bpy.context.active_object
+_g_low.scale = (200, 120, 3.0)
+_g_low.data.materials.append(MATS["ground"])
+_g_low.name = "GroundLow"
+
+# Facade decor (render-only, matching the maquette's glued-on parts —
+# facade-finishes.md): mustard accent volume on the west facade + white
+# soffit boards under the brown roof (one Roof element stays the model
+# truth; the soffit is a painted finish, not structure).
+add_box("AccentVolume", -0.5, 0.4, 0.05, 2.6, 0.45, 2.45, MATS["accent"],
+        bevel=0.008)
+ROOF_SOFFIT_POLYS = {
+    "SoffitWest": [(-0.6, -0.6), (4.3, -0.6), (4.3, 9.2), (2.3, 9.2),
+                   (2.3, 11.2), (4.3, 11.2), (4.3, 12.6), (-0.6, 12.6)],
+    "SoffitEast": [(4.3, -0.6), (10.1, -0.6), (10.1, 12.6), (4.3, 12.6)],
+}
+for _sname, _sverts in ROOF_SOFFIT_POLYS.items():
+    add_polygon(_sname, _sverts, 2.995, MATS["soffit"])
 
 # ── Cameras ──────────────────────────────────────────────────────────────────
 
@@ -636,6 +803,11 @@ print(f"Rendered {OUT_PERSP}")
 scene.view_settings.exposure = -0.6
 # Save the full scene for interactive viewing (open in Blender, orbit away)
 bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
+
+# Top-down looks INTO the rooms — lift the maquette's lid: hide roof + soffit
+for _o in scene.objects:
+    if _o.type == "MESH" and ("Roof" in _o.name or "Soffit" in _o.name):
+        _o.hide_render = True
 
 scene.camera = cam_top
 scene.render.resolution_x = 1100

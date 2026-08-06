@@ -31,6 +31,10 @@ class Wall(BaseModel):
     thickness: float = Field(gt=0, description="Wall thickness in meters")
     load_bearing: bool = Field(default=False, description="Pset_WallCommon.LoadBearing")
     is_external: bool = Field(default=False, description="Pset_WallCommon.IsExternal")
+    finish: str | None = Field(
+        default=None,
+        description="Renderer finish tag (specs/facade-finishes.md); None = default",
+    )
 
     @property
     def length(self) -> float:
@@ -73,6 +77,10 @@ class Slab(BaseModel):
     slab_type: SlabType = Field(
         default=SlabType.FLOOR,
         description="IFC IfcSlabTypeEnum — slab function",
+    )
+    finish: str | None = Field(
+        default=None,
+        description="Renderer finish tag (specs/facade-finishes.md); None = default",
     )
 
     @property
@@ -187,6 +195,10 @@ class Roof(BaseModel):
     roof_type: RoofType = RoofType.FLAT
     pitch: float = Field(default=0.0, ge=0, le=89, description="Roof pitch in degrees")
     thickness: float = Field(default=0.3, gt=0, description="Roof thickness in meters")
+    finish: str | None = Field(
+        default=None,
+        description="Renderer finish tag (specs/facade-finishes.md); None = default",
+    )
 
     @model_validator(mode="after")
     def flat_roof_zero_pitch(self) -> Roof:
