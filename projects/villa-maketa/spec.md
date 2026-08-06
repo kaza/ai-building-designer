@@ -87,6 +87,9 @@ Kitchen↔Living is open plan — no wall between them.
 |---|---|---|
 | 2026-08-05 | Full realignment to the printed maquette plan: D8 split into a 0.9+0.5 inward glass pair (D8/D9), D3 flipped south into Bath 1, D5 to the SE corner, both baths refitted, living/dining/kitchen furniture repositioned | photo comparison by 4 independent readers — full discrepancy table + owner questions in [maquette-alignment.md](maquette-alignment.md) |
 | 2026-08-05 | SW pantry (reviewers' read of 15.png) added, then REMOVED same day on owner veto | owner decides what rooms exist, not photo inference — logged in maquette-alignment.md |
+| 2026-08-06 | Spiral stair straddles the south facade at (6.1,−0.75)–(7.6,0.75); South Wall split around it (east segment = W15, hosts D1); cylindrical tower shell rendered project-side | maquette photo #22 — the stair tower is half outside the house |
+| 2026-08-06 | Garage south face inset to y=0.6 (GF cantilevers over it); 2× E050 waived | maquette photo #22 — recessed carport-style entry; side walls keep full length so the stone reaches the corners |
+| 2026-08-06 | Cycles renders opt-in (`VILLA_FULL_RENDER=1`); GLB + walkthrough regenerate every run | owner: the walkthrough website is the product |
 | 2026-08-03 | Straight-run stair, not spiral | Model has no spiral type; backlog |
 | 2026-08-04 | Spiral stair (SPIRAL_STAIR, 1.5×1.5m) replaces the straight run | matches the maquette; renderer support added (specs/spiral-stair-rendering.md) |
 | 2026-08-03 | Garage level not modeled in v1 | Focus on main floor; stair placed, leads down |
@@ -256,7 +259,7 @@ Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
 .venv/bin/python -m archicad_builder export villa-maketa               # 5. IFC
 .venv/bin/python projects/villa-maketa/ifc_to_obj.py                   # 6. OBJ for Blender
 /Applications/Blender.app/Contents/MacOS/Blender -b -P \
-    projects/villa-maketa/render_blender.py                            # 7. 3D renders + blend
+    projects/villa-maketa/render_blender.py                            # 7. blend (Cycles PNGs opt-in)
 /Applications/Blender.app/Contents/MacOS/Blender -b \
     projects/villa-maketa/output/villa.blend \
     -P projects/villa-maketa/export_glb.py                             # 8. GLB (reads villa.blend)
@@ -264,8 +267,10 @@ Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
 .venv/bin/python projects/villa-maketa/check_furniture.py             # 10. W100 gate (exit 1 on violations)
 ```
 
-`VILLA_SKIP_RENDER=1` on step 7 saves villa.blend and skips the two Cycles
-renders — placement iteration in seconds.
+Step 7 is CHEAP by default (owner 2026-08-06: the walkthrough is the product,
+regenerated every run; the ~4 min Cycles PNGs are opt-in): it saves
+villa.blend and stops. `VILLA_FULL_RENDER=1` also renders perspective.png +
+top_down.png.
 
 Outputs (all in `output/`, gitignored, regenerable):
 

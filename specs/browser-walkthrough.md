@@ -37,6 +37,7 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 | 2026-08-05 | Free-fly first, collision later | answers "how does the space feel" with half the work | Almir + Claude |
 | 2026-08-05 | ~~Open-top scenes accepted~~ superseded 2026-08-06 | the villa now has a roof; the viewer toggles it (dollhouse mode, R) like the maquette's lid | Claude |
 | 2026-08-06 | Dollhouse roof toggle is a viewer feature (R key + `?roof=0` debug seam) | aerial capture needs the lid off; hidden roofs must not swallow info/measure raycasts | Almir |
+| 2026-08-06 | P key = feedback screenshot: downloads a PNG named with the exact camera (`villa-shot_x_y_z_yaw_pitch.png`) | owner reviews by screenshot; the filename doubles as a `#debug=` camera so Claude re-renders the identical view to verify fixes | Almir |
 
 ## Related
 Villa v1 implementation details + review lessons: `projects/villa-maketa/spec.md`

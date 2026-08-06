@@ -150,7 +150,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-msg">Loading scene…</div>
   <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
-       I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off</div>
+       I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off &nbsp;·&nbsp; P — photo</div>
 </div>
 <div id="reticle"></div>
 <div id="hud"></div>
@@ -211,6 +211,21 @@ function toggleRoof() {
   if (!roofNodes.length) return;
   roofVisible = !roofVisible;
   for (const n of roofNodes) n.visible = roofVisible;
+}
+
+// P — save a PNG of the current view. The filename carries the exact camera
+// (position + yaw/pitch, the same numbers #debug= accepts), so a shot can be
+// reproduced with walkthrough.html#debug=<numbers from the filename>.
+function screenshot() {
+  renderer.render(scene, camera);  // fresh frame in the buffer for toDataURL
+  const p = camera.position;
+  const spec = [p.x.toFixed(2), p.y.toFixed(2), p.z.toFixed(2),
+                (camera.rotation.y * 180 / Math.PI).toFixed(1),
+                (camera.rotation.x * 180 / Math.PI).toFixed(1)].join(',');
+  const a = document.createElement('a');
+  a.download = 'villa-shot_' + spec.replaceAll(',', '_') + '.png';
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
 }
 try {
   if (location.protocol === 'file:') {
@@ -436,6 +451,7 @@ document.addEventListener('keydown', (e) => {
     else { measureMode = true; infoText = ''; setHud(); }
   }
   if (e.code === 'KeyR' && !e.repeat) toggleRoof();
+  if (e.code === 'KeyP' && !e.repeat) screenshot();
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 renderer.domElement.addEventListener('click', () => {

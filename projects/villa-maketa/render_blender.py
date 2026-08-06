@@ -363,6 +363,15 @@ for obj in list(scene.objects):
     _fmat = finish_material(n)
     if _fmat is not None:
         obj.data.materials.append(_fmat)
+        if n.startswith("IfcWallStandardCase_"):
+            # Finishes are EXTERIOR paint: interior faces stay plaster.
+            # Exterior = face normal points away from the plan centroid.
+            obj.data.materials.append(MATS["wall"])
+            for _poly in obj.data.polygons:
+                _c = _poly.center
+                if (_poly.normal.x * (_c.x - 4.75)
+                        + _poly.normal.y * (_c.y - 6.0)) <= 0.01:
+                    _poly.material_index = 1
     elif "Pool" in n:
         obj.data.materials.append(MATS["pool"])
     elif "Deck" in n:
@@ -724,19 +733,34 @@ _g_low.scale = (200, 120, 3.0)
 _g_low.data.materials.append(MATS["ground"])
 _g_low.name = "GroundLow"
 
+# Stair tower (maquette photo #22): the spiral shaft straddles the south
+# facade; its protruding half gets a cylindrical shell — hollow tube minus
+# the in-house half, so the spiral steps inside stay intact. Render decor;
+# the building model carries the straddling staircase itself.
+bpy.ops.mesh.primitive_cylinder_add(radius=0.92, depth=6.15, vertices=48,
+                                    location=(6.85, 0.0, -0.075))
+_tower = bpy.context.active_object
+_tower.name = "StairTower"
+_tower.data.materials.append(MATS["wall"])
+bpy.ops.mesh.primitive_cylinder_add(radius=0.80, depth=6.4, vertices=48,
+                                    location=(6.85, 0.0, -0.075))
+_tower_inner = bpy.context.active_object
+_tower_inner.name = "StairTowerCutterInner"
+_tower_inner.hide_render = True
+bpy.ops.mesh.primitive_cube_add(size=1, location=(6.85, 2.0 + 0.12, 0.0))
+_tower_back = bpy.context.active_object
+_tower_back.scale = (4.0, 4.0, 8.0)   # everything y > 0.12 (inside the house)
+_tower_back.name = "StairTowerCutterBack"
+_tower_back.hide_render = True
+for _cut in (_tower_inner, _tower_back):
+    _m = _tower.modifiers.new("Cut", "BOOLEAN")
+    _m.operation = "DIFFERENCE"
+    _m.object = _cut
+
 # Facade decor (render-only, matching the maquette's glued-on parts —
-# facade-finishes.md): mustard accent volume on the west facade + white
-# soffit boards under the brown roof (one Roof element stays the model
-# truth; the soffit is a painted finish, not structure).
-add_box("AccentVolume", -0.5, 0.4, 0.05, 2.6, 0.45, 2.45, MATS["accent"],
-        bevel=0.008)
-ROOF_SOFFIT_POLYS = {
-    "SoffitWest": [(-0.6, -0.6), (4.3, -0.6), (4.3, 9.2), (2.3, 9.2),
-                   (2.3, 11.2), (4.3, 11.2), (4.3, 12.6), (-0.6, 12.6)],
-    "SoffitEast": [(4.3, -0.6), (10.1, -0.6), (10.1, 12.6), (4.3, 12.6)],
-}
-for _sname, _sverts in ROOF_SOFFIT_POLYS.items():
-    add_polygon(_sname, _sverts, 2.995, MATS["soffit"])
+# facade.md): white soffit boards under the brown roof (one Roof element
+# stays the model truth; the soffit is a painted finish, not structure).
+# Soffit boards removed (owner 2026-08-06: "SoffitWest should not exist").
 
 # ── Cameras ──────────────────────────────────────────────────────────────────
 
@@ -784,12 +808,13 @@ print("View transform:", scene.view_settings.view_transform)
 
 import os
 
-if os.environ.get("VILLA_SKIP_RENDER"):
-    # Scene-only build: save the .blend (feeds export_glb.py) and skip the
-    # two Cycles renders — placement iteration in seconds, not minutes.
+# The walkthrough GLB is the product (owner 2026-08-06) — the two Cycles
+# renders (~4 min) are OPT-IN via VILLA_FULL_RENDER=1. Default: save the
+# .blend (feeds export_glb.py) and stop.
+if not os.environ.get("VILLA_FULL_RENDER"):
     scene.view_settings.exposure = -0.6
     bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
-    print("VILLA_SKIP_RENDER set — saved villa.blend, skipped renders")
+    print("saved villa.blend; Cycles renders skipped (set VILLA_FULL_RENDER=1 for PNGs)")
     raise SystemExit(0)
 
 scene.camera = cam_persp

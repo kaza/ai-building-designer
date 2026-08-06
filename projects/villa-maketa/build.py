@@ -32,21 +32,30 @@ def gwall(name, start, end):
                       finish="stone_rubble")
 
 
-gwall("Garage South Wall", (0, 0), (9.5, 0))
+# Maquette photo #22: the garage south face is INSET 0.6m behind the GF edge
+# (GF cantilevers over it, carport-style); the spiral-stair shaft pokes
+# through the gap x6.1-7.6. Side walls keep their full length to the y=0
+# corners — the stone reaches the front, only the door plane is recessed.
+gwall("Garage South Wall", (0, 0.6), (6.1, 0.6))
 gwall("Garage East Wall", (9.5, 0), (9.5, 12))
 gwall("Garage North Wall", (9.5, 12), (6.0, 12))
 gwall("Garage West Wall Upper", (6.0, 12), (6.0, 8))
 gwall("Garage North Wall West", (6.0, 8), (4.5, 8))
 gwall("Garage Northwest Wall", (4.5, 8), (0, 8))
-gwall("Garage West Wall", (0, 8), (0, 0))
+gwall("Garage West Wall", (0, 8), (0, 2.7))
+# appended AFTER the original seven so their W1-W7 tags stay stable
+gwall("Garage South Wall East", (7.6, 0.6), (9.5, 0.6))
+# mirrors the GF west-wall split (E050 wants exact segment alignment)
+gwall("Garage West Wall South", (0, 2.7), (0, 0))
 
 # vehicle door on the south wall (driveway from the south)
 b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
            name="Garage Vehicle Door")
 b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
            thickness=0.25, name="Garage Slab")
-# spiral stair shaft aligned with the ground-floor one (E051)
-b.add_staircase(GAR, [(6.1, 0.2), (7.6, 0.2), (7.6, 1.7), (6.1, 1.7)],
+# spiral stair shaft aligned with the ground-floor one (E051); straddles the
+# south facade — the tower is half OUTSIDE the house (maquette photo #22)
+b.add_staircase(GAR, [(6.1, -0.75), (7.6, -0.75), (7.6, 0.75), (6.1, 0.75)],
                 width=0.7, stair_type=StaircaseType.SPIRAL_STAIR,
                 name="Garage Stair Lower")
 
@@ -59,13 +68,26 @@ def wall(name: str, start, end, thickness=INT):
 
 
 # --- Exterior walls (counter-clockwise around the L footprint) ---
-w_south = wall("South Wall", (0, 0), (9.5, 0), EXT)
+# The SW corner L (South + West walls) is YELLOW outside (owner 2026-08-06 —
+# supersedes the misread "accent volume"); high window band gives light from
+# above and keeps the wall below usable (TV wall).
+# South facade splits around the stair tower (x6.1-7.6, photo #22); the
+# east segment is appended after all other walls so W1-W14 stay stable.
+# White south-band walls rise past the brown roof as a parapet (photo #24:
+# "the wall should go to that height" — there is NO thick white roof)
+w_south = wall("South Wall", (0, 0), (6.1, 0), EXT)  # white
 w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
 w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
 w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
 w_master_n = wall("Master North Wall", (6.0, 8), (4.5, 8), EXT)
+# W6: east (door-side) half is one floor-to-roof window; west half is solid
+# yellow concrete carrying the TV, wrapping the corner into W7 (owner 2026-08-06)
 w_nw = wall("Living North Wall", (4.5, 8), (0, 8), EXT)
-w_west = wall("West Wall", (0, 8), (0, 0), EXT)
+w_nw.finish = "accent"
+# Photo #21: the west facade's southern ~third is WHITE — the wall splits
+# so the finish can differ (yellow north, plain south).
+w_west = wall("West Wall", (0, 8), (0, 2.7), EXT)
+w_west.finish = "accent"
 
 # --- Interior walls ---
 # Naming matters: validators match corridor walls and doors by name
@@ -79,9 +101,12 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
+w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
 # --- Doors ---
-b.add_door(GF, "South Wall", position=8.5, width=1.0, height=2.1, name="Vila Entry Door")
+b.add_door(GF, "South Wall East", position=0.9, width=1.0, height=2.1,
+           name="Vila Entry Door")  # same absolute spot x8.5-9.5; still D1
 b.add_door(GF, "Living East Wall", position=1.6, width=0.9, height=2.1, name="Vila Kitchen Door")
 # Maquette close-up: Bath 1 is the master en-suite — entered from the bedroom,
 # not from the passage. Guests use the hallway WC.
@@ -107,15 +132,22 @@ b.add_door(GF, "North Wall", position=2.0, width=1.4, height=2.1,
            name="Vila Room 2 Terrace Door", swing_inward=False)
 
 # --- Windows ---
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=1.4, name="Kitchen Window")
-# West wall is the TV wall: clerestory windows only (sill 1.80, natural
-# light from above)
-b.add_window(GF, "West Wall", position=1.5, width=1.8, height=0.75,
-             sill_height=1.8, name="Living Window W1")
-b.add_window(GF, "West Wall", position=4.5, width=1.8, height=0.75,
-             sill_height=1.8, name="Living Window W2")
-b.add_window(GF, "Living North Wall", position=0.15, width=4.2, height=2.5,
-             sill_height=0.15, name="Living Sliding Window")
+# The yellow L is part concrete part glass (owner 2026-08-06): the living
+# stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
+# concrete stretches carry a roof-to-1.80 band so the wall below stays
+# usable and light falls from above.
+b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
+             sill_height=2.05, name="Kitchen Window")
+# Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
+# Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
+b.add_window(GF, "West Wall", position=0.15, width=3.2, height=0.75,
+             sill_height=2.05, name="Living Band Window")
+# Win3: full-height glazing from Win2's end to the white south third
+# (photo #21) — 0.1 mullion after Win2
+b.add_window(GF, "West Wall", position=3.45, width=1.8, height=2.75,
+             sill_height=0.05, name="Living Glass W2")
+b.add_window(GF, "Living North Wall", position=0.15, width=2.0, height=2.75,
+             sill_height=0.05, name="Living Sliding Window")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
 # (x4.55), BOTH swinging south into the master. Wall runs (6,8)->(4.5,8), so
@@ -131,6 +163,9 @@ d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door")
 b.add_window(GF, "East Wall", position=6.3, width=1.0, height=1.4, name="Hallway Window")
+# Band window over the TV wall (W6 solid half) — appended last => tag Win7
+b.add_window(GF, "Living North Wall", position=2.5, width=1.8, height=0.75,
+             sill_height=2.05, name="Living Band Window N")
 
 # --- Slab (full L footprint) ---
 b.add_slab(
@@ -155,20 +190,28 @@ b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.1
 # west part and an east strip (facade-finishes.md). ---
 b.add_roof(
     GF,
-    [(-0.6, -0.6), (4.3, -0.6), (4.3, 9.2), (2.3, 9.2),
+    [(-0.6, 2.7), (4.3, 2.7), (4.3, 9.2), (2.3, 9.2),
      (2.3, 11.2), (4.3, 11.2), (4.3, 12.6), (-0.6, 12.6)],
-    thickness=0.25, name="Roof West", finish="roof_brown",
+    thickness=0.45, name="Roof West", finish="roof_brown",
 )
 b.add_roof(
     GF,
-    [(4.3, -0.6), (10.1, -0.6), (10.1, 12.6), (4.3, 12.6)],
-    thickness=0.25, name="Roof East", finish="roof_brown",
+    [(4.3, 2.7), (10.1, 2.7), (10.1, 12.6), (4.3, 12.6)],
+    thickness=0.45, name="Roof East", finish="roof_brown",
+)
+# The roof splits into TWO clean rectangles (owner, P-shot 2026-08-06):
+# white south band + brown rest, tops flush at 3.45. The white part has NO
+# overhang — flush with the wall outer faces, "wall goes up then flat".
+b.add_roof(
+    GF,
+    [(-0.15, -0.15), (9.65, -0.15), (9.65, 2.7), (-0.15, 2.7)],
+    thickness=0.45, name="Roof South White",
 )
 
 # --- Spiral staircase down to garage (matches the maquette) ---
 b.add_staircase(
     GF,
-    [(6.1, 0.2), (7.6, 0.2), (7.6, 1.7), (6.1, 1.7)],
+    [(6.1, -0.75), (7.6, -0.75), (7.6, 0.75), (6.1, 0.75)],
     width=0.7,
     stair_type=StaircaseType.SPIRAL_STAIR,
     name="Garage Stair",
@@ -188,7 +231,7 @@ def rect(x0, y0, x1, y1):
 
 
 hallway_verts = [
-    (4.5, 0), (6.1, 0), (6.1, 1.7), (7.6, 1.7), (7.6, 0),
+    (4.5, 0), (6.1, 0), (6.1, 0.75), (7.6, 0.75), (7.6, 0),
     (9.5, 0), (9.5, 8), (8, 8), (8, 2.5), (4.5, 2.5),
 ]
 
@@ -209,7 +252,7 @@ apartment = Apartment(
         space("Master Bedroom", RoomType.BEDROOM, rect(4.5, 4.5, 8, 8)),
         space("Room 2", RoomType.BEDROOM, rect(6.0, 8, 9.5, 12)),
         space("Hallway", RoomType.HALLWAY, hallway_verts),
-        space("Garage Stair", RoomType.STAIRCASE, rect(6.1, 0.2, 7.6, 1.7)),
+        space("Garage Stair", RoomType.STAIRCASE, rect(6.1, -0.75, 7.6, 0.75)),
     ],
 )
 

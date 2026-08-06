@@ -25,11 +25,12 @@ look: owner's maquette photo, west facade, 2026-08-05 (pool left = north).
 - ~~Garage window band~~ REMOVED (owner 2026-08-06): the garage is
   underground — the glazed strip in the photo was a misread of the maquette.
   Do not re-add.
-- **Accent volume** (mustard box, south end of west facade, #F4C14C):
-  render-level decor volume in render_blender.py (≈(−0.5,0.4)–(0.05,2.6),
-  z 0.45–2.45). NOT building geometry: splitting West Wall would cascade
-  into E050 vertical-alignment + Win2/Win3 rehosting (Codex); the maquette
-  itself has it as a glued-on box. Revisit if the owner wants a real bay.
+- ~~Accent volume~~ REMOVED (owner 2026-08-06): the yellow box in the photo
+  was a misinterpreted facade. Corrected reading: **the SW corner L (South
+  Wall + West Wall) is painted yellow outside** (`finish="accent"`, mustard
+  #F4C14C, exterior faces only — interiors stay plaster), and **the L's
+  windows (Win1/Win2/Win3) run from the roof down to 1.80 m** (sill 1.8,
+  height 1.2) so the wall below carries the TV and light falls from above.
 - **Sloped render site**: two ground boxes with a step at y≈7.5 — high in
   the north (deck+pool at GF level), low south/west (−3.15) so the stone
   band shows. The white plinth in the photo is the maquette's base board —
@@ -55,6 +56,13 @@ carries matching linear entries (StoneRubble/Accent/RoofBrown/Soffit).
 | 2026-08-05 | Name-join for finish lookup, fail-loud on duplicates/unknown tags | GlobalId-in-OBJ-names breaks the walkthrough's name-based tag map; villa names are unique |
 | 2026-08-05 | Roof/mortar colors darkened from photo samples | sun + view transform washed the sampled values to salmon/pale |
 | 2026-08-06 | Garage windows removed | garage is underground (owner); photo strip was a misread |
+| 2026-08-06 | Accent volume → yellow L walls (South+West) with roof-to-1.8 window band | owner corrected the facade reading; volume was never real geometry |
+| 2026-08-06 | Wall finishes paint EXTERIOR faces only (normal vs plan centroid) | "yellow from outside" — interiors stay plaster; also fixes stone leaking into the garage interior |
+| 2026-08-06 | West wall living stretch (y4.5–8) = floor-to-ceiling glazing (Win2 slot reused in place as "Living Glass Wall" — tags stable); TV sideboard moved to the north wall | owner: "the yellow wall is part concrete part glass"; photo #20's big panes sit on the north half |
+| 2026-08-06 | Stair tower shell + recessed garage face (photo #22) | tower = hollow C-shell render decor at (6.85,0) r0.92, full height; model truth = the straddling staircase + split walls; E050 ×2 waived for the cantilever |
+| 2026-08-06 | W6 east half = floor-to-roof glass (Win4 slot, w2.0), west half solid yellow wrapping into W7; band windows Win1/Win2/Win7 sill 2.05 (= true 1.80 above the floor — model sills start at the wall base, 0.25 below the slab top; caught by the owner with the measure tool) with head 2.80 matching Win4's reveal | owner corrections; the solid W6 half is the TV wall — resolves the print's "crossed unit" question (L-6) |
+| 2026-08-06 | Win3 = full-height glass from Win2's end to the white south third; west-facade south third + W1 + W15 are WHITE (yellow = W6 west half + W7 only); W16 "West Wall South" split off (garage mirror W9) | owner corrections via photos #21/#26 |
+| 2026-08-06 | Roof = TWO clean rectangles, tops flush at 3.45: brown (y2.7–12.6, overhang, skylight) + white south band (flush with the wall faces, NO overhang). No raised parapet, no soffit boards — the intermediate readings (0.75 parapet, wrap-around brown, soffit under-boards) were owner-rejected | verified from the owner's own P-shot camera |
 
 ## Related
 [specs/facade-finishes.md](../../specs/facade-finishes.md) (framework
