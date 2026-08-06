@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T15:53:53.160Z",
+  "where": "Master Bedroom \u2014 Ground Floor",
+  "model": {
+    "x": 5.4,
+    "y": 7.88,
+    "h": 0.24
+  },
+  "camera": {
+    "x": 5.395,
+    "y": 0.235,
+    "z": -7.882,
+    "yawDeg": 171.77,
+    "pitchDeg": -13.52
+  },
+  "debugHash": "#debug=5.40,0.24,-7.88,171.8,-13.5",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "but what are these 25 cm? some doors are starting here why? how can it be ? this is a huge issue. i want to generate real drawings from this so some integritity tests must catch this , this is madness. if we need thes volme for some construction reasons - goood but still no doors and windows can be inside - right ?",
+  "strokes": []
+}

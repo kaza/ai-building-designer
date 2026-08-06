@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T15:00:50.242Z",
+  "where": "Bath 1 \u2014 Ground Floor",
+  "model": {
+    "x": 5.69,
+    "y": 2.9,
+    "h": 0.17
+  },
+  "camera": {
+    "x": 5.685,
+    "y": 0.172,
+    "z": -2.902,
+    "yawDeg": 60.85,
+    "pitchDeg": -9.97
+  },
+  "debugHash": "#debug=5.69,0.17,-2.90,60.8,-10.0",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "look at this I see only W8 , the door on the side is not visble id, other parts as well",
+  "strokes": []
+}

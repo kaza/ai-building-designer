@@ -246,15 +246,20 @@ def validate_ceiling_height(
 ) -> list[ValidationError]:
     """Check ceiling height for habitable rooms (OIB RL 3: ≥ 2.50m).
 
-    Uses story height minus slab thickness as proxy for clear room height.
+    Clear height = story height minus the floor slab of the storey ABOVE:
+    slabs hang below their own datum (specs/storey-datum.md), so the
+    structure eating a storey's headroom belongs to the next storey up.
+    The topmost storey loses nothing here (its roof is a Roof, not a Slab).
     """
     errors: list[ValidationError] = []
 
-    for story in building.stories:
+    stories = sorted(building.stories, key=lambda s: s.elevation)
+    for i, story in enumerate(stories):
+        above = stories[i + 1] if i + 1 < len(stories) else None
         slab_thickness = max(
-            (s.thickness for s in story.slabs if s.is_floor),
+            (s.thickness for s in above.slabs if s.is_floor),
             default=0.0,
-        )
+        ) if above else 0.0
         clear_height = story.height - slab_thickness
 
         if clear_height < min_height - 0.01:
@@ -266,8 +271,9 @@ def validate_ceiling_height(
                     message=(
                         f"Story '{story.name}' has clear height "
                         f"{clear_height:.2f}m (floor height {story.height}m "
-                        f"minus slab {slab_thickness:.2f}m) — minimum is "
-                        f"{min_height:.2f}m for habitable rooms (OIB RL 3)."
+                        f"minus the slab above, {slab_thickness:.2f}m) — "
+                        f"minimum is {min_height:.2f}m for habitable rooms "
+                        f"(OIB RL 3)."
                     ),
                 )
             )

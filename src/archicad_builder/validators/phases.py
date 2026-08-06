@@ -7,7 +7,7 @@ Validates each phase of the architect's building design process:
   Phase 4: Façade subdivision (E030-E031, W030-W031)
   Phase 5: Room subdivision (E040-E049, E041b, E070-E071, W040-W045, W060)
   Optimization: Layout improvements (O001, O002, O041)
-  Phase 6: Vertical consistency (E050-E051, W050)
+  Phase 6: Vertical consistency (E050-E052, W050)
 
 v3 additions:
   E060: Core wall opening > 1.20m → ERROR
@@ -21,6 +21,9 @@ v3 additions:
 from __future__ import annotations
 
 import math
+
+from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.validation import make_valid
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.geometry import Point2D
@@ -1207,12 +1210,14 @@ def _boundaries_overlap(s1: Space, s2: Space) -> bool:
 # ══════════════════════════════════════════════════════════════════════
 
 def validate_phase6_vertical(building: Building) -> list[ValidationError]:
-    """Phase 6 validators: E050-E051, W050."""
+    """Phase 6 validators: E050-E052, W050."""
     errors: list[ValidationError] = []
     stories = sorted(building.stories, key=lambda s: s.elevation)
 
     if len(stories) < 2:
         return errors
+
+    errors.extend(_validate_opening_slab_clash(stories))
 
     for i in range(1, len(stories)):
         upper = stories[i]
@@ -1283,6 +1288,102 @@ def validate_phase6_vertical(building: Building) -> list[ValidationError]:
                 ))
 
     return errors
+
+
+# E052 tolerances: vertical penetration below EPS is contact, and a
+# footprint intersection below EPS m² is an edge/vertex touch — both are
+# the CORRECT post-flip geometry and must stay legal (specs/storey-datum.md)
+_CLASH_EPS = 1e-6
+
+
+def _validate_opening_slab_clash(
+    stories: list[Story],
+) -> list[ValidationError]:
+    """E052: door/window opening volume clashes with another storey's slab.
+
+    Slabs hang below their storey datum ([elevation − thickness,
+    elevation]), so a same-storey clash is geometrically impossible —
+    this catches CROSS-storey penetrations (e.g. an upper floor slab
+    dipping into a tall ground-floor door). Model-level only: it derives
+    slab z the way the exporter does, so exporter regressions are guarded
+    by the IFC placement tests, not by this rule.
+    """
+    errors: list[ValidationError] = []
+
+    slabs: list[tuple[Story, object, float, float, ShapelyPolygon]] = []
+    for story in stories:
+        for slab in story.slabs:
+            poly = ShapelyPolygon(
+                [(v.x, v.y) for v in slab.outline.vertices]
+            )
+            if not poly.is_valid:
+                # Polygon2D permits self-intersecting outlines; Shapely's
+                # intersection() raises GEOSException on them. Normalize
+                # instead of crashing the whole validation run.
+                poly = make_valid(poly)
+            slabs.append((
+                story, slab,
+                story.elevation - slab.thickness, story.elevation, poly,
+            ))
+
+    for story in stories:
+        walls = {w.global_id: w for w in story.walls}
+        openings = [
+            (d, "Door", story.elevation, story.elevation + d.height)
+            for d in story.doors
+        ] + [
+            (w, "Window",
+             story.elevation + w.sill_height,
+             story.elevation + w.sill_height + w.height)
+            for w in story.windows
+        ]
+        for elem, element_type, z0, z1 in openings:
+            wall = walls.get(elem.wall_id)
+            if wall is None or wall.length == 0:
+                continue  # dangling wall_id — structural validation owns it
+            footprint = _opening_footprint(wall, elem.position, elem.width)
+            for slab_story, slab, s0, s1, poly in slabs:
+                depth = min(z1, s1) - max(z0, s0)
+                if depth <= _CLASH_EPS:
+                    continue
+                if footprint.intersection(poly).area <= _CLASH_EPS:
+                    continue
+                errors.append(ValidationError(
+                    severity="error",
+                    element_type=element_type,
+                    element_id=elem.global_id,
+                    message=(
+                        f"E052: {element_type} '{elem.name}' on "
+                        f"'{story.name}' penetrates slab "
+                        f"'{slab.name}' of '{slab_story.name}' by "
+                        f"{depth:.3f}m — openings must sit clear of "
+                        f"slab volumes (specs/storey-datum.md)."
+                    ),
+                ))
+
+    return errors
+
+
+def _opening_footprint(
+    wall, position: float, width: float
+) -> ShapelyPolygon:
+    """The opening's plan rectangle: width along the wall axis × full
+    wall thickness across it. A wall-CENTERLINE test would miss a slab
+    edge that stops between the wall faces (plan review 2026-08-06)."""
+    dx = (wall.end.x - wall.start.x) / wall.length
+    dy = (wall.end.y - wall.start.y) / wall.length
+    nx, ny = -dy, dx
+    half_t = wall.thickness / 2
+    ax = wall.start.x + dx * position
+    ay = wall.start.y + dy * position
+    bx = ax + dx * width
+    by = ay + dy * width
+    return ShapelyPolygon([
+        (ax - nx * half_t, ay - ny * half_t),
+        (bx - nx * half_t, by - ny * half_t),
+        (bx + nx * half_t, by + ny * half_t),
+        (ax + nx * half_t, ay + ny * half_t),
+    ])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────

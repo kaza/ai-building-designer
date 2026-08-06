@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T21:30:57.188Z",
+  "where": "Living \u2014 Ground Floor",
+  "model": {
+    "x": 3.19,
+    "y": 7.68,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 3.188,
+    "y": 1.7,
+    "z": -7.677,
+    "yawDeg": 173.44,
+    "pitchDeg": -36.67
+  },
+  "debugHash": "#debug=3.19,1.70,-7.68,173.4,-36.7",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "can you please check out the furntiure now its diged into the floor",
+  "strokes": []
+}

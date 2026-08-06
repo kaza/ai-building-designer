@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T15:02:08.812Z",
+  "where": "Bath 1 \u2014 Ground Floor",
+  "model": {
+    "x": 5.69,
+    "y": 2.9,
+    "h": 0.17
+  },
+  "camera": {
+    "x": 5.685,
+    "y": 0.172,
+    "z": -2.902,
+    "yawDeg": 2.98,
+    "pitchDeg": 10.66
+  },
+  "debugHash": "#debug=5.69,0.17,-2.90,3.0,10.7",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "ground slab as well not",
+  "strokes": []
+}

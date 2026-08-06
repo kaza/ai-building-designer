@@ -1,7 +1,8 @@
 # Decision 001: `building.json` is the single source of truth
 
 ## Status
-accepted — recorded retroactively (the code has worked this way since the first commit)
+accepted — recorded retroactively (the code has worked this way since the first
+commit); revisited and reaffirmed 2026-08-06 (see "Revisited" below)
 
 ## Date
 2026-08-05 (recorded); decision in force since project start
@@ -35,6 +36,31 @@ export is never a lost building.
 and that has to be said out loud to anyone who opens the IFC. Every new output format costs an
 exporter. Pipeline order matters (e.g. `ifc_to_obj` reads the IFC, so export must run first),
 which makes the documented step order load-bearing rather than advisory.
+
+## Revisited 2026-08-06 — "shouldn't we work in IFC all the time?" (owner)
+Owner challenged the decision during the villa facade work: the original product
+idea was IFC-native authoring with commands manipulating the IFC directly.
+**Reaffirmed Option A**, with sharper reasoning than the original record:
+
+- IFC is an **interchange** format, not an authoring format (its own spec's
+  framing). Authoring in it means graph surgery: moving one wall touches
+  placement chains, openings, fills, and joined neighbors by GUID reference.
+- The mental model: **`build.py` is source code, IFC is the compiled binary.**
+  We DO "work in IFC" where it matters — openings, corner joins, glazing are
+  proper IFC entities, so ArchiCAD reads a real BIM model — but we regenerate
+  the artifact instead of mutating it, for the same reason nobody patches
+  binaries.
+- The "commands over the model" the owner wanted exist one level up
+  (`add_wall`, `add_window(pane_side=…)`, CLI `apply`); over raw IFC each
+  would be reference-graph archaeology, and validators would have to
+  reverse-engineer semantics back out of geometry.
+- Owner feedback loop (photos/F-key → fix → re-render) turns around in
+  minutes precisely because the authoritative model is small and semantic.
+
+**Reopen trigger** (the one scenario that flips this): a human architect must
+edit the model in ArchiCAD/Revit and send it BACK. That requires IFC import +
+reconciliation and ends JSON's monopoly as source of truth. Until that
+requirement exists, IFC-native buys pain, not capability.
 
 ## Applies to
 `models/`, `export/`, all `projects/*/` scripts, `.gitignore`, the walkthrough product.

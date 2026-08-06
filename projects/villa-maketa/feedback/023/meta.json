@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:31:34.201Z",
+  "where": "Room 2 \u2014 Ground Floor",
+  "model": {
+    "x": 6.98,
+    "y": 8.62,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 6.975,
+    "y": 1.7,
+    "z": -8.625,
+    "yawDeg": -19.23,
+    "pitchDeg": -42.51
+  },
+  "debugHash": "#debug=6.98,1.70,-8.62,-19.2,-42.5",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "I belive this bed should be rotated differently and be poiting to the w4 - wall not like this in the middle of the room",
+  "strokes": []
+}

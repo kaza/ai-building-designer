@@ -148,19 +148,27 @@ class TestCeilingHeight:
     """Tests for ceiling height validator."""
 
     def test_standard_height_passes(self):
-        b = generate_shell(num_floors=1, width=10, depth=8,
+        b = generate_shell(num_floors=2, width=10, depth=8,
                            floor_height=3.0, slab_thickness=0.25)
-        # Clear height = 3.0 - 0.25 = 2.75m > 2.50m
+        # Clear height = 3.0 - 0.25 (slab of the storey ABOVE) = 2.75m
         errors = validate_ceiling_height(b)
         assert len(errors) == 0
 
     def test_low_ceiling_fails(self):
-        b = generate_shell(num_floors=1, width=10, depth=8,
+        b = generate_shell(num_floors=2, width=10, depth=8,
                            floor_height=2.6, slab_thickness=0.25)
-        # Clear height = 2.6 - 0.25 = 2.35m < 2.50m
+        # Lower storey: 2.6 - 0.25 (slab above) = 2.35m < 2.50m
         errors = validate_ceiling_height(b)
         assert len(errors) >= 1
         assert any("clear height" in e.message for e in errors)
+
+    def test_topmost_storey_loses_no_height_to_a_slab(self):
+        # The roof is a Roof, not a Slab — a single storey at 2.6m clear
+        # is legal under the storey-datum convention (its own floor slab
+        # hangs BELOW its datum, specs/storey-datum.md)
+        b = generate_shell(num_floors=1, width=10, depth=8,
+                           floor_height=2.6, slab_thickness=0.25)
+        assert validate_ceiling_height(b) == []
 
 
 class TestBuildingCodesIntegration:

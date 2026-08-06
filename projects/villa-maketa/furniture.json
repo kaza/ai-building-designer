@@ -150,7 +150,7 @@
       "bounds": [
         0.35,
         0.2,
-        4.3,
+        2.8,
         0.8
       ],
       "h": 0.9
@@ -162,21 +162,48 @@
         0.35,
         0.8,
         1.0,
-        2.2
+        1.55
       ],
       "h": 0.9
+    },
+    {
+      "name": "Kitchen fridge",
+      "type": "counter",
+      "bounds": [
+        0.35,
+        1.55,
+        1.0,
+        2.2
+      ],
+      "h": 1.9,
+      "asset": "kenney_kitchenFridgeLarge",
+      "facing": "E"
     },
     {
       "name": "Kitchen sink",
       "type": "ceramic",
       "bounds": [
-        2.9,
-        0.25,
-        3.5,
-        0.72
+        2.8,
+        0.2,
+        3.6,
+        0.8
       ],
       "h": 0.05,
-      "z": 1.15
+      "asset": "kenney_kitchenSink",
+      "facing": "N"
+    },
+    {
+      "name": "Kitchen stove",
+      "type": "counter",
+      "bounds": [
+        3.6,
+        0.2,
+        4.3,
+        0.8
+      ],
+      "h": 0.9,
+      "asset": "kenney_kitchenStove",
+      "facing": "N"
     },
     {
       "name": "Kitchen island",
@@ -283,14 +310,14 @@
       "name": "Room2 bed",
       "type": "bed",
       "bounds": [
-        6.3,
-        8.9,
-        8.5,
+        6.15,
+        9.3,
+        8.25,
         10.9
       ],
       "h": 0.5,
       "asset": "platform_bed",
-      "facing": "S"
+      "facing": "E"
     },
     {
       "name": "Room2 wardrobe",
@@ -312,7 +339,9 @@
         5.0,
         4.25
       ],
-      "h": 0.85
+      "h": 0.85,
+      "asset": "kenney_bathroomSinkSquare",
+      "facing": "E"
     },
     {
       "name": "Bath sink 2",
@@ -323,7 +352,9 @@
         5.0,
         3.6
       ],
-      "h": 0.85
+      "h": 0.85,
+      "asset": "kenney_bathroomSinkSquare",
+      "facing": "E"
     },
     {
       "name": "Bath toilet",
@@ -335,7 +366,8 @@
         3.3
       ],
       "h": 0.42,
-      "facing": "N"
+      "facing": "N",
+      "asset": "kenney_toilet"
     },
     {
       "name": "Guest toilet",
@@ -347,7 +379,8 @@
         3.3
       ],
       "h": 0.42,
-      "facing": "E"
+      "facing": "N",
+      "asset": "kenney_toilet"
     },
     {
       "name": "Guest sink",
@@ -358,7 +391,9 @@
         7.04,
         3.62
       ],
-      "h": 0.85
+      "h": 0.85,
+      "asset": "kenney_bathroomSinkSquare",
+      "facing": "E"
     },
     {
       "name": "Guest shower",
@@ -369,7 +404,9 @@
         7.94,
         4.44
       ],
-      "h": 0.12
+      "h": 0.12,
+      "asset": "kenney_shower",
+      "facing": "S"
     },
     {
       "name": "Lounger 1",
@@ -381,7 +418,9 @@
         13.9
       ],
       "h": 0.35,
-      "z": 0.15
+      "z": 0.0,
+      "asset": "kenney_loungeChairRelax",
+      "facing": "N"
     },
     {
       "name": "Lounger 2",
@@ -393,7 +432,9 @@
         13.9
       ],
       "h": 0.35,
-      "z": 0.15
+      "z": 0.0,
+      "asset": "kenney_loungeChairRelax",
+      "facing": "N"
     },
     {
       "name": "Deck sofa",
@@ -405,7 +446,7 @@
         10.1
       ],
       "h": 0.45,
-      "z": 0.15,
+      "z": 0.0,
       "asset": "deck_sofa",
       "facing": "N"
     },
@@ -419,7 +460,9 @@
         11.1
       ],
       "h": 0.4,
-      "z": 0.15
+      "z": 0.0,
+      "asset": "outdoor_table_chair_set_01",
+      "facing": "S"
     },
     {
       "name": "Deck table 2",
@@ -431,7 +474,9 @@
         10.9
       ],
       "h": 0.4,
-      "z": 0.15
+      "z": 0.0,
+      "asset": "outdoor_table_chair_set_01",
+      "facing": "S"
     },
     {
       "name": "TV sideboard",

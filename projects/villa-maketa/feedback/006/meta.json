@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-08-06T13:57:51.774Z",
+  "camera": {
+    "x": 6.153,
+    "y": 0.232,
+    "z": -5.609,
+    "yawDeg": -165.98,
+    "pitchDeg": -7.91
+  },
+  "debugHash": "#debug=6.15,0.23,-5.61,-166.0,-7.9",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "where am I here ? and why does this gap exist and why I do not see tha ids and names of objects rendered",
+  "strokes": []
+}

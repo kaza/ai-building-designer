@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:32:21.553Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": 13.8,
+    "y": 7.07,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 13.798,
+    "y": 1.7,
+    "z": -7.066,
+    "yawDeg": 93.6,
+    "pitchDeg": -1.95
+  },
+  "debugHash": "#debug=13.80,1.70,-7.07,93.6,-1.9",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "I belive the win6 shold go accors all the ww east wall, or at least on the part where roof-east is visible",
+  "strokes": []
+}

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:30:47.157Z",
+  "where": "Kitchen \u2014 Ground Floor",
+  "model": {
+    "x": 3.46,
+    "y": 2.13,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 3.464,
+    "y": 1.7,
+    "z": -2.132,
+    "yawDeg": 137.99,
+    "pitchDeg": -34.61
+  },
+  "debugHash": "#debug=3.46,1.70,-2.13,138.0,-34.6",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "can you please replace kitchen componets with somethign better renedered as well",
+  "strokes": []
+}

@@ -85,6 +85,7 @@ Kitchen↔Living is open plan — no wall between them.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-08-06 | Storey-datum flip applied ([storey-datum.md](../../specs/storey-datum.md), feedback #013/#014): slabs now hang below their datum. Villa fallout: deck/pool/lawn tops drop from +0.15 to 0.0 (flush with GF floor), garage FFL = −2.8 (walls no longer buried 25 cm), renderer `SLAB_TOP` 0.25→0, six furniture items with absolute z shifted (sink 1.15→0.90, deck set 0.15→0), spiral stair drop 2.0→2.8 (now reaches the garage floor) and deduplicated (was built twice, once per storey) | walls/doors started 25 cm inside the ground slab — visible from inside the slab, wrong in any section drawing |
 | 2026-08-05 | Full realignment to the printed maquette plan: D8 split into a 0.9+0.5 inward glass pair (D8/D9), D3 flipped south into Bath 1, D5 to the SE corner, both baths refitted, living/dining/kitchen furniture repositioned | photo comparison by 4 independent readers — full discrepancy table + owner questions in [maquette-alignment.md](maquette-alignment.md) |
 | 2026-08-05 | SW pantry (reviewers' read of 15.png) added, then REMOVED same day on owner veto | owner decides what rooms exist, not photo inference — logged in maquette-alignment.md |
 | 2026-08-06 | Spiral stair straddles the south facade at (6.1,−0.75)–(7.6,0.75); South Wall split around it (east segment = W15, hosts D1); cylindrical tower shell rendered project-side | maquette photo #22 — the stair tower is half outside the house |
@@ -143,6 +144,7 @@ lighting good enough to read the space.
 | 1 | `export_glb.py` | Blender headless: load `output/villa.blend`, drop render-only helpers (cameras, sky), make materials glTF-safe (procedural textures don't export — set a flat per-material `baseColorFactor` from a name→color map, same palette as render_blender.py), export `output/villa.glb` |
 | 2 | `make_walkthrough.py` | plain-Python templating: validates the GLB container and writes `output/walkthrough.html` — Three.js (pinned CDN import map), `PointerLockControls`, WASD + mouse look, Shift = fast, Space/C = up/down; `HemisphereLight` + `DirectionalLight` sun; start camera at the SE entrance looking north; loads `./villa.glb` at runtime |
 | 3 | Pipeline | two new steps after the Blender render (order matters: reads villa.blend) |
+| 4 | `serve.py` | serves `output/` (port 8123) + `POST /feedback`: the F key freezes the view, the owner draws screen-space strokes and comments, the page POSTs a composite PNG + meta.json (camera pose, `#debug=` hash, normalized strokes with raycast element tags, comment) → `feedback/<NNN>/` (project level — owner input, not a regenerable artifact); PNG download fallback when the POST fails |
 
 Decisions:
 - **Free-fly, no collision** — walking + wall collision is backlog; free-fly answers

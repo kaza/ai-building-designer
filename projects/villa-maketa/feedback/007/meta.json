@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-08-06T14:15:11.594Z",
+  "camera": {
+    "x": 5.629,
+    "y": -1.889,
+    "z": -4.448,
+    "yawDeg": -1.03,
+    "pitchDeg": 9.63
+  },
+  "debugHash": "#debug=5.63,-1.89,-4.45,-1.0,9.6",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "can you please check this gap again , and please for all visible elements can I see their name  , can the name be renedered always where I see it . by the way i belive there are two floors and I would hope you can read it from the positoin of the camera and if the names are rendered properly this would be easier to spot",
+  "strokes": []
+}

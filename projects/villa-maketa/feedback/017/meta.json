@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T21:33:06.268Z",
+  "where": "Living \u2014 Ground Floor",
+  "model": {
+    "x": 4.45,
+    "y": 7.74,
+    "h": 0.2
+  },
+  "camera": {
+    "x": 4.445,
+    "y": 0.2,
+    "z": -7.742,
+    "yawDeg": 137.58,
+    "pitchDeg": -3.78
+  },
+  "debugHash": "#debug=4.45,0.20,-7.74,137.6,-3.8",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "pleases check out what heppaned with all the furniture in the object",
+  "strokes": []
+}

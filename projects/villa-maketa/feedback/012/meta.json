@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T15:46:09.499Z",
+  "where": "Master Bedroom \u2014 Ground Floor",
+  "model": {
+    "x": 5.15,
+    "y": 7.73,
+    "h": 0.14
+  },
+  "camera": {
+    "x": 5.152,
+    "y": 0.138,
+    "z": -7.729,
+    "yawDeg": -164.1,
+    "pitchDeg": -4.93
+  },
+  "debugHash": "#debug=5.15,0.14,-7.73,-164.1,-4.9",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "yes much better can you now check where I stand it seams we have two floors and it seams whatever is below me , is not labeled for whatever reason right",
+  "strokes": []
+}

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:30:23.546Z",
+  "where": "Bath 1 \u2014 Ground Floor",
+  "model": {
+    "x": 4.79,
+    "y": 3.7,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 4.788,
+    "y": 1.7,
+    "z": -3.705,
+    "yawDeg": -124.61,
+    "pitchDeg": -60.39
+  },
+  "debugHash": "#debug=4.79,1.70,-3.70,-124.6,-60.4",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "can you replace bathorrom things with some better renderd components than this here",
+  "strokes": []
+}

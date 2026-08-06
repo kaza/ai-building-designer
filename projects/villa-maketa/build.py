@@ -48,9 +48,11 @@ gwall("Garage South Wall East", (7.6, 0.6), (9.5, 0.6))
 # mirrors the GF west-wall split (E050 wants exact segment alignment)
 gwall("Garage West Wall South", (0, 2.7), (0, 0))
 
-# vehicle door on the south wall (driveway from the south)
+# vehicle door on the south wall (driveway from the south); NOTDEFINED =
+# sectional, no swing arc and no lever handles (framework skips both)
 b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
-           name="Garage Vehicle Door")
+           name="Garage Vehicle Door",
+           operation_type=DoorOperationType.NOTDEFINED)
 b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
            thickness=0.25, name="Garage Slab")
 # spiral stair shaft aligned with the ground-floor one (E051); straddles the
@@ -143,37 +145,58 @@ b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
              sill_height=2.05, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
-b.add_window(GF, "West Wall", position=0.15, width=3.2, height=0.75,
+# Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
+# the band meets Win7 glass-to-glass around the corner (no yellow post).
+b.add_window(GF, "West Wall", position=0, width=3.35, height=0.75,
              sill_height=2.05, name="Living Band Window", pane_side="inner")
 # Win3: full-height glazing from Win2's end to the white south third
-# (photo #21) — 0.1 mullion after Win2
-b.add_window(GF, "West Wall", position=3.45, width=1.8, height=2.75,
+# (photo #21). Feedback #001: abuts Win2 directly — no mullion between.
+b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
              sill_height=0.05, name="Living Glass W2", pane_side="inner")
-b.add_window(GF, "Living North Wall", position=0.15, width=2.0, height=2.75,
+# Feedback #003: flush at the wall start (x=4.5) — glazing runs through the
+# W8 end cap and touches the D8/D9 glass on the master side.
+b.add_window(GF, "Living North Wall", position=0, width=2.15, height=2.75,
              sill_height=0.05, name="Living Sliding Window", pane_side="inner")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
 # (x4.55), BOTH swinging south into the master. Wall runs (6,8)->(4.5,8), so
 # door_start is the east side: large leaf = LEFT hinge at pos 0.05.
-# D8/D9 are glass — thin pane flush with the OUTER face (owner 2026-08-06:
-# same double-pane bug as the windows; doors sit flush with the facade).
-b.add_door(GF, "Master North Wall", position=0.05, width=0.9, height=2.1,
+# D8/D9 are glass — thin pane like the windows. Feedback #003/#005: head at
+# 2.80 (same as Win4) and edge-to-edge — the whole master north wall is
+# glass; flush ends run through both corner joints (Room 2 west wall at
+# x=6, W8 end cap at x=4.5). Feedback #020: INNER-flush like Win4 (was
+# outer) — the 0.18m plane offset between the door glass and the window
+# glass read as "a weird gap" across the W8 joint; inner/inner pairs get
+# the exact pass/butt corner join, so the panes now physically touch.
+b.add_door(GF, "Master North Wall", position=0, width=0.95, height=2.8,
            name="Vila Master Bedroom Terrace Door",
            operation_type=DoorOperationType.SINGLE_SWING_LEFT,
-           pane_side="outer")
-d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.5,
-                             height=2.1,
+           pane_side="inner")
+d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.55,
+                             height=2.8,
                              name="Vila Master Bedroom Terrace Door Small",
-                             pane_side="outer")
+                             pane_side="inner")
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Room 2 north face is glass: sliding door floor-to-ceiling beside D7
 b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
-b.add_window(GF, "East Wall", position=6.3, width=1.0, height=1.4,
-             name="Hallway Window", pane_side="inner")
-# Band window over the TV wall (W6 solid half) — appended last => tag Win7
-b.add_window(GF, "Living North Wall", position=2.5, width=1.8, height=0.75,
+# Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
+# clerestory band, not a lone porthole — same 2.05-2.80 language as
+# Win2/Win7. Two windows because the Room 2 partition (y=8) must land on
+# wall, not glass: Win6 = hallway stretch, Win8 (appended last, after
+# Win7) = Room 2 stretch, stopping 0.15 short of the north corner like
+# Win5 does.
+b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
+             sill_height=2.05, name="Hallway Window", pane_side="inner")
+# Band window over the TV wall (W6 solid half) — appended last => tag Win7.
+# Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
+# meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
+# the band glass touches the sliding window's glass — no yellow strip.
+b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
              sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Feedback #024 (second stretch): Room 2's part of the east clerestory band.
+b.add_window(GF, "East Wall", position=8.0, width=3.85, height=0.75,
+             sill_height=2.05, name="Room 2 Band Window E", pane_side="inner")
 
 # --- Slab (full L footprint) ---
 b.add_slab(
@@ -191,6 +214,15 @@ b.add_slab(
     name="Deck",
 )
 b.add_slab(GF, [(0.5, 14), (9, 14), (9, 17.5), (0.5, 17.5)], thickness=0.15, name="Pool")
+# Deck windscreen on the west edge (feedback #004 + maquette photo #29):
+# stone-clad near the house, glass panel running to the pool. Height 1.25
+# above the deck top (deck slab tops out at the storey datum since the
+# slab flip, specs/storey-datum.md) — balustrade height, owner gave the
+# look, not a number (decided, not asked). Appended last => tags W17/W18.
+b.add_wall(GF, (0, 8), (0, 10.5), height=1.25, thickness=0.12,
+           name="Deck Screen Stone", finish="stone_rubble")
+b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
+           name="Deck Screen Glass", finish="glass")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a

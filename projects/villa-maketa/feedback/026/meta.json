@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:33:14.936Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": 3.09,
+    "y": 11.75,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 3.086,
+    "y": 1.7,
+    "z": -11.751,
+    "yawDeg": 136.06,
+    "pitchDeg": -38.85
+  },
+  "debugHash": "#debug=3.09,1.70,-11.75,136.1,-38.8",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "also here for deck table 1 and deck table 2 can you find nicer furnituer",
+  "strokes": []
+}

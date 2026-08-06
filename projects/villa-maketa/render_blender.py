@@ -25,8 +25,9 @@ FURNITURE = HERE / "furniture.json"
 OUT_PERSP = HERE / "output" / "perspective.png"
 OUT_TOP = HERE / "output" / "top_down.png"
 
-SLAB_TOP = 0.25   # ground slab top (z)
-DECK_TOP = 0.15
+# Storey elevation = finished floor level; slabs hang below it, so the
+# ground slab TOP is at z=0 (specs/storey-datum.md, feedback #013/#014).
+SLAB_TOP = 0.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -231,6 +232,7 @@ FINISH_TO_MAT = {
     "stone_rubble": "stone",
     "accent": "accent",
     "roof_brown": "roof_brown",
+    "glass": "glass",  # deck windscreen panel (feedback #004, photo #29)
 }
 
 MATS = {
@@ -291,7 +293,10 @@ def add_box(name, x0, y0, x1, y1, z0, z1, mat, bevel=0.015):
         size=1, location=((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
     o = bpy.context.active_object
     o.name = name
-    o.scale = ((x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2)
+    # size=1 cube has EDGE 1, so scale IS the edge length — dividing by 2
+    # rendered every procedural box at half size, floating around its
+    # center (feedback #022: countertops hovered above shrunken bodies)
+    o.scale = (x1 - x0, y1 - y0, z1 - z0)
     o.data.materials.append(mat)
     if bevel:
         mod = o.modifiers.new("Bevel", "BEVEL")
@@ -363,9 +368,13 @@ for obj in list(scene.objects):
     _fmat = finish_material(n)
     if _fmat is not None:
         obj.data.materials.append(_fmat)
-        if n.startswith("IfcWallStandardCase_"):
+        if (n.startswith("IfcWallStandardCase_")
+                and FINISHES.get(n) != "glass"
+                and "Deck_Screen" not in n):
             # Finishes are EXTERIOR paint: interior faces stay plaster.
             # Exterior = face normal points away from the plan centroid.
+            # (glass walls and the freestanding deck screens carry their
+            # finish on BOTH faces — no split.)
             obj.data.materials.append(MATS["wall"])
             for _poly in obj.data.polygons:
                 _c = _poly.center
@@ -397,6 +406,8 @@ for obj in list(scene.objects):
         mod = frame.modifiers.new("Frame", "WIREFRAME")
         mod.thickness = 0.05
         scene.collection.objects.link(frame)
+    elif "Handle" in n:
+        obj.data.materials.append(MATS["frame"])
     elif "Door" in n:
         # Owner 2026-08-05: terrace pair (D8/D9) and Bath 1 door (D3) are glass
         if any(g in n for g in GLASS_DOORS):
@@ -424,9 +435,15 @@ _finish_misses = {k: _finish_hits.get(k, 0) for k in FINISHES
 if _finish_misses:
     raise RuntimeError(f"Finish join mismatches (name: hit count): {_finish_misses}")
 
+# Door handles come from the IFC exporter as IfcDiscreteAccessory products
+# ("<door name> Handle N") — framework feature, every project gets them.
+# They import as separate OBJ objects and take the metal material below.
+
 # ── Spiral staircase (pole + helical wedge steps descending to garage) ──────
 
-def make_spiral_stair(cx, cy, radius=0.72, z_top=SLAB_TOP, drop=2.0, steps=12):
+def make_spiral_stair(cx, cy, radius=0.72, z_top=SLAB_TOP, drop=2.89, steps=14):
+    # drop reaches the garage FFL (the caller derives it from the storey
+    # elevations); 14 steps → ~0.2m risers
     # Cut a real stairwell opening through the ground slab so the spiral
     # is visible from above (a down-stair IS a hole in the floor).
     bpy.ops.mesh.primitive_cylinder_add(radius=radius + 0.03, depth=1.0,
@@ -458,15 +475,21 @@ def make_spiral_stair(cx, cy, radius=0.72, z_top=SLAB_TOP, drop=2.0, steps=12):
 
 
 building = json.loads(BUILDING.read_text())
-for story_ in building["stories"]:
+# drop = ground FFL (z_top = 0) down to the lowest storey's FFL
+_lowest_ffl = min(s.get("elevation", 0) for s in building["stories"])
+_spiral_seen = set()  # both storeys carry the aligned staircase (E051) —
+for story_ in building["stories"]:  # build the physical spiral only once
     for st in story_.get("staircases", []):
         if st.get("stair_type") == "SPIRAL_STAIR":
             vs = [(v["x"], v["y"]) for v in st["outline"]["vertices"]]
             cx = sum(x for x, _ in vs) / len(vs)
             cy = sum(y for _, y in vs) / len(vs)
+            if (round(cx, 3), round(cy, 3)) in _spiral_seen:
+                continue
+            _spiral_seen.add((round(cx, 3), round(cy, 3)))
             r = min(max(x for x, _ in vs) - min(x for x, _ in vs),
                     max(y for _, y in vs) - min(y for _, y in vs)) / 2
-            make_spiral_stair(cx, cy, radius=r)
+            make_spiral_stair(cx, cy, radius=r, drop=-_lowest_ffl)
 
 # ── Colored floors per space ─────────────────────────────────────────────────
 
@@ -478,7 +501,9 @@ for story in building["stories"]:
                 continue  # stairwell is an opening, not a floor
             key = FLOOR_BY_ROOM.get(sp["room_type"], "floor_room")
             verts = [(v["x"], v["y"]) for v in sp["boundary"]["vertices"]]
-            add_polygon(f"Floor_{sp['name']}", verts, SLAB_TOP + 0.01, MATS[key])
+            # each storey's finish sits on ITS floor, not the ground slab's
+            add_polygon(f"Floor_{sp['name']}", verts,
+                        story["elevation"] + 0.01, MATS[key])
 
 # ── Procedural furniture ─────────────────────────────────────────────────────
 

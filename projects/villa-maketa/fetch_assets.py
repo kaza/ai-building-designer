@@ -12,9 +12,11 @@ run never passes the cache check. licenses.json records provenance for both
 sources — the Objaverse picks are CC-BY, so authors MUST stay credited.
 """
 import hashlib
+import io
 import json
 import sys
 import urllib.request
+import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).parent
@@ -28,6 +30,7 @@ ASSETS = [
     "mid_century_lounge_chair",
     "modern_coffee_table_01",
     "modern_wooden_cabinet",
+    "outdoor_table_chair_set_01",  # deck tables (feedback #026)
 ]
 
 # Pinned Objaverse models (key = the "asset" value used in furniture.json).
@@ -70,6 +73,53 @@ OBJAVERSE = {
         "name": "Meja Komputer", "author": "sutikno",
     },
 }
+
+# Kenney Furniture Kit (CC0, kenney.nl) — sanitary ware and kitchen modules
+# that neither Poly Haven nor our Objaverse pins carry (feedback #021/#022/
+# #025). One sha256-pinned zip; selected GLBs are extracted into
+# assets/kenney_<model>/<model>.glb (one file per dir — the loader's rule).
+KENNEY_KIT_URL = ("https://kenney.nl/media/pages/assets/furniture-kit/"
+                  "440e0608a4-1677580847/kenney_furniture-kit.zip")
+KENNEY_KIT_SHA256 = (
+    "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0")
+KENNEY_MODELS = [
+    "toilet", "bathroomSinkSquare", "shower",
+    "kitchenSink", "kitchenStove", "kitchenFridgeLarge",
+    "loungeChairRelax",
+]
+
+
+def fetch_kenney() -> list[dict]:
+    """Extract the pinned Kenney models. The zip is fetched only when a
+    model is missing and is not kept — the sha256 pin makes re-downloads
+    reproducible."""
+    missing = [m for m in KENNEY_MODELS
+               if not (ASSETS_DIR / f"kenney_{m}" / f"{m}.glb").exists()]
+    if missing:
+        req = urllib.request.Request(
+            KENNEY_KIT_URL, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=600) as r:
+            data = r.read()
+        actual = hashlib.sha256(data).hexdigest()
+        if actual != KENNEY_KIT_SHA256:
+            sys.exit(f"ERROR: sha256 mismatch for Kenney kit: got {actual}")
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            for model in missing:
+                member = f"Models/GLTF format/{model}.glb"
+                dest_dir = ASSETS_DIR / f"kenney_{model}"
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                (dest_dir / f"{model}.glb").write_bytes(zf.read(member))
+                print(f"kenney_{model}: extracted")
+    else:
+        print("kenney models: cached")
+    return [{
+        "id": f"kenney_{m}",
+        "name": f"Kenney Furniture Kit — {m}",
+        "license": "CC0",
+        "authors": ["Kenney"],
+        "source": "https://kenney.nl/assets/furniture-kit",
+        "kit_sha256": KENNEY_KIT_SHA256,
+    } for m in KENNEY_MODELS]
 
 
 def get_json(url: str) -> dict:
@@ -172,6 +222,7 @@ def fetch_objaverse(key: str, spec: dict) -> dict:
 def main():
     licenses = [fetch_asset(a) for a in ASSETS]
     licenses += [fetch_objaverse(k, s) for k, s in sorted(OBJAVERSE.items())]
+    licenses += fetch_kenney()
     ASSETS_DIR.mkdir(exist_ok=True)
     target = ASSETS_DIR / "licenses.json"
     tmp = target.with_suffix(".json.tmp")

@@ -515,3 +515,298 @@ class TestWallCornerJoins:
         # endpoint — stub must not extend either.
         profile_stub, _ = self._wall_solid(building, "Stub")
         assert abs(profile_stub.XDim - 4.0) < 1e-9
+
+
+class TestCornerGlazing:
+    """A window flush with a wall end that has a corner join extends through
+    the joint and voids the partner wall too — butt-glazed corner windows
+    (specs/wall-corner-joins.md). Fixture: East wall start = (6,0), corner
+    with South (t=0.25 → ext 0.125); window moved to position 0."""
+
+    def _export(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        path.unlink()
+        return ifc
+
+    def _flush_building(self):
+        building = _simple_building()
+        building.stories[0].windows[0].position = 0.0
+        return building
+
+    def test_flush_window_pane_extends_through_corner(self):
+        ifc = self._export(self._flush_building())
+        window = ifc.by_type("IfcWindow")[0]
+        profile = window.Representation.Representations[0].Items[0].SweptArea
+        assert abs(profile.XDim - (1.2 + 0.125)) < 1e-9
+
+    def test_flush_window_opening_extends_and_voids_partner(self):
+        ifc = self._export(self._flush_building())
+        south = next(w for w in ifc.by_type("IfcWallStandardCase")
+                     if w.Name == "South")
+        voids = [r for r in ifc.by_type("IfcRelVoidsElement")
+                 if r.RelatingBuildingElement == south]
+        # South hosts the fixture door (1 void) + the corner-glazing cut
+        assert len(voids) == 2
+        corner = [v.RelatedOpeningElement for v in voids
+                  if v.RelatedOpeningElement.Name == "Corner Glazing Opening"]
+        assert len(corner) == 1
+        profile = corner[0].Representation.Representations[0].Items[0].SweptArea
+        assert profile.XDim > 1.2 + 0.125  # extended + clean-cut margin
+
+    def test_non_flush_window_stays_single_void(self):
+        ifc = self._export(_simple_building())  # window at position 1.2
+        assert len(ifc.by_type("IfcOpeningElement")) == 2  # door + window only
+
+    def _corner_pair_building(self, side_a, side_b, sill_b=0.9):
+        """East window flush at (6,0) with pane side side_a; a South-wall
+        window flush at the same corner with side_b and sill sill_b."""
+        building = self._flush_building()  # east window at position 0
+        story = building.stories[0]
+        south = next(w for w in story.walls if w.name == "South")
+        story.windows[0].pane_side = side_a
+        story.windows.append(Window(
+            name="South Corner Window", wall_id=south.global_id,
+            position=5.0, width=1.0, height=1.5, sill_height=sill_b,
+            pane_side=side_b,
+        ))  # flush at South's END = (6,0), same corner
+        return building
+
+    def _corner_pair_dims(self, building):
+        ifc = self._export(building)
+        return {w.Name: w.Representation.Representations[0].Items[0]
+                .SweptArea.XDim for w in ifc.by_type("IfcWindow")}
+
+    def test_two_flush_inner_panes_touch_not_cross(self):
+        """Inner pane pair at one corner: the pane on the smaller wall
+        GlobalId passes (ext = PANE − partner_t/2), the other butts
+        (ext = −partner_t/2) — touch, no crossing (owner feedback #002)."""
+        PANE = 0.06
+        building = self._corner_pair_building("inner", "inner")
+        story = building.stories[0]
+        south = next(w for w in story.walls if w.name == "South")
+        east = next(w for w in story.walls if w.name == "East")
+        dims = self._corner_pair_dims(building)
+        if east.global_id < south.global_id:
+            expected = {"Window": 1.2 + PANE - 0.125,
+                        "South Corner Window": 1.0 - 0.125}
+        else:
+            expected = {"Window": 1.2 - 0.125,
+                        "South Corner Window": 1.0 + PANE - 0.125}
+        for name, exp in expected.items():
+            assert abs(dims[name] - exp) < 1e-9, (name, dims[name], exp)
+
+    def test_outer_pane_pair_keeps_full_extension(self):
+        """Pass/butt is exact only for the inner pair — outer/mixed pairs
+        keep the full extension (documented limit, Codex review)."""
+        dims = self._corner_pair_dims(self._corner_pair_building("outer", "outer"))
+        assert abs(dims["Window"] - (1.2 + 0.125)) < 1e-9
+        assert abs(dims["South Corner Window"] - (1.0 + 0.125)) < 1e-9
+
+    def test_vertically_disjoint_panes_do_not_pass_butt(self):
+        """A clerestory band and a low window at the same corner never meet
+        — no shortening (Codex review: elevation was ignored)."""
+        # east window: sill 0.9 h 1.5 (0.9–2.4); south window sill 2.5 → 2.5–4.0
+        dims = self._corner_pair_dims(
+            self._corner_pair_building("inner", "inner", sill_b=2.5))
+        assert abs(dims["Window"] - (1.2 + 0.125)) < 1e-9
+        assert abs(dims["South Corner Window"] - (1.0 + 0.125)) < 1e-9
+
+
+class TestDoorCornerGlazing:
+    """Glass doors (pane_side set) flush with a joined wall end run through
+    the joint like windows — pane + opening extend, partner wall gets a twin
+    void. Solid doors (pane_side=None) never extend (feedback #003/#005)."""
+
+    def _export(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        path.unlink()
+        return ifc
+
+    def _flush_door_building(self, pane_side):
+        building = _simple_building()
+        door = building.stories[0].doors[0]  # South wall (0,0)->(6,0)
+        door.position = 0.0                  # flush at corner with West wall
+        door.pane_side = pane_side
+        return building
+
+    def test_flush_pane_door_extends_and_voids_partner(self):
+        ifc = self._export(self._flush_door_building("outer"))
+        door = ifc.by_type("IfcDoor")[0]
+        profile = door.Representation.Representations[0].Items[0].SweptArea
+        assert abs(profile.XDim - (0.9 + 0.125)) < 1e-9  # West t=0.25
+        west = next(w for w in ifc.by_type("IfcWallStandardCase")
+                    if w.Name == "West")
+        voids = [r for r in ifc.by_type("IfcRelVoidsElement")
+                 if r.RelatingBuildingElement == west]
+        assert len(voids) == 1
+        assert voids[0].RelatedOpeningElement.Name == "Corner Glazing Opening"
+
+    def test_flush_solid_door_does_not_extend(self):
+        ifc = self._export(self._flush_door_building(None))
+        door = ifc.by_type("IfcDoor")[0]
+        profile = door.Representation.Representations[0].Items[0].SweptArea
+        assert abs(profile.XDim - 0.9) < 1e-9
+        west = next(w for w in ifc.by_type("IfcWallStandardCase")
+                    if w.Name == "West")
+        assert not [r for r in ifc.by_type("IfcRelVoidsElement")
+                    if r.RelatingBuildingElement == west]
+
+
+class TestDoorHandles:
+    """Doors carry handles as IfcDiscreteAccessory products — a door must
+    read as a door in every output (owner 2026-08-06). Swing = lever pair,
+    sliding/glass = vertical pulls, NOTDEFINED = none."""
+
+    def _export(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        path.unlink()
+        return ifc
+
+    def test_swing_door_gets_lever_pair(self):
+        ifc = self._export(_simple_building())  # fixture door: swing left
+        handles = ifc.by_type("IfcDiscreteAccessory")
+        assert len(handles) == 2  # one per leaf face
+        assert all("Handle" in h.Name for h in handles)
+        solid = handles[0].Representation.Representations[0].Items[0]
+        assert abs(solid.Depth - 0.03) < 1e-9  # lever bar, not a pull
+
+    def test_sliding_door_gets_vertical_pulls(self):
+        from archicad_builder.models.elements import DoorOperationType
+        building = _simple_building()
+        building.stories[0].doors[0].operation_type = (
+            DoorOperationType.SLIDING_TO_LEFT)
+        ifc = self._export(building)
+        handles = ifc.by_type("IfcDiscreteAccessory")
+        assert len(handles) == 2
+        solid = handles[0].Representation.Representations[0].Items[0]
+        assert abs(solid.Depth - 0.35) < 1e-9  # vertical pull bar
+
+    def test_notdefined_door_gets_no_handles(self):
+        from archicad_builder.models.elements import DoorOperationType
+        building = _simple_building()
+        building.stories[0].doors[0].operation_type = (
+            DoorOperationType.NOTDEFINED)
+        ifc = self._export(building)
+        assert not ifc.by_type("IfcDiscreteAccessory")
+
+    def test_flush_door_and_window_panes_touch_not_cross(self):
+        """A glass door and a window flush at the SAME corner are pass/butt
+        partners too (Gemini review 2026-08-06) — without this both take
+        the full extension and cross like feedback #002."""
+        PANE = 0.06
+        building = _simple_building()
+        story = building.stories[0]
+        south = next(w for w in story.walls if w.name == "South")
+        west = next(w for w in story.walls if w.name == "West")
+        door = story.doors[0]           # hosted on South
+        door.position = 0.0             # flush at the (0,0) corner
+        door.pane_side = "inner"        # pass/butt is exact for inner pairs
+        story.windows[0].position = 1.2  # keep the east window non-flush
+        story.windows.append(Window(
+            name="West Corner Window", wall_id=west.global_id,
+            position=west.length - 1.0, width=1.0, height=1.5,
+            pane_side="inner",
+        ))  # flush at West's END = (0,0), same corner; heights overlap
+        ifc = self._export(building)
+        door_dim = (ifc.by_type("IfcDoor")[0].Representation
+                    .Representations[0].Items[0].SweptArea.XDim)
+        win_dim = next(
+            w.Representation.Representations[0].Items[0].SweptArea.XDim
+            for w in ifc.by_type("IfcWindow")
+            if w.Name == "West Corner Window")
+        if south.global_id < west.global_id:
+            assert abs(door_dim - (0.9 + PANE - 0.125)) < 1e-9
+            assert abs(win_dim - (1.0 - 0.125)) < 1e-9
+        else:
+            assert abs(door_dim - (0.9 - 0.125)) < 1e-9
+            assert abs(win_dim - (1.0 + PANE - 0.125)) < 1e-9
+
+
+class TestStoreyDatum:
+    """Storey elevation = finished floor level (specs/storey-datum.md).
+
+    Floor slabs hang BELOW the datum ([elevation − thickness, elevation]);
+    walls and doors sit AT the datum, windows at datum + sill. Before the
+    flip the slab extruded upward and buried the bottom 25 cm of every
+    wall and door (villa feedback #013/#014). These placements are the
+    datum's regression guard — E052 cannot catch an exporter regression.
+    """
+
+    def _export(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        path.unlink()
+        return ifc
+
+    @staticmethod
+    def _z(product):
+        return product.ObjectPlacement.RelativePlacement.Location.Coordinates[2]
+
+    def test_floor_slab_hangs_below_datum(self):
+        ifc = self._export(_simple_building())
+        slab = next(s for s in ifc.by_type("IfcSlab")
+                    if s.PredefinedType == "FLOOR")
+        depth = slab.Representation.Representations[0].Items[0].Depth
+        assert abs(self._z(slab) - (0.0 - 0.25)) < 1e-9   # bottom at −t
+        assert abs(self._z(slab) + depth - 0.0) < 1e-9    # top face = datum
+
+    def test_floor_slab_follows_negative_elevation(self):
+        building = _simple_building()
+        building.stories[0].elevation = -2.8               # villa garage
+        ifc = self._export(building)
+        slab = next(s for s in ifc.by_type("IfcSlab")
+                    if s.PredefinedType == "FLOOR")
+        assert abs(self._z(slab) - (-2.8 - 0.25)) < 1e-9
+
+    def test_ceiling_slab_shares_floor_placement(self):
+        """Legacy/unspecified (spec decision log) — asserted so a silent
+        convention change becomes a loud test failure."""
+        building = _simple_building()
+        building.stories[0].slabs[0].is_floor = False
+        ifc = self._export(building)
+        slab = ifc.by_type("IfcSlab")[0]
+        assert abs(self._z(slab) - (0.0 - 0.25)) < 1e-9
+
+    def test_walls_and_door_sit_at_datum(self):
+        building = _simple_building()
+        building.stories[0].elevation = 1.5
+        ifc = self._export(building)
+        for wall in ifc.by_type("IfcWallStandardCase"):
+            assert abs(self._z(wall) - 1.5) < 1e-9
+        door = ifc.by_type("IfcDoor")[0]
+        assert abs(self._z(door) - 1.5) < 1e-9
+
+    def test_window_sits_at_datum_plus_sill(self):
+        building = _simple_building()
+        building.stories[0].elevation = 1.5
+        ifc = self._export(building)
+        window = ifc.by_type("IfcWindow")[0]
+        assert abs(self._z(window) - (1.5 + 0.9)) < 1e-9
+
+    def test_door_opening_sits_at_datum(self):
+        building = _simple_building()
+        building.stories[0].elevation = 1.5
+        ifc = self._export(building)
+        door = ifc.by_type("IfcDoor")[0]
+        fills = [r for r in ifc.by_type("IfcRelFillsElement")
+                 if r.RelatedBuildingElement == door]
+        opening = fills[0].RelatingOpeningElement
+        assert abs(self._z(opening) - 1.5) < 1e-9
+
+    def test_storey_elevation_attribute_unchanged(self):
+        building = _simple_building()
+        building.stories[0].elevation = 1.5
+        ifc = self._export(building)
+        storey = ifc.by_type("IfcBuildingStorey")[0]
+        assert abs(storey.Elevation - 1.5) < 1e-9

@@ -16,7 +16,9 @@ Quality bar: would you show it to a client without apologizing.
 ## What exists today (v1)
 Implemented at the project layer for villa-maketa: GLB export + generated
 Three.js walkthrough page with free-fly controls, object info (I), measuring
-(M), and dollhouse roof toggle (R); the model streams as a separate `.glb`
+(M), dollhouse roof toggle (R), and feedback mode (F — freeze, draw strokes
+on the view, comment, submit; the serving script stores each submission as
+PNG + machine-readable meta); the model streams as a separate `.glb`
 fetched at runtime. Implementation record, file list, and the decisions
 behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md)
 § Walkthrough (ADR 004 — project detail lives at the project tier).
@@ -38,6 +40,12 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 | 2026-08-05 | ~~Open-top scenes accepted~~ superseded 2026-08-06 | the villa now has a roof; the viewer toggles it (dollhouse mode, R) like the maquette's lid | Claude |
 | 2026-08-06 | Dollhouse roof toggle is a viewer feature (R key + `?roof=0` debug seam) | aerial capture needs the lid off; hidden roofs must not swallow info/measure raycasts | Almir |
 | 2026-08-06 | P key = feedback screenshot: downloads a PNG named with the exact camera (`villa-shot_x_y_z_yaw_pitch.png`) | owner reviews by screenshot; the filename doubles as a `#debug=` camera so Claude re-renders the identical view to verify fixes | Almir |
+| 2026-08-06 | F key = feedback mode (mini-BCF): freeze + screen-space strokes + comment → POST /feedback → `feedback/<NNN>/{shot.png, meta.json}`; PNG download fallback on static hosting | strokes stay screen-space (camera pose is captured, so the view reproduces — 3D-anchored lines are YAGNI); meta.json carries camera, normalized strokes AND the element tags each stroke touches (raycast), so a scribble references W7/Win2 without typing; POST beats download (no Downloads-folder shuffling — owner just says "check feedback") | Almir + Claude |
+| 2026-08-06 | Feedback mode overlays element tag badges (occlusion-tested, only visible elements) | owner references elements by plan tag; showing them in place removes the guesswork | Almir |
+| 2026-08-06 | Camera numbers (P filename, feedback meta, `#debug=`) derive from the LOOK DIRECTION, not the raw rotation Euler | raw `rotation.x` can leave pointer-lock as e.g. 154° — replaying it flips the view (bit us on feedbacks #001/#003) | Claude |
+| 2026-08-06 | A submitted feedback is a WORK ORDER, not a discussion prompt | owner (#005): analysis-then-wait on #003 read as ignoring the feedback | Almir |
+| 2026-08-06 | ~~Slabs solid to vertical flight (swept clamp) + digit-key storey teleports~~ REVERTED next day | see next row | Claude |
+| 2026-08-07 | Vertical flight is unrestricted — FINAL owner decision. No clamp, no collision, no modifier, no teleport keys; never restrict walkthrough movement without an explicit owner request | owner: "it was never accident i did it on purpose, just leave it as it was, no more no less" — flying through floors is how he reviews; the "two floors" confusion is handled by the HUD readout + labels ([storey-datum.md](storey-datum.md)) | Almir |
 
 ## Related
 Villa v1 implementation details + review lessons: `projects/villa-maketa/spec.md`

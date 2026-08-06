@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T15:02:51.814Z",
+  "where": "Bath 1 \u2014 Ground Floor",
+  "model": {
+    "x": 5.69,
+    "y": 2.9,
+    "h": 0.17
+  },
+  "camera": {
+    "x": 5.685,
+    "y": 0.172,
+    "z": -2.902,
+    "yawDeg": 5.39,
+    "pitchDeg": -21.2
+  },
+  "debugHash": "#debug=5.69,0.17,-2.90,5.4,-21.2",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "and it seams there are two ground slabs, one above brown and one below ? right",
+  "strokes": []
+}

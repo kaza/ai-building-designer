@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T22:32:53.513Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": 5.56,
+    "y": 14.36,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 5.555,
+    "y": 1.7,
+    "z": -14.363,
+    "yawDeg": -115.88,
+    "pitchDeg": -29.34
+  },
+  "debugHash": "#debug=5.56,1.70,-14.36,-115.9,-29.3",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "can you get some nicer loounger furntiure thatn this",
+  "strokes": []
+}

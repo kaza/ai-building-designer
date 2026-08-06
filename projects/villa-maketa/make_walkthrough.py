@@ -6,10 +6,11 @@ Validates the GLB (magic, version, chunk lengths, no cameras/cutters left)
 and writes output/walkthrough.html, which fetches ./villa.glb at runtime.
 This is a WEB-SERVER deliverable (owner decision 2026-08-05 — the walkthrough
 becomes a hosted feature): browsers block fetch() from file://, so for local
-viewing serve the output directory:
+viewing serve the output directory — preferably with serve.py, which also
+receives F-key feedback submissions (POST /feedback):
 
-    python3 -m http.server 8000 -d projects/villa-maketa/output
-    open http://localhost:8000/walkthrough.html
+    .venv/bin/python projects/villa-maketa/serve.py     # port 8123
+    open http://localhost:8123/walkthrough.html
 
 The page detects file:// and says exactly that instead of failing silently.
 """
@@ -87,19 +88,49 @@ def element_tags() -> dict:
 
     Mirrors Story.ensure_tags() numbering (per story, in element order) so
     the walkthrough info card and the 2D plan speak the same ids — that is
-    how the owner references elements.
+    how the owner references elements. Tags repeat per story (the garage
+    has its own W1…), so non-ground stories get an initial prefix (G:W3) —
+    feedback #007 showed bare garage tags read as ground-floor elements.
     """
     doc = json.loads(BUILDING.read_text())
     tags: dict[str, str] = {}
     for story in doc.get("stories", []):
+        story_prefix = ("" if story.get("elevation", 0) == 0
+                        else f"{(story.get('name') or 'S')[0]}:")
         for key, prefix in (("walls", "W"), ("doors", "D"),
                             ("windows", "Win"), ("staircases", "ST")):
             for i, el in enumerate(story.get(key, []), start=1):
                 tag = el.get("tag") or f"{prefix}{i}"
                 name = el.get("name", "")
                 if name:
-                    tags.setdefault(name.replace(" ", "_"), tag)
+                    tags.setdefault(name.replace(" ", "_"), story_prefix + tag)
     return tags
+
+
+def storey_bands() -> list:
+    """[{name, elevation, height, rooms}] sorted by elevation — the viewer
+    shows which storey AND room the camera is in (feedback #007: the owner
+    sank through the floor into the garage without noticing; raw
+    coordinates broke the feedback conversation)."""
+    doc = json.loads(BUILDING.read_text())
+    bands = []
+    for i, s in enumerate(doc.get("stories", []), start=1):
+        spaces = list(s.get("spaces", []))
+        for apt in s.get("apartments", []):
+            spaces.extend(apt.get("spaces", []))
+        elevation = s.get("elevation", 0)
+        bands.append({
+            "name": s.get("name") or f"Storey {i}",
+            "elevation": elevation,
+            "height": s.get("height", 3.0),
+            "rooms": [
+                {"name": sp.get("name") or sp.get("room_type", "room"),
+                 "poly": [[v["x"], v["y"]]
+                          for v in sp["boundary"]["vertices"]]}
+                for sp in spaces if sp.get("boundary")
+            ],
+        })
+    return sorted(bands, key=lambda b: b["elevation"])
 
 
 TEMPLATE = """<!DOCTYPE html>
@@ -138,10 +169,37 @@ TEMPLATE = """<!DOCTYPE html>
     pointer-events: none;
   }
   #labels { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  #draw { position: absolute; inset: 0; z-index: 7; display: none; cursor: crosshair; }
+  #fbpanel {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 8; display: none; flex-direction: column; gap: 6px;
+    width: min(64ch, 82vw); background: rgba(16, 20, 24, 0.92);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    padding: 10px; color: #e8e4da;
+    font: 13px/1.4 -apple-system, system-ui, sans-serif;
+  }
+  #fbpanel textarea {
+    width: 100%; box-sizing: border-box; height: 4em; resize: vertical;
+    background: #101418; color: #e8e4da; padding: 6px; font: inherit;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+  }
+  #fbpanel .row { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+  #fbhint { margin-right: auto; opacity: 0.7; }
+  #fbpanel button {
+    font: inherit; padding: 4px 14px; border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.3); background: #2a3440; color: #e8e4da;
+  }
+  #fbpanel button.primary { background: #3b6ea5; }
   .mlabel {
     color: #fff; background: rgba(16, 20, 24, 0.85); padding: 2px 8px;
     border-radius: 4px; font: 13px/1.4 ui-monospace, monospace;
     border: 1px solid rgba(255,255,255,0.25);
+  }
+  .fblabel {
+    position: absolute; transform: translate(-50%, -50%);
+    color: #101418; background: rgba(255, 209, 102, 0.92); padding: 1px 6px;
+    border-radius: 3px; font: 12px/1.4 ui-monospace, monospace;
+    pointer-events: none; white-space: nowrap;
   }
 </style>
 </head>
@@ -150,11 +208,21 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-msg">Loading scene…</div>
   <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
-       I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off &nbsp;·&nbsp; P — photo</div>
+       I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
+       N — names on/off &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="reticle"></div>
 <div id="hud"></div>
 <div id="labels"></div>
+<canvas id="draw"></canvas>
+<div id="fbpanel">
+  <textarea id="fbtext" placeholder="What's wrong here? Drag on the view to mark it."></textarea>
+  <div class="row">
+    <span id="fbhint">drag — draw &nbsp;·&nbsp; Z — undo stroke &nbsp;·&nbsp; Esc — cancel</span>
+    <button id="fbcancel">Cancel</button>
+    <button id="fbsubmit" class="primary">Submit</button>
+  </div>
+</div>
 <div id="error"></div>
 <script type="importmap">
 {
@@ -213,17 +281,28 @@ function toggleRoof() {
   for (const n of roofNodes) n.visible = roofVisible;
 }
 
+// Canonical camera numbers (position + yaw/pitch) — derived from the LOOK
+// DIRECTION, not the raw rotation Euler, so pitch is always in [-90, 90]
+// and the numbers replay exactly via #debug= (raw rotation.x can come out
+// as e.g. 154° and flips the replayed view — feedback #001/#003 lesson).
+function cameraSpec() {
+  const d = new THREE.Vector3();
+  camera.getWorldDirection(d);
+  const yaw = Math.atan2(-d.x, -d.z) * 180 / Math.PI;
+  const pitch = Math.asin(Math.max(-1, Math.min(1, d.y))) * 180 / Math.PI;
+  const p = camera.position;
+  return { yaw, pitch,
+           text: [p.x.toFixed(2), p.y.toFixed(2), p.z.toFixed(2),
+                  yaw.toFixed(1), pitch.toFixed(1)].join(',') };
+}
+
 // P — save a PNG of the current view. The filename carries the exact camera
 // (position + yaw/pitch, the same numbers #debug= accepts), so a shot can be
 // reproduced with walkthrough.html#debug=<numbers from the filename>.
 function screenshot() {
   renderer.render(scene, camera);  // fresh frame in the buffer for toDataURL
-  const p = camera.position;
-  const spec = [p.x.toFixed(2), p.y.toFixed(2), p.z.toFixed(2),
-                (camera.rotation.y * 180 / Math.PI).toFixed(1),
-                (camera.rotation.x * 180 / Math.PI).toFixed(1)].join(',');
   const a = document.createElement('a');
-  a.download = 'villa-shot_' + spec.replaceAll(',', '_') + '.png';
+  a.download = 'villa-shot_' + cameraSpec().text.replaceAll(',', '_') + '.png';
   a.href = renderer.domElement.toDataURL('image/png');
   a.click();
 }
@@ -290,7 +369,7 @@ function setHud() {
   const mode = measureMode
     ? (pendingPoint ? 'MEASURE — click second point' : 'MEASURE — click first point')
     : '';
-  hud.textContent = [mode, infoText].filter(Boolean).join('\\n');
+  hud.textContent = [mode, infoText, positionLine()].filter(Boolean).join('\\n');
 }
 
 function centerHit() {
@@ -319,6 +398,51 @@ function semanticNode(obj) {
 
 // element plan tags (W3, D5, Win4...) — same ids as the 2D floor plan
 const TAGS = __TAGS__;
+
+// storey bands (sorted by elevation) — live "where am I" readout
+const STOREYS = __STOREYS__;
+
+function storeyAt(h) {
+  // exact band first — padded bands overlap at slab level and would
+  // mislabel h=0.2 as the storey below (Codex review 2026-08-06)
+  return STOREYS.find((s) => h >= s.elevation && h < s.elevation + s.height)
+      || STOREYS.find((s) => h >= s.elevation - 0.3 &&
+                             h < s.elevation + s.height + 0.3)
+      || null;
+}
+
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) &&
+        x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// "Master Bedroom (Ground Floor)" — the language the owner and Claude
+// actually share. Model coords: x = three.x, y = −three.z, h = three.y.
+function whereAmI() {
+  const p = camera.position;
+  const mx = p.x;
+  const my = -p.z;
+  const s = storeyAt(p.y);
+  if (!s) {
+    return p.y < STOREYS[0].elevation ? 'below ' + STOREYS[0].name
+                                      : 'above the roof';
+  }
+  const room = s.rooms.find((r) => pointInPoly(mx, my, r.poly));
+  if (room && room.name !== s.name) return room.name + ' — ' + s.name;
+  return (room ? '' : 'outside — ') + s.name;
+}
+
+function positionLine() {
+  const p = camera.position;
+  return whereAmI() + '\\npos ' + p.x.toFixed(1) + ', ' + (-p.z).toFixed(1) +
+         ' · h ' + p.y.toFixed(1);
+}
 
 function displayName(label) {
   // IfcWindow_Living_Window_W1 / IfcWindow_..._frame -> tag + readable name
@@ -433,6 +557,7 @@ controls.addEventListener('lock', () => {
 });
 controls.addEventListener('unlock', () => {
   clearKeys();
+  if (fbMode) return;  // deliberate freeze (F) — keep the view, no start overlay
   overlay.classList.remove('hidden');
   reticle.style.display = 'none';
   exitMeasureMode();  // Esc also abandons any measurement in progress
@@ -442,6 +567,14 @@ document.addEventListener('pointerlockerror', () =>
 addEventListener('blur', clearKeys);
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); });
 document.addEventListener('keydown', (e) => {
+  if (fbMode) {  // frozen for feedback: no movement keys, no Space hijack
+    if (e.code === 'Escape') exitFeedback();
+    if (e.code === 'KeyZ' && document.activeElement !== fbText) {
+      strokes.pop();
+      drawStrokes();
+    }
+    return;
+  }
   if (e.code === 'Space') e.preventDefault();
   keys.add(e.code);
   if (!controls.isLocked) return;
@@ -452,6 +585,11 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyR' && !e.repeat) toggleRoof();
   if (e.code === 'KeyP' && !e.repeat) screenshot();
+  if (e.code === 'KeyF' && !e.repeat) enterFeedback();
+  if (e.code === 'KeyN' && !e.repeat) {
+    labelsOn = !labelsOn;
+    if (!labelsOn) clearFeedbackLabels();
+  }
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 renderer.domElement.addEventListener('click', () => {
@@ -462,10 +600,288 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   labelRenderer.setSize(innerWidth, innerHeight);
+  if (fbMode) sizeDrawCanvas();
 });
+
+// --- feedback mode: freeze + draw + comment (F) -------------------------------
+// Mini-BCF: one submission = camera pose + screen-space strokes (with the
+// element tags they touch) + comment + composite PNG. POSTs to /feedback
+// (serve.py); falls back to a PNG download on static hosting.
+const drawCanvas = document.getElementById('draw');
+const fbPanel = document.getElementById('fbpanel');
+const fbText = document.getElementById('fbtext');
+const ctx2d = drawCanvas.getContext('2d');
+let fbMode = false;
+let strokes = [];       // finished strokes: arrays of normalized {x, y}
+let liveStroke = null;
+
+function drawStrokes() {
+  ctx2d.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  ctx2d.strokeStyle = '#ff3b30';
+  ctx2d.lineWidth = 3;
+  ctx2d.lineJoin = ctx2d.lineCap = 'round';
+  for (const s of [...strokes, liveStroke].filter(Boolean)) {
+    ctx2d.beginPath();
+    s.forEach((p, i) => {
+      const x = p.x * drawCanvas.width;
+      const y = p.y * drawCanvas.height;
+      i ? ctx2d.lineTo(x, y) : ctx2d.moveTo(x, y);
+    });
+    ctx2d.stroke();
+  }
+}
+
+function sizeDrawCanvas() {
+  drawCanvas.width = innerWidth;
+  drawCanvas.height = innerHeight;
+  drawStrokes();
+}
+
+// Tag labels over the elements while feedback mode is open — the owner
+// references elements by plan tag (W7, Win2, D8), so show them in place.
+// Occlusion-tested: a tag only shows if its element is the first visible
+// surface toward its bbox center from the frozen camera.
+let fbLabels = [];
+
+function showFeedbackLabels() {
+  renderer.render(scene, camera);  // matrices current before projecting
+  // text -> screen positions already badged. Big surfaces (or one you are
+  // standing INSIDE — feedback #012) span distant screen regions: repeat
+  // the badge when the same object shows up far from its existing badges.
+  const seen = new Map();
+  const FAR = Math.max(innerWidth, innerHeight) * 0.42;
+  const MAX_PER_TEXT = 3;
+
+  function needsBadge(text, px, py) {
+    const spots = seen.get(text);
+    if (!spots) return true;
+    if (spots.length >= MAX_PER_TEXT) return false;
+    return spots.every((s) => Math.hypot(s[0] - px, s[1] - py) > FAR);
+  }
+
+  const layer = document.getElementById('labels');
+  const visible = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+
+  function place(text, px, py) {
+    if (!seen.has(text)) seen.set(text, []);
+    seen.get(text).push([px, py]);
+    const div = document.createElement('div');
+    div.className = 'fblabel';
+    div.textContent = text;
+    div.style.left = px + 'px';
+    div.style.top = py + 'px';
+    div.dataset.px = px;  // for burning into the feedback composite
+    div.dataset.py = py;
+    layer.appendChild(div);
+    fbLabels.push(div);
+  }
+
+  // Pass 1 — viewport grid: badge whatever is ACTUALLY visible at the
+  // point it is seen (owner: "rendered where I see it"; untagged objects
+  // like GroundHigh or the Ground Slab show their readable name).
+  for (let gy = 0.08; gy < 0.95; gy += 0.11) {
+    for (let gx = 0.05; gx < 0.98; gx += 0.08) {
+      raycaster.setFromCamera(new THREE.Vector2(gx * 2 - 1, -(gy * 2 - 1)), camera);
+      const hit = raycaster.intersectObject(modelRoot, true).find((h) => visible(h.object));
+      if (!hit) continue;
+      const sem = semanticNode(hit.object);
+      if (/_Handle_/.test(sem.label)) continue;  // handles label their door
+      const text = displayName(sem.label);       // frame hits → their window
+      if (!text || text === 'unnamed') continue;
+      if (!needsBadge(text, gx * innerWidth, gy * innerHeight)) continue;
+      place(text, gx * innerWidth, gy * innerHeight);
+    }
+  }
+
+  // Pass 2 — tagged elements (doors, windows): thin geometry slips between
+  // grid points (owner feedback #008/#009), so sample each element's bbox
+  // center + face midpoints and badge the first visible spot.
+  for (const n of modelRoot.children) {
+    if (!n.name || /_frame$|_Handle_/.test(n.name)) continue;
+    const clean = n.name.replace(/^Ifc\\w+?_/, '');
+    if (!TAGS[clean]) continue;
+    const text = displayName(n.name);
+    if (seen.has(text)) continue;  // tagged elements: one badge is enough
+    const box = new THREE.Box3().setFromObject(n);
+    if (box.isEmpty()) continue;
+    const c = box.getCenter(new THREE.Vector3());
+    const samples = [c,
+      new THREE.Vector3(box.min.x, c.y, c.z), new THREE.Vector3(box.max.x, c.y, c.z),
+      new THREE.Vector3(c.x, box.min.y, c.z), new THREE.Vector3(c.x, box.max.y, c.z),
+      new THREE.Vector3(c.x, c.y, box.min.z), new THREE.Vector3(c.x, c.y, box.max.z)];
+    for (const s of samples) {
+      const v = s.clone().project(camera);
+      if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue;
+      raycaster.setFromCamera(new THREE.Vector2(v.x, v.y), camera);
+      const hit = raycaster.intersectObject(modelRoot, true).find((h) => visible(h.object));
+      if (!hit) continue;
+      const hitSem = semanticNode(hit.object);
+      if (hitSem.node !== n &&
+          hitSem.label.replace(/^Ifc\\w+?_/, '').replace(/_frame$/, '') !== clean) continue;
+      place(text, (v.x + 1) / 2 * innerWidth, (1 - (v.y + 1) / 2) * innerHeight);
+      break;
+    }
+  }
+}
+
+function clearFeedbackLabels() {
+  for (const div of fbLabels) div.remove();
+  fbLabels = [];
+}
+
+function enterFeedback() {
+  if (!ready || fbMode) return;
+  fbMode = true;  // set BEFORE unlock so the unlock handler keeps the view
+  if (controls.isLocked) controls.unlock();
+  overlay.classList.add('hidden');
+  reticle.style.display = 'none';
+  sizeDrawCanvas();
+  drawCanvas.style.display = 'block';
+  fbPanel.style.display = 'flex';
+  clearFeedbackLabels();  // N-mode labels may already be up — no doubles
+  showFeedbackLabels();
+  infoText = 'FEEDBACK — drag to draw, comment, Submit';
+  setHud();
+  fbText.focus();
+}
+
+function exitFeedback(message = '') {
+  fbMode = false;
+  strokes = [];
+  liveStroke = null;
+  clearFeedbackLabels();
+  drawCanvas.style.display = 'none';
+  fbPanel.style.display = 'none';
+  fbText.value = '';
+  infoText = message;
+  setHud();
+  overlay.classList.remove('hidden');  // click to resume walking
+}
+
+drawCanvas.addEventListener('pointerdown', (e) => {
+  drawCanvas.setPointerCapture(e.pointerId);
+  liveStroke = [{ x: e.clientX / innerWidth, y: e.clientY / innerHeight }];
+});
+drawCanvas.addEventListener('pointermove', (e) => {
+  if (!liveStroke) return;
+  liveStroke.push({ x: e.clientX / innerWidth, y: e.clientY / innerHeight });
+  drawStrokes();
+});
+drawCanvas.addEventListener('pointerup', () => {
+  // keep only strokes with real extent — repeated events at one spot make
+  // an invisible zero-size stroke (Codex review 2026-08-06)
+  if (liveStroke && liveStroke.length > 1) {
+    const xs = liveStroke.map((p) => p.x);
+    const ys = liveStroke.map((p) => p.y);
+    if (Math.max(...xs) - Math.min(...xs) > 0.004 ||
+        Math.max(...ys) - Math.min(...ys) > 0.004) {
+      strokes.push(liveStroke);
+    }
+  }
+  liveStroke = null;
+  drawStrokes();
+});
+
+// Which elements a stroke covers — raycast a sample of its points and
+// collect the same tagged names the I key shows. Scribble → tags, no typing.
+function strokeElements(stroke) {
+  const found = new Set();
+  const visible = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  const idx = new Set([stroke.length - 1]);  // ALWAYS sample the endpoint —
+  for (let i = 0; i < stroke.length; i += 4) idx.add(i);  // short strokes
+  for (const i of idx) {                                  // end ON the target
+    const p = stroke[i];
+    raycaster.setFromCamera(new THREE.Vector2(p.x * 2 - 1, -(p.y * 2 - 1)), camera);
+    const hit = raycaster.intersectObject(modelRoot, true).find((h) => visible(h.object));
+    if (hit) found.add(displayName(semanticNode(hit.object).label));
+  }
+  return [...found];
+}
+
+async function submitFeedback() {
+  renderer.render(scene, camera);  // fresh frame for toDataURL
+  const composite = document.createElement('canvas');
+  composite.width = renderer.domElement.width;
+  composite.height = renderer.domElement.height;
+  const c = composite.getContext('2d');
+  c.drawImage(renderer.domElement, 0, 0);
+  c.drawImage(drawCanvas, 0, 0, composite.width, composite.height);
+  // Burn the tag badges into the shot — the DOM labels are not part of the
+  // canvases, so without this the saved PNG has no ids (feedback #006).
+  const sx = composite.width / innerWidth;
+  const sy = composite.height / innerHeight;
+  c.font = (12 * sx) + 'px ui-monospace, monospace';
+  for (const div of fbLabels) {
+    const w = c.measureText(div.textContent).width + 10 * sx;
+    const x = div.dataset.px * sx;
+    const y = div.dataset.py * sy;
+    c.fillStyle = 'rgba(255, 209, 102, 0.92)';
+    c.fillRect(x - w / 2, y - 9 * sy, w, 18 * sy);
+    c.fillStyle = '#101418';
+    c.fillText(div.textContent, x - w / 2 + 5 * sx, y + 4 * sy);
+  }
+  const image = composite.toDataURL('image/png');
+
+  const p = camera.position;
+  const spec = cameraSpec();
+  const camSpec = spec.text;
+  const meta = {
+    timestamp: new Date().toISOString(),
+    where: whereAmI(),  // "Master Bedroom — Ground Floor" (feedback #007)
+    model: { x: +p.x.toFixed(2), y: +(-p.z).toFixed(2), h: +p.y.toFixed(2) },
+    camera: { x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3),
+              yawDeg: +spec.yaw.toFixed(2),
+              pitchDeg: +spec.pitch.toFixed(2) },
+    debugHash: '#debug=' + camSpec,
+    viewport: { w: innerWidth, h: innerHeight },
+    comment: fbText.value.trim(),
+    strokes: strokes.map((s) => ({
+      points: s.map((pt) => [+pt.x.toFixed(4), +pt.y.toFixed(4)]),
+      elements: strokeElements(s),
+    })),
+  };
+
+  try {
+    const resp = await fetch('feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image, meta }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const { id } = await resp.json();
+    exitFeedback('feedback #' + id + ' saved');
+  } catch (err) {
+    console.warn('feedback POST failed — downloading instead', err);
+    const a = document.createElement('a');
+    a.download = 'villa-feedback_' + camSpec.replaceAll(',', '_') + '.png';
+    a.href = image;
+    a.click();
+    exitFeedback('server unreachable — feedback PNG downloaded');
+  }
+}
+
+document.getElementById('fbsubmit').addEventListener('click', submitFeedback);
+document.getElementById('fbcancel').addEventListener('click', () => exitFeedback());
+
+// ?feedback=1 — open the panel; ?feedback=submit — also inject a stroke and
+// submit (exercises raycast tags + composite + POST). Test seams for
+// headless verification, same #debug gating as ?roof / ?measure.
+if (location.hash.startsWith('#debug') && ready) {
+  const fbSeam = new URLSearchParams(location.search).get('feedback');
+  if (fbSeam === '1' || fbSeam === 'submit') enterFeedback();
+  if (fbSeam === 'submit') {
+    strokes.push([{ x: 0.42, y: 0.42 }, { x: 0.5, y: 0.5 }, { x: 0.58, y: 0.58 }]);
+    drawStrokes();
+    fbText.value = 'automated test seam';
+    submitFeedback();
+  }
+}
 
 const clock = new THREE.Clock();
 const move = new THREE.Vector3();
+let hudFrame = 0;
+let labelFrame = 0;
+let labelsOn = false;  // N — persistent tag badges while walking
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1); // clamp after tab suspension
   if (controls.isLocked) {
@@ -478,8 +894,19 @@ renderer.setAnimationLoop(() => {
     if (move.lengthSq() > 0) move.normalize();
     controls.moveRight(move.x * speed * dt);
     controls.moveForward(move.z * speed * dt);
+    // Vertical at HALF speed: full walk speed on C sank the owner 2m in a
+    // blink — "slightly below the floor" turned out to be the garage
+    // (feedback #007).
+    // Vertical flight is UNRESTRICTED by owner decision (2026-08-07):
+    // no slab clamp, no modifier, no collision — the owner flies through
+    // floors on purpose. Do not "fix" this again.
     const up = (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0);
-    camera.position.y += up * speed * dt;
+    camera.position.y += up * speed * 0.5 * dt;
+  }
+  if (hudFrame++ % 15 === 0) setHud();  // live position/room readout
+  if (labelsOn && !fbMode && labelFrame++ % 30 === 0) {
+    clearFeedbackLabels();
+    showFeedbackLabels();
   }
   // rubber-band: live preview from the first point to the current aim
   if (pendingPoint && rubberLine) {
@@ -502,7 +929,8 @@ def main():
     tags = element_tags()
     html = (TEMPLATE
             .replace("__THREE_VERSION__", THREE_VERSION)
-            .replace("__TAGS__", json.dumps(tags, sort_keys=True)))
+            .replace("__TAGS__", json.dumps(tags, sort_keys=True))
+            .replace("__STOREYS__", json.dumps(storey_bands())))
     HTML.write_text(html, encoding="utf-8")
     print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; "
           f"{len(tags)} element tags; loads ./villa.glb at runtime)")

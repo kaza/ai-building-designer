@@ -122,6 +122,129 @@ def _corner_extensions(wall: Wall, story: Story) -> tuple[float, float]:
     )
 
 
+def _corner_glazing(
+    window: Window | Door, wall: Wall, story: Story
+) -> tuple[float, float, list[Wall]]:
+    """(lead_ext, trail_ext, partner_walls) for corner glazing
+    (specs/wall-corner-joins.md).
+
+    A window flush with a wall end that has a corner join extends through
+    the joint — pane and opening grow by the corner extension, and the
+    opening must ALSO void each partner wall, whose own solid (with its
+    corner extension) crosses the glazing zone. Without that second void
+    the joint stays filled and the "corner window" hits a hidden post.
+    """
+    tol = 1e-6
+    ext_start, ext_end = _corner_extensions(wall, story)
+    lead = ext_start if window.position <= tol else 0.0
+    trail = (
+        ext_end
+        if abs(wall.length - (window.position + window.width)) <= tol
+        else 0.0
+    )
+    partners: list[Wall] = []
+    if lead or trail:
+        dx, dy = _wall_direction(wall)
+        for other in story.walls:
+            if other is wall:
+                continue
+            odx, ody = _wall_direction(other)
+            if abs(dx * ody - dy * odx) < 1e-9:  # parallel — no corner
+                continue
+            for p in (other.start, other.end):
+                at_start = abs(p.x - wall.start.x) < tol and abs(p.y - wall.start.y) < tol
+                at_end = abs(p.x - wall.end.x) < tol and abs(p.y - wall.end.y) < tol
+                if (lead and at_start) or (trail and at_end):
+                    partners.append(other)
+                    break
+    return lead, trail, partners
+
+
+def _pane_extensions(
+    window: Window | Door, wall: Wall, story: Story
+) -> tuple[float, float]:
+    """Pane lengthwise extensions (at start, at end) for corner glazing —
+    for windows AND glass doors (pane_side set).
+
+    Glass meeting a SOLID partner wall end runs through the joint to its
+    face (the full corner extension). Two flush panes sharing one corner
+    must TOUCH, not cross (owner feedback #002 — crossing boxes read as
+    glass-through-glass): the pane on the lexicographically smaller wall
+    GlobalId passes (covers the corner, ext = pane depth − partner t/2),
+    the other butts against its face (ext = −partner t/2). Partner panes
+    include flush glass doors (Gemini review 2026-08-06). Exact for the
+    inner-flush pane pair; mixed inner/outer corners would need per-side
+    planes (no case yet).
+    """
+    tol = 1e-6
+    lead, trail, _ = _corner_glazing(window, wall, story)
+    dx, dy = _wall_direction(wall)
+    my_side = window.pane_side or "outer"
+
+    def z_span(el) -> tuple[float, float]:
+        lo = getattr(el, "sill_height", 0.0)
+        return lo, lo + el.height
+
+    def z_overlaps(a, b) -> bool:
+        a0, a1 = z_span(a)
+        b0, b1 = z_span(b)
+        return a0 < b1 - tol and b0 < a1 - tol
+
+    def partner_flush(el, other: Wall, px: float, py: float) -> bool:
+        if abs(other.start.x - px) < tol and abs(other.start.y - py) < tol:
+            return el.position <= tol
+        if abs(other.end.x - px) < tol and abs(other.end.y - py) < tol:
+            return abs(other.length - (el.position + el.width)) <= tol
+        return False
+
+    def adjust(ext: float, px: float, py: float) -> float:
+        if not ext:
+            return 0.0
+        panes = list(story.windows) + [
+            d for d in story.doors if d.pane_side is not None
+        ]
+        # All flush partner panes at this corner that share a height band —
+        # vertically disjoint panes never meet (Codex review 2026-08-06).
+        candidates = []
+        for other in story.walls:
+            if other is wall:
+                continue
+            odx, ody = _wall_direction(other)
+            if abs(dx * ody - dy * odx) < 1e-9:  # parallel — no corner
+                continue
+            if not any(
+                abs(p.x - px) < tol and abs(p.y - py) < tol
+                for p in (other.start, other.end)
+            ):
+                continue
+            for el in panes:
+                if (el is not window
+                        and el.wall_id == other.global_id
+                        and partner_flush(el, other, px, py)
+                        and z_overlaps(window, el)):
+                    candidates.append((other, el))
+        if not candidates:
+            return ext
+        # Deterministic regardless of story.walls order (Codex).
+        other, el = min(candidates, key=lambda pair: pair[0].global_id)
+        other_side = el.pane_side or "outer"
+        if my_side == "inner" and other_side == "inner":
+            if wall.global_id < other.global_id:
+                return WINDOW_PANE_DEPTH - other.thickness / 2
+            return -other.thickness / 2
+        # Outer or mixed pairs keep the full extension: the pass/butt
+        # formulas are exact only for the inner-flush pair (the villa
+        # case); other combinations overlap inside the corner cube, which
+        # transparent glass hides. Exact joins for those need per-side
+        # plane math — specs/wall-corner-joins.md § Limits.
+        return ext
+
+    return (
+        adjust(lead, wall.start.x, wall.start.y),
+        adjust(trail, wall.end.x, wall.end.y),
+    )
+
+
 def _pane_center_y(
     pane_side: str, wall: Wall, story: Story, element_label: str
 ) -> float:
@@ -328,7 +451,7 @@ class IFCExporter:
                 ifc_door = self._create_door(door, wall, story)
                 ifc_wall_host = wall_map.get(door.wall_id)
                 if ifc_wall_host:
-                    opening = self._create_opening(door, wall, story.elevation, is_door=True)
+                    opening = self._create_opening(door, wall, story, is_door=True)
                     self.file.createIfcRelVoidsElement(
                         GlobalId=_new_guid(),
                         RelatingBuildingElement=ifc_wall_host,
@@ -339,7 +462,29 @@ class IFCExporter:
                         RelatingOpeningElement=opening,
                         RelatedBuildingElement=ifc_door,
                     )
+                    # Glass doors get corner glazing like windows: cut the
+                    # partner wall crossing the joint (one void per opening).
+                    if door.pane_side is not None:
+                        _, _, partners = _corner_glazing(door, wall, story)
+                        for partner in partners:
+                            ifc_partner = wall_map.get(partner.global_id)
+                            if ifc_partner is None:
+                                raise ValueError(
+                                    f"corner-glazing partner wall "
+                                    f"'{partner.name}' of door "
+                                    f"'{door.name}' was not exported"
+                                )
+                            twin = self._create_opening(
+                                door, wall, story, is_door=True,
+                                name="Corner Glazing Opening",
+                            )
+                            self.file.createIfcRelVoidsElement(
+                                GlobalId=_new_guid(),
+                                RelatingBuildingElement=ifc_partner,
+                                RelatedOpeningElement=twin,
+                            )
                 products.append(ifc_door)
+                products.extend(self._create_door_handles(door, wall, story))
 
         # Export windows (with wall openings)
         for window in story.windows:
@@ -349,7 +494,7 @@ class IFCExporter:
                 ifc_wall_host = wall_map.get(window.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening_for_window(
-                        window, wall, story.elevation
+                        window, wall, story
                     )
                     self.file.createIfcRelVoidsElement(
                         GlobalId=_new_guid(),
@@ -361,6 +506,25 @@ class IFCExporter:
                         RelatingOpeningElement=opening,
                         RelatedBuildingElement=ifc_window,
                     )
+                    # Corner glazing: the partner wall's solid crosses the
+                    # joint — cut it too, or the glass hits a hidden post.
+                    # (IFC allows one void per opening, hence a twin.)
+                    _, _, partners = _corner_glazing(window, wall, story)
+                    for partner in partners:
+                        ifc_partner = wall_map.get(partner.global_id)
+                        if ifc_partner is None:
+                            raise ValueError(
+                                f"corner-glazing partner wall '{partner.name}' "
+                                f"of window '{window.name}' was not exported"
+                            )
+                        twin = self._create_opening_for_window(
+                            window, wall, story, name="Corner Glazing Opening"
+                        )
+                        self.file.createIfcRelVoidsElement(
+                            GlobalId=_new_guid(),
+                            RelatingBuildingElement=ifc_partner,
+                            RelatedOpeningElement=twin,
+                        )
                 products.append(ifc_window)
 
         # Contain all products in the storey
@@ -517,8 +681,11 @@ class IFCExporter:
             OuterCurve=polyline,
         )
 
-        # Slab z position: floor slabs at elevation, ceiling at elevation - thickness
-        z = elevation if slab.is_floor else elevation - slab.thickness
+        # Storey elevation is the finished floor level: floor slabs hang
+        # BELOW the datum so walls/doors sit ON them, not inside them
+        # (specs/storey-datum.md, villa feedback #013). Ceilings share the
+        # placement — legacy/unspecified, no project exports ceilings yet.
+        z = elevation - slab.thickness
 
         placement = self._create_local_placement(
             origin=(0.0, 0.0, z),
@@ -752,9 +919,21 @@ class IFCExporter:
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
-        # Door origin: wall start + offset along wall direction
-        ox = wall.start.x + dx * door.position - nx * wall.thickness / 2
-        oy = wall.start.y + dy * door.position - ny * wall.thickness / 2
+        # Door origin: wall start + offset along wall direction (pulled back
+        # through a corner joint when a glass leaf is flush there); pass/butt
+        # against partner panes like windows (Gemini review 2026-08-06)
+        lead = trail = 0.0
+        if door.pane_side is not None:
+            lead, trail = _pane_extensions(door, wall, story)
+        leaf_width = door.width + lead + trail
+        if leaf_width <= 0:
+            raise ValueError(
+                f"Door '{door.name}': corner setbacks consumed the leaf "
+                f"(width {leaf_width:.3f}m)"
+            )
+
+        ox = wall.start.x + dx * (door.position - lead) - nx * wall.thickness / 2
+        oy = wall.start.y + dy * (door.position - lead) - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
             origin=(ox, oy, story.elevation),
@@ -773,11 +952,11 @@ class IFCExporter:
 
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
-            XDim=door.width,
+            XDim=leaf_width,
             YDim=leaf_depth,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (door.width / 2, leaf_center_y)
+                    (leaf_width / 2, leaf_center_y)
                 ),
             ),
         )
@@ -820,9 +999,22 @@ class IFCExporter:
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
-        # Window origin: wall start + offset, elevated by sill height
-        ox = wall.start.x + dx * window.position - nx * wall.thickness / 2
-        oy = wall.start.y + dy * window.position - ny * wall.thickness / 2
+        # Corner glazing: a pane flush with a joined wall end runs through
+        # the corner so the two glass planes meet (pass/butt when the
+        # partner has its own flush pane — see _pane_extensions).
+        lead, trail = _pane_extensions(window, wall, story)
+        pane_width = window.width + lead + trail
+        if pane_width <= 0:
+            raise ValueError(
+                f"Window '{window.name}': corner setbacks consumed the pane "
+                f"(width {pane_width:.3f}m) — window too narrow for its "
+                f"corner joins"
+            )
+
+        # Window origin: wall start + offset (pulled back through the
+        # corner joint when flush there), elevated by sill height
+        ox = wall.start.x + dx * (window.position - lead) - nx * wall.thickness / 2
+        oy = wall.start.y + dy * (window.position - lead) - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
             origin=(ox, oy, story.elevation + window.sill_height),
@@ -836,11 +1028,11 @@ class IFCExporter:
 
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
-            XDim=window.width,
+            XDim=pane_width,
             YDim=WINDOW_PANE_DEPTH,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (window.width / 2, pane_center_y)
+                    (pane_width / 2, pane_center_y)
                 ),
             ),
         )
@@ -875,22 +1067,126 @@ class IFCExporter:
         )
         return ifc_window
 
+    def _create_door_handles(
+        self, door: Door, wall: Wall, story: Story
+    ) -> list[ifcopenshell.entity_instance]:
+        """Handles as IfcDiscreteAccessory products — a door must read as a
+        door in every output (owner 2026-08-06), so this is geometry, not
+        per-project render decor.
+
+        Swing doors: lever pair at the latch edge (LEFT hinges at the door
+        start, matching the plan swing arcs); DOUBLE: levers at the meeting
+        stiles; SLIDING and glass (pane) doors: vertical pull bars;
+        NOTDEFINED: none (unknown mechanism, e.g. a sectional garage door).
+        One handle per leaf face."""
+        op = door.operation_type.value
+        if op == "NOTDEFINED":
+            return []
+        pull_bar = op.startswith("SLIDING") or door.pane_side is not None
+        if op == "DOUBLE_DOOR_SINGLE_SWING":
+            offsets = [door.width / 2 - 0.06, door.width / 2 + 0.06]
+        elif pull_bar:
+            offsets = [door.width - 0.12]
+        elif op == "SINGLE_SWING_RIGHT":
+            offsets = [0.08]
+        else:  # SINGLE_SWING_LEFT
+            offsets = [door.width - 0.08]
+
+        if door.pane_side is not None:
+            leaf_center_y = _pane_center_y(
+                door.pane_side, wall, story, f"Door '{door.name}'"
+            )
+            leaf_half = WINDOW_PANE_DEPTH / 2
+        else:
+            leaf_center_y = wall.thickness / 2
+            leaf_half = wall.thickness / 2
+
+        if pull_bar:
+            profile_x, profile_y, depth, z0 = 0.03, 0.03, 0.35, 0.9
+        else:
+            profile_x, profile_y, depth, z0 = 0.14, 0.03, 0.03, 1.035
+
+        dx, dy = _wall_direction(wall)
+        nx, ny = _wall_normal(wall)
+        handles = []
+        for off in offsets:
+            for side in (-1.0, 1.0):
+                # offset across the wall, measured from the −normal face
+                y_c = leaf_center_y + side * (leaf_half + 0.035)
+                hx = (wall.start.x + dx * (door.position + off)
+                      + nx * (y_c - wall.thickness / 2))
+                hy = (wall.start.y + dy * (door.position + off)
+                      + ny * (y_c - wall.thickness / 2))
+                placement = self._create_local_placement(
+                    origin=(hx, hy, story.elevation + z0),
+                    z_dir=(0.0, 0.0, 1.0),
+                    x_dir=(dx, dy, 0.0),
+                )
+                profile = self.file.createIfcRectangleProfileDef(
+                    ProfileType="AREA",
+                    XDim=profile_x,
+                    YDim=profile_y,
+                    Position=self.file.createIfcAxis2Placement2D(
+                        Location=self.file.createIfcCartesianPoint((0.0, 0.0)),
+                    ),
+                )
+                solid = self.file.createIfcExtrudedAreaSolid(
+                    SweptArea=profile,
+                    Position=self.file.createIfcAxis2Placement3D(
+                        Location=self.file.createIfcCartesianPoint(
+                            (0.0, 0.0, 0.0)
+                        ),
+                    ),
+                    ExtrudedDirection=self.file.createIfcDirection(
+                        (0.0, 0.0, 1.0)
+                    ),
+                    Depth=depth,
+                )
+                shape = self.file.createIfcShapeRepresentation(
+                    ContextOfItems=self._body_context,
+                    RepresentationIdentifier="Body",
+                    RepresentationType="SweptSolid",
+                    Items=[solid],
+                )
+                handles.append(self.file.createIfcDiscreteAccessory(
+                    GlobalId=_new_guid(),
+                    Name=f"{door.name or 'Door'} Handle {len(handles)}",
+                    ObjectPlacement=placement,
+                    Representation=self.file.createIfcProductDefinitionShape(
+                        Representations=[shape],
+                    ),
+                ))
+        return handles
+
     def _create_opening(
         self,
         door: Door,
         wall: Wall,
-        elevation: float,
+        story: Story,
         is_door: bool = True,
+        name: str | None = None,
     ) -> ifcopenshell.entity_instance:
-        """Create an IfcOpeningElement for a door in a wall."""
+        """Create an IfcOpeningElement for a door in a wall.
+
+        Glass doors (pane_side set) flush with a joined wall end get the
+        corner-glazing extension, like windows."""
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
-        ox = wall.start.x + dx * door.position - nx * wall.thickness / 2
-        oy = wall.start.y + dy * door.position - ny * wall.thickness / 2
+        lead = trail = 0.0
+        if door.pane_side is not None:
+            lead, trail, _ = _corner_glazing(door, wall, story)
+            if lead:
+                lead += 0.01
+            if trail:
+                trail += 0.01
+        cut_width = door.width + lead + trail
+
+        ox = wall.start.x + dx * (door.position - lead) - nx * wall.thickness / 2
+        oy = wall.start.y + dy * (door.position - lead) - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
-            origin=(ox, oy, elevation),
+            origin=(ox, oy, story.elevation),
             z_dir=(0.0, 0.0, 1.0),
             x_dir=(dx, dy, 0.0),
         )
@@ -898,11 +1194,11 @@ class IFCExporter:
         # Opening is slightly larger than the door for clean boolean
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
-            XDim=door.width,
+            XDim=cut_width,
             YDim=wall.thickness + 0.01,  # slightly thicker for clean cut
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (door.width / 2, (wall.thickness + 0.01) / 2)
+                    (cut_width / 2, (wall.thickness + 0.01) / 2)
                 ),
             ),
         )
@@ -929,7 +1225,7 @@ class IFCExporter:
 
         opening = self.file.createIfcOpeningElement(
             GlobalId=_new_guid(),
-            Name="Door Opening" if is_door else "Window Opening",
+            Name=name or ("Door Opening" if is_door else "Window Opening"),
             ObjectPlacement=placement,
             Representation=product_shape,
         )
@@ -939,28 +1235,40 @@ class IFCExporter:
         self,
         window: Window,
         wall: Wall,
-        elevation: float,
+        story: Story,
+        name: str = "Window Opening",
     ) -> ifcopenshell.entity_instance:
-        """Create an IfcOpeningElement for a window in a wall."""
+        """Create an IfcOpeningElement for a window in a wall.
+
+        Flush corner-glazed windows get an opening extended through the
+        corner joint (+0.01 clean-cut margin); the caller voids the corner
+        partner wall with a second one of these."""
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
-        ox = wall.start.x + dx * window.position - nx * wall.thickness / 2
-        oy = wall.start.y + dy * window.position - ny * wall.thickness / 2
+        lead, trail, _ = _corner_glazing(window, wall, story)
+        if lead:
+            lead += 0.01
+        if trail:
+            trail += 0.01
+        cut_width = window.width + lead + trail
+
+        ox = wall.start.x + dx * (window.position - lead) - nx * wall.thickness / 2
+        oy = wall.start.y + dy * (window.position - lead) - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
-            origin=(ox, oy, elevation + window.sill_height),
+            origin=(ox, oy, story.elevation + window.sill_height),
             z_dir=(0.0, 0.0, 1.0),
             x_dir=(dx, dy, 0.0),
         )
 
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
-            XDim=window.width,
+            XDim=cut_width,
             YDim=wall.thickness + 0.01,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (window.width / 2, (wall.thickness + 0.01) / 2)
+                    (cut_width / 2, (wall.thickness + 0.01) / 2)
                 ),
             ),
         )
@@ -987,7 +1295,7 @@ class IFCExporter:
 
         opening = self.file.createIfcOpeningElement(
             GlobalId=_new_guid(),
-            Name="Window Opening",
+            Name=name,
             ObjectPlacement=placement,
             Representation=product_shape,
         )

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-06T21:33:21.077Z",
+  "where": "Master Bedroom \u2014 Ground Floor",
+  "model": {
+    "x": 6.95,
+    "y": 6.79,
+    "h": 0.2
+  },
+  "camera": {
+    "x": 6.952,
+    "y": 0.2,
+    "z": -6.791,
+    "yawDeg": 115.23,
+    "pitchDeg": -3.44
+  },
+  "debugHash": "#debug=6.95,0.20,-6.79,115.2,-3.4",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "check it again, you totally fucked it up",
+  "strokes": []
+}
