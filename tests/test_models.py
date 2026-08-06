@@ -326,3 +326,26 @@ class TestBuilding:
         assert restored.global_id == building.global_id
         assert restored.stories[0].global_id == story.global_id
         assert restored.stories[0].walls[0].global_id == wall.global_id
+
+
+class TestWindowPaneSide:
+    def test_default_is_outer(self):
+        from archicad_builder.models.elements import Window
+        w = Window(wall_id="x", position=1.0, width=1.0, height=1.0)
+        assert w.pane_side == "outer"
+
+    def test_invalid_side_rejected(self):
+        import pytest
+
+        from archicad_builder.models.elements import Window
+        with pytest.raises(ValueError):
+            Window(wall_id="x", position=1.0, width=1.0, height=1.0,
+                   pane_side="middle")
+
+    def test_add_window_forwards_pane_side(self):
+        from archicad_builder.models.building import Building, Story
+        b = Building(name="t", stories=[Story(name="GF", elevation=0, height=3)])
+        b.add_wall("GF", (0, 0), (6, 0), height=3.0, thickness=0.3, name="S")
+        w = b.add_window("GF", "S", position=1.0, width=1.0, height=1.0,
+                         pane_side="inner")
+        assert w.pane_side == "inner"

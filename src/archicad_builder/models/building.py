@@ -261,6 +261,7 @@ class Building(BaseModel):
         *,
         operation_type: DoorOperationType | None = None,
         swing_inward: bool | None = None,
+        pane_side: str | None = None,
     ) -> Door:
         """Add a door to a wall (by wall name). Returns the created door."""
         story = self._require_story(story_name)
@@ -275,6 +276,8 @@ class Building(BaseModel):
             extra["operation_type"] = operation_type
         if swing_inward is not None:
             extra["swing_inward"] = swing_inward
+        if pane_side is not None:
+            extra["pane_side"] = pane_side
         door = Door(
             name=name,
             description=description,
@@ -297,6 +300,7 @@ class Building(BaseModel):
         sill_height: float = 0.9,
         name: str = "",
         description: str = "",
+        pane_side: str = "outer",
     ) -> Window:
         """Add a window to a wall (by wall name). Returns the created window."""
         story = self._require_story(story_name)
@@ -314,6 +318,7 @@ class Building(BaseModel):
             width=width,
             height=height,
             sill_height=sill_height,
+            pane_side=pane_side,
         )
         story.windows.append(window)
         return window

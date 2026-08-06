@@ -132,40 +132,48 @@ b.add_door(GF, "North Wall", position=2.0, width=1.4, height=2.1,
            name="Vila Room 2 Terrace Door", swing_inward=False)
 
 # --- Windows ---
+# ALL villa glazing sits flush with the INNER wall face (maquette photo #28,
+# owner 2026-08-06): the yellow volume and roof float over recessed glass.
+# Framework default is outer-flush — every window here overrides it.
 # The yellow L is part concrete part glass (owner 2026-08-06): the living
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
 b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window")
+             sill_height=2.05, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 b.add_window(GF, "West Wall", position=0.15, width=3.2, height=0.75,
-             sill_height=2.05, name="Living Band Window")
+             sill_height=2.05, name="Living Band Window", pane_side="inner")
 # Win3: full-height glazing from Win2's end to the white south third
 # (photo #21) — 0.1 mullion after Win2
 b.add_window(GF, "West Wall", position=3.45, width=1.8, height=2.75,
-             sill_height=0.05, name="Living Glass W2")
+             sill_height=0.05, name="Living Glass W2", pane_side="inner")
 b.add_window(GF, "Living North Wall", position=0.15, width=2.0, height=2.75,
-             sill_height=0.05, name="Living Sliding Window")
+             sill_height=0.05, name="Living Sliding Window", pane_side="inner")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
 # (x4.55), BOTH swinging south into the master. Wall runs (6,8)->(4.5,8), so
 # door_start is the east side: large leaf = LEFT hinge at pos 0.05.
+# D8/D9 are glass — thin pane flush with the OUTER face (owner 2026-08-06:
+# same double-pane bug as the windows; doors sit flush with the facade).
 b.add_door(GF, "Master North Wall", position=0.05, width=0.9, height=2.1,
            name="Vila Master Bedroom Terrace Door",
-           operation_type=DoorOperationType.SINGLE_SWING_LEFT)
+           operation_type=DoorOperationType.SINGLE_SWING_LEFT,
+           pane_side="outer")
 d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.5,
                              height=2.1,
-                             name="Vila Master Bedroom Terrace Door Small")
+                             name="Vila Master Bedroom Terrace Door Small",
+                             pane_side="outer")
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Room 2 north face is glass: sliding door floor-to-ceiling beside D7
 b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
-             sill_height=0.05, name="Room 2 Sliding Door")
-b.add_window(GF, "East Wall", position=6.3, width=1.0, height=1.4, name="Hallway Window")
+             sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
+b.add_window(GF, "East Wall", position=6.3, width=1.0, height=1.4,
+             name="Hallway Window", pane_side="inner")
 # Band window over the TV wall (W6 solid half) — appended last => tag Win7
 b.add_window(GF, "Living North Wall", position=2.5, width=1.8, height=0.75,
-             sill_height=2.05, name="Living Band Window N")
+             sill_height=2.05, name="Living Band Window N", pane_side="inner")
 
 # --- Slab (full L footprint) ---
 b.add_slab(

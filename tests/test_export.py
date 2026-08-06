@@ -290,3 +290,228 @@ class TestIFCExport:
         ifc = ifcopenshell.open(str(path))
         assert len(ifc.by_type("IfcWallStandardCase")) == 4
         path.unlink()
+
+
+class TestWindowPane:
+    """Window body = thin pane in the reveal (specs/window-glazing-placement.md).
+
+    Fixture geometry: East wall start (6,0) → end (6,4), thickness 0.25.
+    Wall direction (0,1), left-hand normal (−1,0); the window's local
+    placement puts local y=0 at world x=6.125 (the EXTERIOR face — the
+    footprint centroid is at x≈3) and local y=0.25 at x=5.875 (interior).
+    """
+
+    PANE = 0.06
+
+    def _window_profile(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        window = ifc.by_type("IfcWindow")[0]
+        solid = window.Representation.Representations[0].Items[0]
+        path.unlink()
+        return solid.SweptArea
+
+    def test_pane_is_thin_not_wall_thickness(self):
+        profile = self._window_profile(_simple_building())
+        assert profile.YDim == self.PANE  # was wall.thickness = 0.25
+
+    def test_default_outer_pane_flush_with_exterior_face(self):
+        profile = self._window_profile(_simple_building())
+        # Exterior face is at local y=0 → pane spans [0, PANE], center PANE/2
+        cx, cy = profile.Position.Location.Coordinates
+        assert cy == self.PANE / 2
+        assert cx == 1.2 / 2  # width/2, unchanged
+
+    def test_inner_pane_flush_with_interior_face(self):
+        building = _simple_building()
+        building.stories[0].windows[0].pane_side = "inner"
+        profile = self._window_profile(building)
+        # Interior face at local y=thickness → pane spans [t−PANE, t]
+        _, cy = profile.Position.Location.Coordinates
+        assert abs(cy - (0.25 - self.PANE / 2)) < 1e-9
+
+    def test_opening_still_cuts_full_wall_thickness(self):
+        building = _simple_building()
+        building.stories[0].windows[0].pane_side = "inner"
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        window = ifc.by_type("IfcWindow")[0]
+        fills = [r for r in ifc.by_type("IfcRelFillsElement")
+                 if r.RelatedBuildingElement == window]
+        opening = fills[0].RelatingOpeningElement
+        profile = opening.Representation.Representations[0].Items[0].SweptArea
+        assert profile.YDim > 0.25  # full thickness + clean-cut margin
+        path.unlink()
+
+    def test_outer_pane_correct_on_concave_L_footprint(self):
+        """Bbox-centroid alone flips sides on L-shaped plans (Gemini review
+        2026-08-06): for the notch wall below, the bbox center (5,5) lies
+        OUTSIDE the footprint, on the notch side. The floor-slab probe must
+        still find the true exterior (the notch, local y=0)."""
+        pts = [(0, 0), (10, 0), (10, 4), (4, 4), (4, 10), (0, 10)]
+        walls = [
+            Wall(name=f"W{i}", start=Point2D(x=a[0], y=a[1]),
+                 end=Point2D(x=b[0], y=b[1]), height=3.0, thickness=0.25)
+            for i, (a, b) in enumerate(zip(pts, pts[1:] + pts[:1]))
+        ]
+        # Wall along the notch's west edge: (4,4) -> (4,10)
+        notch_wall = next(w for w in walls
+                          if {(w.start.x, w.start.y), (w.end.x, w.end.y)}
+                          == {(4, 4), (4, 10)})
+        window = Window(name="Window", wall_id=notch_wall.global_id,
+                        position=2.0, width=1.2, height=1.5, sill_height=0.9)
+        floor = Slab(name="Floor", outline=Polygon2D(
+            vertices=[Point2D(x=x, y=y) for x, y in pts]), thickness=0.25)
+        story = Story(name="GF", elevation=0.0, height=3.0, walls=walls,
+                      slabs=[floor], windows=[window])
+        building = Building(name="L House", stories=[story])
+        profile = self._window_profile(building)
+        # Exterior (notch, +x) is the local y=0 face of this wall; the
+        # default outer pane must sit there.
+        _, cy = profile.Position.Location.Coordinates
+        assert cy == self.PANE / 2
+
+    def test_outer_pane_on_reversed_wall_sits_at_far_local_face(self):
+        """A wall wound the other way (exterior on the +normal side) must
+        put the outer pane at local y=thickness (Codex review 2026-08-06)."""
+        building = _simple_building()
+        story = building.stories[0]
+        east = next(w for w in story.walls if w.name == "East")
+        # Reverse the winding: (6,4) -> (6,0); normal flips to +x (exterior)
+        east.start, east.end = east.end, east.start
+        profile = self._window_profile(building)
+        _, cy = profile.Position.Location.Coordinates
+        assert abs(cy - (0.25 - self.PANE / 2)) < 1e-9
+
+    def test_invalid_pane_side_assignment_fails_loud_at_export(self):
+        """Pydantic doesn't validate post-construction assignment — the
+        exporter must reject garbage instead of silently rendering 'inner'."""
+        import pytest
+        building = _simple_building()
+        building.stories[0].windows[0].pane_side = "middle"
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        with pytest.raises(ValueError, match="invalid pane_side"):
+            IFCExporter(building).export(path)
+        path.unlink()
+
+    def test_wall_thinner_than_pane_fails_loud(self):
+        import pytest
+        building = _simple_building()
+        story = building.stories[0]
+        east = next(w for w in story.walls if w.name == "East")
+        east.thickness = 0.04  # thinner than the 0.06 pane
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        with pytest.raises(ValueError, match="thinner than"):
+            IFCExporter(building).export(path)
+        path.unlink()
+
+
+class TestDoorPane:
+    """Glass doors opt into the thin-pane treatment via Door.pane_side;
+    default None keeps the legacy full-thickness slab (an opaque door leaf
+    filling the reveal looks fine — only glass shows the double-pane bug)."""
+
+    PANE = 0.06
+
+    def _door_profile(self, building):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        door = ifc.by_type("IfcDoor")[0]
+        solid = door.Representation.Representations[0].Items[0]
+        path.unlink()
+        return solid.SweptArea
+
+    def test_default_door_keeps_full_wall_thickness(self):
+        profile = self._door_profile(_simple_building())
+        assert profile.YDim == 0.25
+
+    def test_outer_pane_door_flush_with_exterior_face(self):
+        building = _simple_building()
+        building.stories[0].doors[0].pane_side = "outer"
+        profile = self._door_profile(building)
+        # South wall (0,0)->(6,0): normal (0,1); exterior (−y) is local y=0
+        _, cy = profile.Position.Location.Coordinates
+        assert profile.YDim == self.PANE
+        assert cy == self.PANE / 2
+
+    def test_add_door_forwards_pane_side(self):
+        from archicad_builder.models.building import Building, Story
+        b = Building(name="t", stories=[Story(name="GF", elevation=0, height=3)])
+        b.add_wall("GF", (0, 0), (6, 0), height=3.0, thickness=0.3, name="S")
+        d = b.add_door("GF", "S", position=1.0, width=0.9, height=2.1,
+                       pane_side="outer")
+        assert d.pane_side == "outer"
+
+    def test_invalid_door_pane_side_fails_loud_at_export(self):
+        import pytest
+        building = _simple_building()
+        building.stories[0].doors[0].pane_side = "sideways"
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        with pytest.raises(ValueError, match="invalid pane_side"):
+            IFCExporter(building).export(path)
+        path.unlink()
+
+
+class TestWallCornerJoins:
+    """L-corner walls extend to the outer corner and overlap
+    (specs/wall-corner-joins.md); collinear splits must not extend."""
+
+    def _wall_solid(self, building, wall_name):
+        with tempfile.NamedTemporaryFile(suffix=".ifc", delete=False) as f:
+            path = Path(f.name)
+        IFCExporter(building).export(path)
+        ifc = ifcopenshell.open(str(path))
+        w = next(w for w in ifc.by_type("IfcWallStandardCase")
+                 if w.Name == wall_name)
+        solid = w.Representation.Representations[0].Items[0]
+        placement = w.ObjectPlacement.RelativePlacement.Location.Coordinates
+        path.unlink()
+        return solid.SweptArea, placement
+
+    def test_corner_walls_extend_to_outer_faces(self):
+        """South wall (0,0)->(6,0), t=0.25, corners with West and East
+        (both t=0.25): solid grows 0.125 on each end and shifts back."""
+        profile, placement = self._wall_solid(_simple_building(), "South")
+        assert abs(profile.XDim - 6.25) < 1e-9
+        assert abs(placement[0] - -0.125) < 1e-9  # shifted along -direction
+        assert abs(placement[1] - -0.125) < 1e-9  # normal offset unchanged
+
+    def test_collinear_split_does_not_extend(self):
+        """Two collinear segments sharing an endpoint (a finish split) butt
+        flush — extending them would z-fight two coplanar faces."""
+        wall_a = Wall(name="Seg A", start=Point2D(x=0, y=0),
+                      end=Point2D(x=3, y=0), height=3.0, thickness=0.25)
+        wall_b = Wall(name="Seg B", start=Point2D(x=3, y=0),
+                      end=Point2D(x=6, y=0), height=3.0, thickness=0.25)
+        story = Story(name="GF", elevation=0.0, height=3.0,
+                      walls=[wall_a, wall_b])
+        building = Building(name="Split", stories=[story])
+        profile, placement = self._wall_solid(building, "Seg A")
+        assert abs(profile.XDim - 3.0) < 1e-9
+        assert abs(placement[0] - 0.0) < 1e-9
+
+    def test_t_junction_does_not_extend(self):
+        """A wall ending mid-segment of another already penetrates t/2 —
+        no endpoint match, no extension."""
+        long_wall = Wall(name="Long", start=Point2D(x=0, y=0),
+                         end=Point2D(x=6, y=0), height=3.0, thickness=0.25)
+        stub = Wall(name="Stub", start=Point2D(x=3, y=0),
+                    end=Point2D(x=3, y=4), height=3.0, thickness=0.25)
+        story = Story(name="GF", elevation=0.0, height=3.0,
+                      walls=[long_wall, stub])
+        building = Building(name="Tee", stories=[story])
+        profile, _ = self._wall_solid(building, "Long")
+        assert abs(profile.XDim - 6.0) < 1e-9
+        # The stub's start endpoint coincides with Long's MIDDLE, not an
+        # endpoint — stub must not extend either.
+        profile_stub, _ = self._wall_solid(building, "Stub")
+        assert abs(profile_stub.XDim - 4.0) < 1e-9

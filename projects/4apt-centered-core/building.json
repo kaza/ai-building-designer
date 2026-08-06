@@ -1068,7 +1068,8 @@
           "position": 3.8,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1yL6lsGb142wkbF1o4cwj1",
@@ -1079,7 +1080,8 @@
           "position": 5.2,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3M_vK$5mX7gfUNDWc$Vn7p",
@@ -1090,7 +1092,8 @@
           "position": 0.5,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "20mapBfev7qP1snlvxpm76",
@@ -1101,7 +1104,8 @@
           "position": 9.4,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0cEY3STsr5detX_JNCzX_q",
@@ -1112,7 +1116,8 @@
           "position": 10.8,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1pOZAQ47n9Lg92g4MCrLSF",
@@ -1123,7 +1128,8 @@
           "position": 14.0,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3H71_XurT1$8L8YLfB8t8J",
@@ -1134,7 +1140,8 @@
           "position": 3.6,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0POWZEW8H4JOq22yY9r58a",
@@ -1145,7 +1152,8 @@
           "position": 4.8,
           "width": 0.9,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "11ptT8ADTE4u23fpLE1B8b",
@@ -1156,7 +1164,8 @@
           "position": 0.5,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2gm3lNvxXAlQX4mZoNIfR7",
@@ -1167,7 +1176,8 @@
           "position": 10.35,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0rCCLBNiPDDRvL6tHHgMjv",
@@ -1178,7 +1188,8 @@
           "position": 11.8,
           "width": 0.9,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1rsH8Qzwj58QeAa56Z7suY",
@@ -1189,7 +1200,8 @@
           "position": 14.0,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         }
       ],
       "roofs": [],
@@ -2941,7 +2953,8 @@
           "position": 4.7,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1dKHO53519HQLaCzqp4xYe",
@@ -2952,7 +2965,8 @@
           "position": 6.0,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0DeH7cuYLCAvNV7A6XhRbX",
@@ -2963,7 +2977,8 @@
           "position": 0.5,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2OUzeE601BT9R0fXnZxm0e",
@@ -2974,7 +2989,8 @@
           "position": 8.5,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1n8fVRXPbFefiJuc1h1F73",
@@ -2985,7 +3001,8 @@
           "position": 9.8,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1Xj$Ur_EXCKQSzj3cqmNqc",
@@ -2996,7 +3013,8 @@
           "position": 14.0,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2vFlwpjff9qxzpF9ZvTgCl",
@@ -3007,7 +3025,8 @@
           "position": 3.6,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3TdsSiLMfDBfO5eymnXr60",
@@ -3018,7 +3037,8 @@
           "position": 4.8,
           "width": 0.9,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1BI$rQfPP87hUW6u$edNra",
@@ -3029,7 +3049,8 @@
           "position": 0.5,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0Oinp$Md94Wwiwsq_f$9Cr",
@@ -3040,7 +3061,8 @@
           "position": 10.35,
           "width": 1.0,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2zja5AV7v9APXSMArpKN$f",
@@ -3051,7 +3073,8 @@
           "position": 11.8,
           "width": 0.9,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0WoDFM25v5VA6$bIAR4CFh",
@@ -3062,7 +3085,8 @@
           "position": 14.0,
           "width": 1.2,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         }
       ],
       "roofs": [],

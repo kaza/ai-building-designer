@@ -24,6 +24,7 @@ from archicad_builder.models.elements import (
 )
 from archicad_builder.models.ifc_id import generate_ifc_id
 from archicad_builder.models.spaces import Space
+from archicad_builder.queries.connectivity import _point_in_polygon
 
 
 def _new_guid() -> str:
@@ -43,6 +44,110 @@ def _wall_normal(wall: Wall) -> tuple[float, float]:
     """Left-hand normal of wall direction (for thickness offset)."""
     dx, dy = _wall_direction(wall)
     return (-dy, dx)
+
+
+# Window infill depth (specs/window-glazing-placement.md). The wall opening
+# still cuts the full thickness; only the glazing pane is thin.
+WINDOW_PANE_DEPTH = 0.06
+
+
+def _exterior_at_local_y_zero(wall: Wall, story: Story) -> bool:
+    """True if the wall face at window-local y=0 (the −normal face) is the
+    exterior one.
+
+    Primary test: probe a point just beyond each face against the story's
+    floor slabs — the face NOT over a floor is exterior. A bbox-centroid
+    heuristic alone flips sides on concave (L/U) footprints, where the bbox
+    center can fall outside the building (Gemini review 2026-08-06).
+    Fallback (no floor slabs, or both/neither face over one — e.g. a wall
+    between a room and a deck slab): the face pointing away from the center
+    of the story's wall-endpoint bounding box.
+    """
+    nx, ny = _wall_normal(wall)
+    mx = (wall.start.x + wall.end.x) / 2
+    my = (wall.start.y + wall.end.y) / 2
+
+    floors = [
+        [(v.x, v.y) for v in s.outline.vertices]
+        for s in story.slabs
+        if s.is_floor
+    ]
+    if floors:
+        off = wall.thickness / 2 + 0.05
+
+        def over_floor(px: float, py: float) -> bool:
+            return any(_point_in_polygon(px, py, verts) for verts in floors)
+
+        neg_side = over_floor(mx - nx * off, my - ny * off)
+        pos_side = over_floor(mx + nx * off, my + ny * off)
+        if neg_side != pos_side:
+            return not neg_side
+
+    xs = [p for w in story.walls for p in (w.start.x, w.end.x)]
+    ys = [p for w in story.walls for p in (w.start.y, w.end.y)]
+    cx = (min(xs) + max(xs)) / 2
+    cy = (min(ys) + max(ys)) / 2
+    return (mx - cx) * -nx + (my - cy) * -ny >= 0
+
+
+def _corner_extensions(wall: Wall, story: Story) -> tuple[float, float]:
+    """Lengthwise extensions (at start, at end) closing L-corner gaps
+    (specs/wall-corner-joins.md).
+
+    A wall end that coincides with a NON-parallel wall's endpoint extends
+    by the largest such partner's half-thickness; both corner walls extend
+    and overlap in the corner cube. Parallel partners (collinear splits)
+    never extend — they butt flush, and overlapping them would z-fight
+    coplanar faces.
+    """
+    tol = 1e-6
+    dx, dy = _wall_direction(wall)
+
+    def extension_at(px: float, py: float) -> float:
+        ext = 0.0
+        for other in story.walls:
+            if other is wall:
+                continue
+            odx, ody = _wall_direction(other)
+            if abs(dx * ody - dy * odx) < 1e-9:  # parallel
+                continue
+            for p in (other.start, other.end):
+                if abs(p.x - px) < tol and abs(p.y - py) < tol:
+                    ext = max(ext, other.thickness / 2)
+        return ext
+
+    return (
+        extension_at(wall.start.x, wall.start.y),
+        extension_at(wall.end.x, wall.end.y),
+    )
+
+
+def _pane_center_y(
+    pane_side: str, wall: Wall, story: Story, element_label: str
+) -> float:
+    """Profile-center Y for a thin pane flush with the requested wall face
+    (local y spans the wall depth [0, thickness]; y=0 is the −normal face).
+
+    Fails loud (pydantic validates construction/loading, not later
+    assignment) — a typo here would otherwise silently render as "inner".
+    """
+    if pane_side not in ("outer", "inner"):
+        raise ValueError(
+            f"{element_label}: invalid pane_side {pane_side!r} "
+            f"(expected 'outer' or 'inner')"
+        )
+    if wall.thickness < WINDOW_PANE_DEPTH:
+        raise ValueError(
+            f"{element_label}: host wall '{wall.name}' is {wall.thickness}m "
+            f"thick — thinner than the {WINDOW_PANE_DEPTH}m glazing pane"
+        )
+    outer_at_zero = _exterior_at_local_y_zero(wall, story)
+    flush_at_zero = (pane_side == "outer") == outer_at_zero
+    return (
+        WINDOW_PANE_DEPTH / 2
+        if flush_at_zero
+        else wall.thickness - WINDOW_PANE_DEPTH / 2
+    )
 
 
 class IFCExporter:
@@ -190,7 +295,7 @@ class IFCExporter:
         # Export walls
         wall_map: dict[str, ifcopenshell.entity_instance] = {}
         for wall in story.walls:
-            ifc_wall = self._create_wall(wall, story.elevation)
+            ifc_wall = self._create_wall(wall, story)
             wall_map[wall.global_id] = ifc_wall
             products.append(ifc_wall)
 
@@ -220,7 +325,7 @@ class IFCExporter:
         for door in story.doors:
             wall = story.get_wall(door.wall_id)
             if wall:
-                ifc_door = self._create_door(door, wall, story.elevation)
+                ifc_door = self._create_door(door, wall, story)
                 ifc_wall_host = wall_map.get(door.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening(door, wall, story.elevation, is_door=True)
@@ -240,7 +345,7 @@ class IFCExporter:
         for window in story.windows:
             wall = story.get_wall(window.wall_id)
             if wall:
-                ifc_window = self._create_window(window, wall, story.elevation)
+                ifc_window = self._create_window(window, wall, story)
                 ifc_wall_host = wall_map.get(window.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening_for_window(
@@ -282,30 +387,37 @@ class IFCExporter:
             )
 
     def _create_wall(
-        self, wall: Wall, elevation: float
+        self, wall: Wall, story: Story
     ) -> ifcopenshell.entity_instance:
-        """Create an IfcWallStandardCase with extruded geometry."""
+        """Create an IfcWallStandardCase with extruded geometry.
+
+        The solid extends past coincident non-parallel wall ends to close
+        L-corner gaps (specs/wall-corner-joins.md); the model stays
+        centerline-based and openings are placed from wall.start."""
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
+        ext_start, ext_end = _corner_extensions(wall, story)
 
-        # Wall placement at start point, offset by half thickness along normal
-        ox = wall.start.x - nx * wall.thickness / 2
-        oy = wall.start.y - ny * wall.thickness / 2
+        # Wall placement at start point (pulled back by any corner
+        # extension), offset by half thickness along normal
+        ox = wall.start.x - dx * ext_start - nx * wall.thickness / 2
+        oy = wall.start.y - dy * ext_start - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
-            origin=(ox, oy, elevation),
+            origin=(ox, oy, story.elevation),
             z_dir=(0.0, 0.0, 1.0),
             x_dir=(dx, dy, 0.0),
         )
 
         # Profile: rectangle (length x thickness)
+        solid_length = wall.length + ext_start + ext_end
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
-            XDim=wall.length,
+            XDim=solid_length,
             YDim=wall.thickness,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (wall.length / 2, wall.thickness / 2)
+                    (solid_length / 2, wall.thickness / 2)
                 ),
             ),
         )
@@ -631,9 +743,12 @@ class IFCExporter:
         return ifc_space
 
     def _create_door(
-        self, door: Door, wall: Wall, elevation: float
+        self, door: Door, wall: Wall, story: Story
     ) -> ifcopenshell.entity_instance:
-        """Create an IfcDoor with geometry placed in the host wall."""
+        """Create an IfcDoor with geometry placed in the host wall.
+
+        Default: a full-thickness leaf. Glass doors opt into the thin-pane
+        treatment via pane_side (specs/window-glazing-placement.md)."""
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
@@ -642,19 +757,27 @@ class IFCExporter:
         oy = wall.start.y + dy * door.position - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
-            origin=(ox, oy, elevation),
+            origin=(ox, oy, story.elevation),
             z_dir=(0.0, 0.0, 1.0),
             x_dir=(dx, dy, 0.0),
         )
 
-        # Door geometry: simple box
+        if door.pane_side is None:
+            leaf_depth = wall.thickness
+            leaf_center_y = wall.thickness / 2
+        else:
+            leaf_depth = WINDOW_PANE_DEPTH
+            leaf_center_y = _pane_center_y(
+                door.pane_side, wall, story, f"Door '{door.name}'"
+            )
+
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
             XDim=door.width,
-            YDim=wall.thickness,
+            YDim=leaf_depth,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (door.width / 2, wall.thickness / 2)
+                    (door.width / 2, leaf_center_y)
                 ),
             ),
         )
@@ -690,9 +813,10 @@ class IFCExporter:
         return ifc_door
 
     def _create_window(
-        self, window: Window, wall: Wall, elevation: float
+        self, window: Window, wall: Wall, story: Story
     ) -> ifcopenshell.entity_instance:
-        """Create an IfcWindow with geometry placed in the host wall."""
+        """Create an IfcWindow as a thin pane flush with one wall face
+        (specs/window-glazing-placement.md)."""
         dx, dy = _wall_direction(wall)
         nx, ny = _wall_normal(wall)
 
@@ -701,18 +825,22 @@ class IFCExporter:
         oy = wall.start.y + dy * window.position - ny * wall.thickness / 2
 
         placement = self._create_local_placement(
-            origin=(ox, oy, elevation + window.sill_height),
+            origin=(ox, oy, story.elevation + window.sill_height),
             z_dir=(0.0, 0.0, 1.0),
             x_dir=(dx, dy, 0.0),
+        )
+
+        pane_center_y = _pane_center_y(
+            window.pane_side, wall, story, f"Window '{window.name}'"
         )
 
         profile = self.file.createIfcRectangleProfileDef(
             ProfileType="AREA",
             XDim=window.width,
-            YDim=wall.thickness,
+            YDim=WINDOW_PANE_DEPTH,
             Position=self.file.createIfcAxis2Placement2D(
                 Location=self.file.createIfcCartesianPoint(
-                    (window.width / 2, wall.thickness / 2)
+                    (window.width / 2, pane_center_y)
                 ),
             ),
         )

@@ -7,6 +7,7 @@ so the same ID appears in our JSON model and the exported IFC file.
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -133,6 +134,12 @@ class Door(BaseModel):
         default=True,
         description="True = swings toward wall normal side, False = swings away",
     )
+    pane_side: Literal["outer", "inner"] | None = Field(
+        default=None,
+        description="None = full-thickness leaf (legacy); 'outer'/'inner' = "
+        "thin pane flush with that wall face — for glass doors "
+        "(specs/window-glazing-placement.md)",
+    )
 
     @field_validator("width")
     @classmethod
@@ -166,6 +173,11 @@ class Window(BaseModel):
     height: float = Field(gt=0, description="Window height in meters")
     sill_height: float = Field(
         default=0.9, ge=0, description="Height from floor to window bottom in meters"
+    )
+    pane_side: Literal["outer", "inner"] = Field(
+        default="outer",
+        description="Which wall face the thin glazing pane sits flush with "
+        "(specs/window-glazing-placement.md)",
     )
 
     @field_validator("width")
