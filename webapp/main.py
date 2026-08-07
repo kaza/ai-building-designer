@@ -58,7 +58,20 @@ _BUILD_TTL = 15.0
 
 # One pool for the app: a fresh cross-region TLS connection per request cost
 # ~0.5-1s each — six thumbnails made the homepage crawl (owner, 2026-08-08).
-_pool = ConnectionPool(DATABASE_URL, min_size=0, max_size=4, open=True)
+# App Service silently drops outbound TCP idle >~230s (SNAT) without a RST,
+# so a pooled connection can look alive and hang the next request for a full
+# TCP timeout ("it gets stuck sometimes", owner 2026-08-08). max_idle stays
+# below the reaper, and check= pings each connection on checkout so a dead
+# one is replaced instead of handed out.
+_pool = ConnectionPool(
+    DATABASE_URL,
+    min_size=0,
+    max_size=4,
+    max_idle=180,
+    check=ConnectionPool.check_connection,
+    kwargs={"connect_timeout": 10},
+    open=True,
+)
 
 
 def db():
