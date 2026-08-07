@@ -23,6 +23,7 @@ import re
 import time
 from pathlib import Path
 
+import psycopg
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (
@@ -32,7 +33,6 @@ from fastapi.responses import (
     Response,
 )
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from psycopg_pool import ConnectionPool
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 STORAGE_CONN = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
@@ -61,26 +61,14 @@ _build_cache: dict[str, tuple[float, dict]] = {}
 _BUILD_TTL = 15.0
 
 
-# One pool for the app: a fresh cross-region TLS connection per request cost
-# ~0.5-1s each — six thumbnails made the homepage crawl (owner, 2026-08-08).
-# App Service silently drops outbound TCP idle >~230s (SNAT) without a RST,
-# so a pooled connection can look alive and hang the next request for a full
-# TCP timeout ("it gets stuck sometimes", owner 2026-08-08). max_idle stays
-# below the reaper, and check= pings each connection on checkout so a dead
-# one is replaced instead of handed out.
-_pool = ConnectionPool(
-    DATABASE_URL,
-    min_size=1,  # keep one warm — the background loop re-dials, visitors don't
-    max_size=4,
-    max_idle=180,
-    check=ConnectionPool.check_connection,
-    kwargs={"connect_timeout": 10},
-    open=True,
-)
-
-
+# No pool, deliberately (2026-08-08). psycopg_pool inside App Service kept
+# wedging one gunicorn worker (PoolTimeout with the server at 14/50
+# connections — checked-out connections never came home), which made every
+# second request hang. A fresh connection per request costs ~0.3s cross-
+# region and has NO state that can rot between requests. The owner chose
+# predictable hundreds-of-ms over occasionally-wedged instant.
 def db():
-    return _pool.connection(timeout=10)  # never wedge a request on the pool
+    return psycopg.connect(DATABASE_URL, connect_timeout=5)
 
 
 def get_build(project: str) -> dict:
@@ -131,9 +119,14 @@ def catalog():
 
 @app.get("/{project}/", response_class=HTMLResponse)
 def project_home(project: str):
-    _, name = project_row(project)
     build = get_build(project)
     with db() as conn:
+        row = conn.execute(
+            "SELECT name FROM projects WHERE id = %s", (project,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, f"unknown project {project!r}")
+        name = row[0]
         feedback = conn.execute(
             """
             SELECT id, comment, where_label, status, created_at, resolved_at,
