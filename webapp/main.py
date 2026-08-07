@@ -65,7 +65,7 @@ _BUILD_TTL = 15.0
 # one is replaced instead of handed out.
 _pool = ConnectionPool(
     DATABASE_URL,
-    min_size=0,
+    min_size=1,  # keep one warm — the background loop re-dials, visitors don't
     max_size=4,
     max_idle=180,
     check=ConnectionPool.check_connection,
