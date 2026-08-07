@@ -201,11 +201,20 @@ TEMPLATE = """<!DOCTYPE html>
     border-radius: 3px; font: 12px/1.4 ui-monospace, monospace;
     pointer-events: none; white-space: nowrap;
   }
+  #loadbar {
+    width: 260px; height: 8px; margin: 10px auto 14px;
+    background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden;
+  }
+  #loadbar-fill {
+    width: 0%; height: 100%; background: #2b7de9; border-radius: 4px;
+    transition: width 0.15s linear;
+  }
 </style>
 </head>
 <body>
 <div id="overlay"><h1>Villa Maketa</h1>
   <div id="overlay-msg">Loading scene…</div>
+  <div id="loadbar"><div id="loadbar-fill"></div></div>
   <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
@@ -315,7 +324,34 @@ try {
   }
   const resp = await fetch('villa.glb');
   if (!resp.ok) throw new Error('fetching villa.glb failed: HTTP ' + resp.status);
-  const gltf = await new GLTFLoader().parseAsync(await resp.arrayBuffer(), '');
+  // Stream the body so the overlay shows real progress — a 30 MB GLB on a
+  // slow link otherwise looks identical to a hung page.
+  const total = Number(resp.headers.get('Content-Length')) || 0;
+  const reader = resp.body.getReader();
+  const chunks = [];
+  let received = 0;
+  const fillEl = document.getElementById('loadbar-fill');
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    const mb = (received / 1048576).toFixed(1);
+    if (total) {
+      const pct = Math.min(100, received / total * 100);
+      fillEl.style.width = pct.toFixed(1) + '%';
+      overlayMsg.textContent = 'Loading model… ' + mb + ' / ' + (total / 1048576).toFixed(1) + ' MB';
+    } else {
+      fillEl.style.width = '100%';
+      overlayMsg.textContent = 'Loading model… ' + mb + ' MB';
+    }
+  }
+  const buf = new Uint8Array(received);
+  let off = 0;
+  for (const c of chunks) { buf.set(c, off); off += c.length; }
+  overlayMsg.textContent = 'Building scene…';
+  const gltf = await new GLTFLoader().parseAsync(buf.buffer, '');
+  document.getElementById('loadbar').style.display = 'none';
   scene.add(gltf.scene);
   modelRoot = gltf.scene;
   // Dollhouse mode: the roof group (roof slabs + soffit boards + their

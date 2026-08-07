@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} — AI Building Designer{% endblock %}
+{% block content %}
+<p><a href="/">← all projects</a></p>
+<h1>{{ name }}</h1>
+<p class="hint">build <code>{{ build.sha }}</code> · published {{ build.built_at }}</p>
+<a class="cta" href="/{{ project }}/walkthrough">▶ Enter 3D walkthrough</a>
+<p class="hint">Controls: WASD + mouse to fly · Space / C — up / down · R — roof off ·
+   I — object info · M — measure · P — screenshot · F — feedback (draw on the view + comment)</p>
+
+<div class="grid">
+  {% for p in plans %}
+  <figure><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy">
+    <figcaption>{{ p.caption }}</figcaption></figure>
+  {% endfor %}
+</div>
+
+<h2>Feedback</h2>
+{% if feedback %}
+<table>
+  <tr><th>#</th><th>where</th><th>comment</th><th>status</th><th>submitted</th></tr>
+  {% for id, comment, where, status, created, resolved_at, resolved_sha in feedback %}
+  <tr>
+    <td>{{ id }}</td>
+    <td>{{ where or "—" }}</td>
+    <td>{{ comment }}</td>
+    <td class="status-{{ status }}">{{ status }}{% if resolved_sha %} (<code>{{ resolved_sha[:7] }}</code>){% endif %}</td>
+    <td>{{ created.strftime("%Y-%m-%d %H:%M") }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="hint">No feedback yet — press F inside the walkthrough to submit the first one.</p>
+{% endif %}
+{% endblock %}

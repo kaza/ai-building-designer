@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}AI Building Designer — projects{% endblock %}
+{% block content %}
+<h1>Projects</h1>
+<div class="grid">
+  {% for id, name, open, resolved in projects %}
+  <div class="card">
+    <h2><a href="/{{ id }}/">{{ name }}</a></h2>
+    <p class="hint">{{ open }} open feedback · {{ resolved }} resolved</p>
+    <a class="cta" href="/{{ id }}/">Open project</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
