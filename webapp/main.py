@@ -23,7 +23,6 @@ import re
 import time
 from pathlib import Path
 
-import psycopg
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (
@@ -33,6 +32,7 @@ from fastapi.responses import (
     Response,
 )
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from psycopg_pool import ConnectionPool
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 STORAGE_CONN = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
@@ -56,8 +56,13 @@ _build_cache: dict[str, tuple[float, dict]] = {}
 _BUILD_TTL = 15.0
 
 
+# One pool for the app: a fresh cross-region TLS connection per request cost
+# ~0.5-1s each — six thumbnails made the homepage crawl (owner, 2026-08-08).
+_pool = ConnectionPool(DATABASE_URL, min_size=0, max_size=4, open=True)
+
+
 def db():
-    return psycopg.connect(DATABASE_URL)
+    return _pool.connection()
 
 
 def get_build(project: str) -> dict:

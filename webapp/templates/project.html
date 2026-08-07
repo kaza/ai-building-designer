@@ -25,8 +25,8 @@
     <td>
       {% if shot_key %}
       <a href="/{{ project }}/feedback/{{ id }}/shot" target="_blank">
-        <img class="fb-thumb" src="/{{ project }}/feedback/{{ id }}/shot"
-             alt="feedback {{ id }} screenshot" loading="lazy">
+        <img class="fb-thumb" data-src="/{{ project }}/feedback/{{ id }}/shot"
+             alt="feedback {{ id }} screenshot">
       </a>
       {% else %}—{% endif %}
     </td>
@@ -40,4 +40,12 @@
 {% else %}
 <p class="hint">No feedback yet — press F inside the walkthrough to submit the first one.</p>
 {% endif %}
+<script>
+  // Deferred: the page renders instantly; the (full-size, CSS-shrunk)
+  // screenshots trickle in only after everything else has loaded.
+  window.addEventListener('load', () => {
+    for (const img of document.querySelectorAll('img[data-src]'))
+      img.src = img.dataset.src;
+  });
+</script>
 {% endblock %}
