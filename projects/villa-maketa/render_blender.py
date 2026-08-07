@@ -382,6 +382,21 @@ for obj in list(scene.objects):
                 if (_poly.normal.x * (_c.x - 4.75)
                         + _poly.normal.y * (_c.y - 6.0)) <= 0.01:
                     _poly.material_index = 1
+            if FINISHES.get(n) == "accent":
+                # Feedback #029: the yellow stops at the band-window head
+                # (sill 2.05 + 0.75) — the strip between glass top and the
+                # roof is WHITE. Bisect so the color line is exact.
+                import bmesh
+                _bm = bmesh.new()
+                _bm.from_mesh(obj.data)
+                bmesh.ops.bisect_plane(
+                    _bm, geom=_bm.verts[:] + _bm.edges[:] + _bm.faces[:],
+                    plane_co=(0, 0, 2.80), plane_no=(0, 0, 1))
+                _bm.to_mesh(obj.data)
+                _bm.free()
+                for _poly in obj.data.polygons:
+                    if _poly.material_index == 0 and _poly.center.z > 2.80:
+                        _poly.material_index = 1
     elif "Pool" in n:
         obj.data.materials.append(MATS["pool"])
     elif "Deck" in n:
