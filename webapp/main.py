@@ -126,8 +126,8 @@ def project_home(project: str):
             (project,),
         ).fetchall()
     plans = [
-        {"file": p, "url": f"{BLOB_BASE}/{PROJECTS_CONTAINER}/{project}/{p}",
-         "caption": p.rsplit(".", 1)[0].replace("floor_", "").replace("_", " ")}
+        {"url": f"{BLOB_BASE}/{PROJECTS_CONTAINER}/{project}/{p['file']}",
+         "caption": p["caption"]}
         for p in build.get("plans", [])
     ]
     return _jinja.get_template("project.html").render(
