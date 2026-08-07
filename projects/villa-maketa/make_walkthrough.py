@@ -152,8 +152,9 @@ TEMPLATE = """<!DOCTYPE html>
   #overlay.started {
     background: transparent; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     transition: opacity 1s;
+    pointer-events: none;  /* purely a toast — controls work immediately */
   }
-  #overlay.started.faded { opacity: 0; pointer-events: none; }
+  #overlay.started.faded { opacity: 0; }
   #error {
     position: absolute; left: 12px; bottom: 12px; max-width: 60ch; z-index: 20;
     color: #ff6b6b; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap;
