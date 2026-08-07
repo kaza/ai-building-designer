@@ -183,8 +183,25 @@ TEMPLATE = """<!DOCTYPE html>
     -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   }
   #btn-fb   { top: 12px; left: 12px; font-size: 15px; }
+  #btn-menu { top: 12px; right: 12px; }
   #btn-up   { right: 16px; bottom: 100px; }
   #btn-down { right: 16px; bottom: 28px; }
+  body.touch #hud { top: 68px; }
+  #menu {
+    position: absolute; top: 64px; right: 12px; z-index: 9;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #menu .tbtn { position: static; font-size: 15px; }
+  #joy {
+    position: absolute; left: 24px; bottom: 24px; width: 120px; height: 120px;
+    border-radius: 50%; background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.22); z-index: 5; pointer-events: none;
+  }
+  #joy-knob {
+    position: absolute; left: 50%; top: 50%; width: 52px; height: 52px;
+    margin: -26px 0 0 -26px; border-radius: 50%;
+    background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4);
+  }
   #fbpanel {
     position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
     z-index: 8; display: none; flex-direction: column; gap: 6px;
@@ -237,8 +254,14 @@ TEMPLATE = """<!DOCTYPE html>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
+  <button class="tbtn" id="btn-menu">&#9776;</button>
+  <div id="menu" hidden>
+    <button class="tbtn" id="m-roof">Roof: on</button>
+    <button class="tbtn" id="m-names">Names: off</button>
+  </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
   <button class="tbtn" id="btn-down">&#9660;</button>
+  <div id="joy"><div id="joy-knob"></div></div>
 </div>
 <div id="reticle"></div>
 <div id="hud"></div>
@@ -687,11 +710,18 @@ if (isTouch) {
   let movePid = null, lookPid = null, moveStart = null, lookLast = null;
   const el = renderer.domElement;
   el.style.touchAction = 'none';
+  const joy = document.getElementById('joy');
+  const knob = document.getElementById('joy-knob');
+  const JOY_R = 45;  // px of knob travel = full speed
   el.addEventListener('pointerdown', (e) => {
     if (!touchWalking || fbMode) return;
     if (e.clientX < innerWidth / 2 && movePid === null) {
       movePid = e.pointerId;
       moveStart = { x: e.clientX, y: e.clientY };
+      // float the joystick base to the finger — visible, and no reach needed
+      joy.style.left = (e.clientX - 60) + 'px';
+      joy.style.top = (e.clientY - 60) + 'px';
+      joy.style.bottom = 'auto';
     } else if (lookPid === null) {
       lookPid = e.pointerId;
       lookLast = { x: e.clientX, y: e.clientY };
@@ -699,12 +729,13 @@ if (isTouch) {
   });
   el.addEventListener('pointermove', (e) => {
     if (e.pointerId === movePid) {
-      const dx = (e.clientX - moveStart.x) / 60;  // ~60 px = full speed
-      const dy = (e.clientY - moveStart.y) / 60;
+      let dx = e.clientX - moveStart.x;
+      let dy = e.clientY - moveStart.y;
       const len = Math.hypot(dx, dy);
-      const s = len > 1 ? 1 / len : 1;
-      touchMove.x = dx * s;
-      touchMove.z = -dy * s;  // drag up = walk forward
+      if (len > JOY_R) { dx *= JOY_R / len; dy *= JOY_R / len; }
+      knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      touchMove.x = dx / JOY_R;
+      touchMove.z = -dy / JOY_R;  // push up = walk forward
     } else if (e.pointerId === lookPid) {
       euler.setFromQuaternion(camera.quaternion);
       euler.y -= (e.clientX - lookLast.x) * 0.005;
@@ -715,7 +746,12 @@ if (isTouch) {
     }
   });
   const releaseTouch = (e) => {
-    if (e.pointerId === movePid) { movePid = null; touchMove.x = touchMove.z = 0; }
+    if (e.pointerId === movePid) {
+      movePid = null;
+      touchMove.x = touchMove.z = 0;
+      knob.style.transform = '';
+      joy.style.cssText = '';  // back to the resting corner
+    }
     if (e.pointerId === lookPid) lookPid = null;
   };
   el.addEventListener('pointerup', releaseTouch);
@@ -729,6 +765,19 @@ if (isTouch) {
   };
   hold('btn-up', 1);
   hold('btn-down', -1);
+  const menu = document.getElementById('menu');
+  document.getElementById('btn-menu').addEventListener('click', () => {
+    menu.hidden = !menu.hidden;
+  });
+  document.getElementById('m-roof').addEventListener('click', (e) => {
+    toggleRoof();
+    e.target.textContent = 'Roof: ' + (roofVisible ? 'on' : 'off');
+  });
+  document.getElementById('m-names').addEventListener('click', (e) => {
+    labelsOn = !labelsOn;
+    if (!labelsOn) clearFeedbackLabels();
+    e.target.textContent = 'Names: ' + (labelsOn ? 'on' : 'off');
+  });
   document.getElementById('btn-fb').addEventListener('click', () => {
     if (!ready || fbMode) return;
     touchWalking = true;  // works straight from the start overlay too
@@ -882,14 +931,19 @@ function enterFeedback() {
   showFeedbackLabels();
   infoText = 'FEEDBACK — drag to draw, comment, Submit';
   setHud();
-  if (isTouch) document.getElementById('touchui').style.display = 'none';
-  else fbText.focus();  // on phones the keyboard would cover the view
+  if (isTouch) {
+    document.getElementById('touchui').style.display = 'none';
+    document.getElementById('menu').hidden = true;
+  } else fbText.focus();  // on phones the keyboard would cover the view
 }
 
 function exitFeedback(message = '') {
   const btn = document.getElementById('fbsubmit');
   btn.disabled = false;
   btn.textContent = 'Submit';
+  const hint = document.getElementById('fbhint');
+  hint.style.cssText = '';
+  hint.innerHTML = 'drag — draw &nbsp;·&nbsp; Z — undo stroke &nbsp;·&nbsp; Esc — cancel';
   fbMode = false;
   strokes = [];
   liveStroke = null;
@@ -899,8 +953,14 @@ function exitFeedback(message = '') {
   fbText.value = '';
   infoText = message;
   setHud();
-  if (isTouch) document.getElementById('touchui').style.display = '';
-  overlay.classList.remove('hidden');  // click to resume walking
+  if (isTouch) {
+    document.getElementById('touchui').style.display = '';
+    if (touchWalking) {  // owner: back to normal state, not a blocked overlay
+      reticle.style.display = 'block';
+      return;
+    }
+  }
+  overlay.classList.remove('hidden');  // click to resume walking (desktop)
 }
 
 drawCanvas.addEventListener('pointerdown', (e) => {
@@ -953,10 +1013,13 @@ async function submitFeedback() {
   btn.textContent = 'Sending…';
   renderer.render(scene, camera);  // fresh frame for toDataURL
   const composite = document.createElement('canvas');
-  composite.width = renderer.domElement.width;
-  composite.height = renderer.domElement.height;
+  // CSS resolution, not the DPR-scaled backing store: the shot only needs
+  // to show what was marked (the camera pose in meta reproduces the view
+  // losslessly), and 1x uploads 4-9x faster on retina/phone screens.
+  composite.width = innerWidth;
+  composite.height = innerHeight;
   const c = composite.getContext('2d');
-  c.drawImage(renderer.domElement, 0, 0);
+  c.drawImage(renderer.domElement, 0, 0, composite.width, composite.height);
   c.drawImage(drawCanvas, 0, 0, composite.width, composite.height);
   // Burn the tag badges into the shot — the DOM labels are not part of the
   // canvases, so without this the saved PNG has no ids (feedback #006).
@@ -1003,12 +1066,14 @@ async function submitFeedback() {
     const { id } = await resp.json();
     exitFeedback('feedback #' + id + ' saved');
   } catch (err) {
-    console.warn('feedback POST failed — downloading instead', err);
-    const a = document.createElement('a');
-    a.download = 'villa-feedback_' + camSpec.replaceAll(',', '_') + '.png';
-    a.href = image;
-    a.click();
-    exitFeedback('server unreachable — feedback PNG downloaded');
+    // Stay in the panel and say so loudly — the owner wants a clear failure
+    // notice, not a surprise PNG in the downloads folder (decision 2026-08-08).
+    console.warn('feedback POST failed', err);
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    const hint = document.getElementById('fbhint');
+    hint.textContent = 'Submit FAILED — server unreachable. Press Retry.';
+    hint.style.cssText = 'display:inline;color:#ff6b6b;opacity:1';
   }
 }
 
@@ -1023,6 +1088,13 @@ document.getElementById('fbundo').addEventListener('click', () => {
 // submit (exercises raycast tags + composite + POST). Test seams for
 // headless verification, same #debug gating as ?roof / ?measure.
 if (location.hash.startsWith('#debug') && ready) {
+  const seams = new URLSearchParams(location.search);
+  if (isTouch && seams.get('start') === '1') {  // test seam: skip the tap
+    touchWalking = true;
+    overlay.classList.add('hidden');
+    reticle.style.display = 'block';
+    if (seams.get('menu') === '1') document.getElementById('menu').hidden = false;
+  }
   const fbSeam = new URLSearchParams(location.search).get('feedback');
   if (fbSeam === '1' || fbSeam === 'submit') enterFeedback();
   if (fbSeam === 'submit') {
