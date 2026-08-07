@@ -24,9 +24,11 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 § Walkthrough (ADR 004 — project detail lives at the project tier).
 
 ## Roadmap (not commissioned yet)
-- Webserver feature: serve any project's walkthrough (`/projects/<name>/walk`).
-- Generalize the two scripts from villa-maketa into the framework
-  (`archicad_builder export-glb <project>` + shared HTML template).
+- Web deployment: static cloud publishing + hosted feedback loop —
+  designed in [web-deployment.md](web-deployment.md) (2026-08-07).
+- Generalize the scripts from villa-maketa into the framework
+  (`archicad_builder export-glb <project>` + shared HTML template) —
+  Phase 1 prerequisite of the web deployment.
 - Walk mode: gravity + wall collision (v1 is free-fly by design).
 - Baked/textured materials and CC0 furniture assets in the GLB
   (see villa spec "Furniture v2").
