@@ -67,11 +67,12 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        # 12 findings waived: villa-vs-block noise incl. garage-storey core
-        # rules (E011/E012/E013), two deliberately wide doors (W060), and the
-        # two E050 cantilevered south segments over the recessed garage face
-        # (maquette photo #22, projects/villa-maketa/facade.md)
-        assert v["waived_count"] == 12
+        # 11 findings waived: villa-vs-block noise incl. garage-storey core
+        # rules (E011/E012/E013), the wide garage vehicle door (W060 — the
+        # Room 2 terrace door's waiver retired with the photo-#31 slider
+        # relayout), and the two E050 cantilevered south segments over the
+        # recessed garage face (maquette photo #22, facade.md)
+        assert v["waived_count"] == 11
         assert {w["rule"] for w in v["waived"]} == {
             "W001", "W040", "W060", "E041b", "E011", "E012", "E013", "E050",
         }

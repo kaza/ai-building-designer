@@ -225,6 +225,7 @@ def stone_mat(name):
 GLASS_DOORS = (
     "Master_Bedroom_Terrace_Door",   # matches the Small leaf too
     "Bath_1_Door",
+    "Room_2_Terrace_Door",           # sliding pane, photo #31 (2026-08-07)
 )
 
 # finish tag (building.json) -> MATS key. Unknown tags fail loud below.

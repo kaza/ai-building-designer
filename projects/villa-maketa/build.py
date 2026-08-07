@@ -127,11 +127,16 @@ d_r2 = b.add_door(GF, "Room 2 South Wall East", position=0.3, width=0.9, height=
 d_r2.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # Maquette close-up: terrace door is in the NORTH wall near the west corner
 # (opens onto the deck), not in the west wall.
-# 1.4m double door to the pool deck (owner request 2026-08-04); W060 waived
-# Opens OUTWARD onto the deck (terrace doors do) — keeps the 1.4m swing arc
-# out of the bedroom (W100)
-b.add_door(GF, "North Wall", position=2.0, width=1.4, height=2.1,
-           name="Vila Room 2 Terrace Door", swing_inward=False)
+# Maquette photo #31 (owner 2026-08-07): Room 2's north face is a CENTERED
+# 2-pane glass slider (~2.2m) with solid wall stubs ~0.65m on BOTH sides —
+# not edge-to-edge glass. D7 = the operable 1.1m sliding pane (glass,
+# inner-flush like all villa glazing), Win5 = the fixed 1.1m pane beside
+# it; exact adjacency at position 1.75 (Gemini plan review: zero-overlap
+# adjacency is legal, sliding op skips W100 swing checks, 1.1m > egress).
+d_r2_terrace = b.add_door(GF, "North Wall", position=1.75, width=1.1,
+                          height=2.8, name="Vila Room 2 Terrace Door",
+                          swing_inward=False, pane_side="inner")
+d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 
 # --- Windows ---
 # ALL villa glazing sits flush with the INNER wall face (maquette photo #28,
@@ -177,8 +182,9 @@ d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.55,
                              name="Vila Master Bedroom Terrace Door Small",
                              pane_side="inner")
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
-# Room 2 north face is glass: sliding door floor-to-ceiling beside D7
-b.add_window(GF, "North Wall", position=0.15, width=1.85, height=2.75,
+# The fixed pane of the Room 2 slider (photo #31) — abuts D7 at 1.75,
+# same 2.80 head, slot reused in place so tags stay stable
+b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
 # Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
 # clerestory band, not a lone porthole — same 2.05-2.80 language as
