@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-07T06:52:57.246Z",
+  "where": "Living \u2014 Ground Floor",
+  "model": {
+    "x": 3.79,
+    "y": 2.76,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 3.793,
+    "y": 1.7,
+    "z": -2.762,
+    "yawDeg": 174.77,
+    "pitchDeg": -35.18
+  },
+  "debugHash": "#debug=3.79,1.70,-2.76,174.8,-35.2",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "kitchen stove and kitchen sink should be higher (and maybe larger) , i belive we have a problem with proportions",
+  "strokes": []
+}

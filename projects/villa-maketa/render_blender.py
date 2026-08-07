@@ -651,12 +651,18 @@ def _world_bbox(objs):
     return lo, hi
 
 
-def place_asset(name, asset_id, x0, y0, x1, y1, z0, facing):
+def place_asset(name, asset_id, x0, y0, x1, y1, z0, facing, target_h=None):
     """Instance a Poly Haven asset fitted into the item's footprint.
 
     Order matters: facing rotation FIRST, then measure, then uniform
     containment scale (min ratio — never stretch), center XY, ground by
     mesh min-z (plan-review decisions, 2026-08-05).
+
+    target_h (feedback #027/#028): scale by HEIGHT instead — footprint
+    scaling ignores the vertical axis, which produced knee-high stoves
+    next to 0.9m counters and doll-sized patio sets. Height is the
+    architecturally meaningful number; the bounds box then only places
+    and centers. Loud warning if the footprint overflows the box >20%.
     """
     if asset_id in _asset_protos:
         objs = _copy_hierarchy(_asset_protos[asset_id])
@@ -678,7 +684,16 @@ def place_asset(name, asset_id, x0, y0, x1, y1, z0, facing):
         raise RuntimeError(
             f"asset '{asset_id}' has a degenerate XY bounding box "
             f"({w:.3f}x{d:.3f}) — no mesh data, or a flat model")
-    s = min((x1 - x0) / w, (y1 - y0) / d)
+    if target_h is not None:
+        native_h = hi.z - lo.z
+        if native_h <= 0:
+            raise RuntimeError(f"asset '{asset_id}' has zero height")
+        s = target_h / native_h
+        if max(w * s / (x1 - x0), d * s / (y1 - y0)) > 1.2:
+            print(f"WARNING: {name} footprint overflows its box "
+                  f"{w * s:.2f}x{d * s:.2f} vs {x1 - x0:.2f}x{y1 - y0:.2f}")
+    else:
+        s = min((x1 - x0) / w, (y1 - y0) / d)
     root.scale = (s, s, s)
     bpy.context.view_layer.update()
     lo, hi = _world_bbox(objs)
@@ -702,7 +717,8 @@ for item in furniture["items"]:
     name = f"F_{item['name']}"
     if item.get("asset"):
         place_asset(name, item["asset"], x0, y0, x1, y1, z0,
-                    item.get("facing", "S"))
+                    item.get("facing", "S"),
+                    target_h=h if item.get("scale_by") == "height" else None)
     elif t == "bed":
         make_bed(name, x0, y0, x1, y1, z0)
     elif t == "sofa":

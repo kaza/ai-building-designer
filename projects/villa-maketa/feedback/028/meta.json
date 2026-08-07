@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-07T06:53:36.684Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": 2.79,
+    "y": 8.82,
+    "h": 1.7
+  },
+  "camera": {
+    "x": 2.789,
+    "y": 1.7,
+    "z": -8.816,
+    "yawDeg": 16.75,
+    "pitchDeg": -40.45
+  },
+  "debugHash": "#debug=2.79,1.70,-8.82,16.8,-40.5",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "also check the proportions of deck_table_1 and deck_table_2",
+  "strokes": []
+}
