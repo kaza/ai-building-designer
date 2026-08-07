@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-07T08:08:59.355Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": -3,
+    "y": 4.19,
+    "h": 1.7
+  },
+  "camera": {
+    "x": -3.002,
+    "y": 1.7,
+    "z": -4.185,
+    "yawDeg": -116.88,
+    "pitchDeg": 0.11
+  },
+  "debugHash": "#debug=-3.00,1.70,-4.19,-116.9,0.1",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "there is yellow line on w16 and below the window win3. right, that should be white like the rest of the walls not yellow plase",
+  "strokes": []
+}

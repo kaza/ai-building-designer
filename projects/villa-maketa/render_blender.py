@@ -397,6 +397,22 @@ for obj in list(scene.objects):
                 for _poly in obj.data.polygons:
                     if _poly.material_index == 0 and _poly.center.z > 2.80:
                         _poly.material_index = 1
+            if n == "IfcWallStandardCase_West_Wall":
+                # Feedback #030: W7's yellow ends at Win3's north edge
+                # (y = 8 − 3.35 = 4.65) — the slivers beside/below the
+                # full-height glass read as "yellow lines" next to the
+                # white W16 and must be white.
+                import bmesh
+                _bm = bmesh.new()
+                _bm.from_mesh(obj.data)
+                bmesh.ops.bisect_plane(
+                    _bm, geom=_bm.verts[:] + _bm.edges[:] + _bm.faces[:],
+                    plane_co=(0, 4.65, 0), plane_no=(0, 1, 0))
+                _bm.to_mesh(obj.data)
+                _bm.free()
+                for _poly in obj.data.polygons:
+                    if _poly.material_index == 0 and _poly.center.y < 4.65:
+                        _poly.material_index = 1
     elif "Pool" in n:
         obj.data.materials.append(MATS["pool"])
     elif "Deck" in n:
