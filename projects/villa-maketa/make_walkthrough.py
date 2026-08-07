@@ -149,6 +149,11 @@ TEMPLATE = """<!DOCTYPE html>
   }
   #overlay h1 { font-size: 22px; margin: 0; font-weight: 600; }
   #overlay.hidden { display: none; }
+  #overlay.started {
+    background: transparent; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    transition: opacity 1s;
+  }
+  #overlay.started.faded { opacity: 0; pointer-events: none; }
   #error {
     position: absolute; left: 12px; bottom: 12px; max-width: 60ch; z-index: 20;
     color: #ff6b6b; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap;
@@ -425,7 +430,18 @@ try {
   console.log('villa bbox (m):', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
   if (size.length() < 1) throw new Error('scene bounding box is degenerate: ' + size.toArray());
   ready = true;
-  overlayMsg.textContent = 'Click to start';
+  // Start immediately (owner 2026-08-08: "no click to start") — the backdrop
+  // clears so the scene shows, the instructions linger ~3s and fade out.
+  // Desktop mouse capture still needs a browser-mandated click: the first
+  // click anywhere locks the pointer.
+  overlayMsg.textContent = isTouch ? '' : 'click to steer with the mouse';
+  overlay.classList.add('started');
+  // NOTE: const reticle / let touchWalking are declared further down the
+  // module (after this await resolves they exist at runtime for handlers,
+  // but NOT yet here) — use direct DOM access and let touchWalking start
+  // as isTouch at its declaration.
+  document.getElementById('reticle').style.display = 'block';
+  setTimeout(() => overlay.classList.add('faded'), 3000);
   // #debug[=x,y,z[,yawDeg]]: show the scene without pointer lock, optionally
   // placing the camera (three.js coords) — headless screenshots, triage.
   if (location.hash.startsWith('#debug')) {
@@ -646,7 +662,7 @@ const controls = new PointerLockControls(camera, renderer.domElement);
 const keys = new Set();
 const clearKeys = () => keys.clear();
 
-let touchWalking = false;
+let touchWalking = isTouch;  // touch auto-starts — no tap-to-begin
 const touchMove = { x: 0, z: 0 };
 let touchUp = 0;
 overlay.addEventListener('click', () => {
@@ -666,8 +682,8 @@ controls.addEventListener('lock', () => {
 controls.addEventListener('unlock', () => {
   clearKeys();
   if (fbMode) return;  // deliberate freeze (F) — keep the view, no start overlay
-  overlay.classList.remove('hidden');
-  reticle.style.display = 'none';
+  infoText = 'click to steer with the mouse';
+  setHud();
   exitMeasureMode();  // Esc also abandons any measurement in progress
 });
 document.addEventListener('pointerlockerror', () =>
@@ -701,6 +717,7 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 renderer.domElement.addEventListener('click', () => {
+  if (!controls.isLocked && ready && !fbMode && !isTouch) { controls.lock(); return; }
   if (controls.isLocked && measureMode) measureClick();
 });
 if (isTouch) {
@@ -962,12 +979,11 @@ function exitFeedback(message = '') {
   setHud();
   if (isTouch) {
     document.getElementById('touchui').style.display = '';
-    if (touchWalking) {  // owner: back to normal state, not a blocked overlay
-      reticle.style.display = 'block';
-      return;
-    }
+    reticle.style.display = 'block';
+  } else {
+    infoText = message ? message + ' — click to steer' : 'click to steer with the mouse';
+    setHud();
   }
-  overlay.classList.remove('hidden');  // click to resume walking (desktop)
 }
 
 drawCanvas.addEventListener('pointerdown', (e) => {

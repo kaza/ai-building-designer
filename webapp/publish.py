@@ -29,13 +29,22 @@ def run(*cmd: str) -> str:
     return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
 
 
-def upload(src: Path, key: str, content_type: str) -> None:
+def upload(src: Path, key: str, content_type: str, cache: str) -> None:
     run("az", "storage", "blob", "upload",
         "--subscription", SUBSCRIPTION, "--account-name", ACCOUNT,
         "--auth-mode", "key", "-c", CONTAINER, "-n", key,
         "-f", str(src), "--overwrite", "--content-type", content_type,
+        "--content-cache-control", cache,
         "-o", "none")
     print(f"  {key}  ({src.stat().st_size / 1e6:.1f} MB)")
+
+
+# SHA-named artifacts never change under their name -> browsers keep them
+# forever (a repeat visit re-downloads NOTHING until a new publish changes
+# the SHA). build.json is the moving pointer -> never cached.
+IMMUTABLE = "public, max-age=31536000, immutable"
+POINTER = "no-cache"
+PLAN = "public, max-age=300"  # plain-named PNGs; 5 min staleness is fine
 
 
 def main() -> None:
@@ -61,10 +70,10 @@ def main() -> None:
     plans = sorted(p.name for pat in PLAN_PATTERNS for p in out.glob(pat))
 
     print(f"publishing {project} @ {sha}")
-    upload(glb, f"{project}/villa-{sha}.glb", "model/gltf-binary")
-    upload(html, f"{project}/walkthrough-{sha}.html", "text/html")
+    upload(glb, f"{project}/villa-{sha}.glb", "model/gltf-binary", IMMUTABLE)
+    upload(html, f"{project}/walkthrough-{sha}.html", "text/html", IMMUTABLE)
     for p in plans:
-        upload(out / p, f"{project}/{p}", "image/png")
+        upload(out / p, f"{project}/{p}", "image/png", PLAN)
 
     build = {
         "sha": sha,
@@ -75,7 +84,7 @@ def main() -> None:
     }
     build_file = out / "build.json"
     build_file.write_text(json.dumps(build, indent=2))
-    upload(build_file, f"{project}/build.json", "application/json")
+    upload(build_file, f"{project}/build.json", "application/json", POINTER)
     print(f"live: build.json now points at {sha}")
 
 
