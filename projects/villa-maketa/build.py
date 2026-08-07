@@ -229,6 +229,11 @@ b.add_wall(GF, (0, 8), (0, 10.5), height=1.25, thickness=0.12,
            name="Deck Screen Stone", finish="stone_rubble")
 b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
            name="Deck Screen Glass", finish="glass")
+# Feedback #032: the screen line ended at (0,14) but the deck edge runs on
+# to the pool's west corner (0.5,14) — 0.5m of unguarded drop at the NW
+# corner. Solid return at the same balustrade height closes the line.
+b.add_wall(GF, (0, 14), (0.5, 14), height=1.25, thickness=0.12,
+           name="Deck Screen Return N", finish="stone_rubble")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
