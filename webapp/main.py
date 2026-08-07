@@ -26,7 +26,12 @@ from pathlib import Path
 import psycopg
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -109,7 +114,7 @@ def project_home(project: str):
         feedback = conn.execute(
             """
             SELECT id, comment, where_label, status, created_at, resolved_at,
-                   resolved_sha
+                   resolved_sha, screenshot_key
             FROM feedback WHERE project_id = %s
             ORDER BY created_at DESC LIMIT 50
             """,
@@ -123,6 +128,24 @@ def project_home(project: str):
     return _jinja.get_template("project.html").render(
         project=project, name=name, build=build, plans=plans,
         feedback=feedback,
+    )
+
+
+@app.get("/{project}/feedback/{fb_id}/shot")
+def feedback_shot(project: str, fb_id: int):
+    # Screenshots live in the PRIVATE feedback container — proxied here so
+    # the homepage can thumbnail them without opening the container up.
+    with db() as conn:
+        row = conn.execute(
+            "SELECT screenshot_key FROM feedback WHERE id = %s AND project_id = %s",
+            (fb_id, project),
+        ).fetchone()
+    if row is None or not row[0]:
+        raise HTTPException(404, f"no screenshot for feedback {fb_id}")
+    blob = _blob.get_blob_client(FEEDBACK_CONTAINER, row[0])
+    return Response(
+        blob.download_blob().readall(), media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400, immutable"},
     )
 
 

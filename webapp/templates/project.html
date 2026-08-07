@@ -18,10 +18,18 @@
 <h2>Feedback</h2>
 {% if feedback %}
 <table>
-  <tr><th>#</th><th>where</th><th>comment</th><th>status</th><th>submitted</th></tr>
-  {% for id, comment, where, status, created, resolved_at, resolved_sha in feedback %}
+  <tr><th>#</th><th>view</th><th>where</th><th>comment</th><th>status</th><th>submitted</th></tr>
+  {% for id, comment, where, status, created, resolved_at, resolved_sha, shot_key in feedback %}
   <tr>
     <td>{{ id }}</td>
+    <td>
+      {% if shot_key %}
+      <a href="/{{ project }}/feedback/{{ id }}/shot" target="_blank">
+        <img class="fb-thumb" src="/{{ project }}/feedback/{{ id }}/shot"
+             alt="feedback {{ id }} screenshot" loading="lazy">
+      </a>
+      {% else %}—{% endif %}
+    </td>
     <td>{{ where or "—" }}</td>
     <td>{{ comment }}</td>
     <td class="status-{{ status }}">{{ status }}{% if resolved_sha %} (<code>{{ resolved_sha[:7] }}</code>){% endif %}</td>
