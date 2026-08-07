@@ -1136,7 +1136,10 @@ let labelFrame = 0;
 let labelsOn = false;  // N — persistent tag badges while walking
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1); // clamp after tab suspension
-  if (controls.isLocked || (touchWalking && !fbMode)) {
+  // Movement works the moment the scene is up (owner: "commands should
+  // work right away") — only mouse-look waits for the pointer-lock click,
+  // a browser mandate. Feedback mode still freezes everything.
+  if (ready && !fbMode) {
     const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 12 : 4;
     move.set(
       (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + touchMove.x,
