@@ -41,7 +41,12 @@ FEEDBACK_CONTAINER = "feedback"
 MAX_BODY = 30_000_000  # same cap as serve.py — a full-screen PNG data URL
 
 app = FastAPI()
-_blob = BlobServiceClient.from_connection_string(STORAGE_CONN)
+# Fail-fast transport: App Service reaps idle outbound sockets silently, and
+# a stale blob connection hung /{project}/ requests for 60s+ (probed live
+# 2026-08-08 — the "stuck sometimes"). With short timeouts a dead socket
+# errors in seconds and azure-core's retry policy re-dials fresh.
+_blob = BlobServiceClient.from_connection_string(
+    STORAGE_CONN, connection_timeout=5, read_timeout=15)
 BLOB_BASE = f"https://{_blob.account_name}.blob.core.windows.net"
 
 _jinja = Environment(
@@ -75,7 +80,7 @@ _pool = ConnectionPool(
 
 
 def db():
-    return _pool.connection()
+    return _pool.connection(timeout=10)  # never wedge a request on the pool
 
 
 def get_build(project: str) -> dict:
