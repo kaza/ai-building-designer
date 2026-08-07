@@ -712,13 +712,20 @@ if (isTouch) {
   el.style.touchAction = 'none';
   const joy = document.getElementById('joy');
   const knob = document.getElementById('joy-knob');
-  const JOY_R = 45;  // px of knob travel = full speed
+  const JOY_R = 45;    // px of knob travel = full speed
+  const GRAB_R = 110;  // touches this close to the stick steer; rest = look
   el.addEventListener('pointerdown', (e) => {
     if (!touchWalking || fbMode) return;
-    if (e.clientX < innerWidth / 2 && movePid === null) {
+    // Route by proximity to the stick, NOT by screen half — the half-screen
+    // rule hijacked every left-side touch into walking (owner 2026-08-08:
+    // "if I am far away I should be able to rotate using my finger").
+    const r = joy.getBoundingClientRect();
+    const near = Math.hypot(e.clientX - (r.left + r.width / 2),
+                            e.clientY - (r.top + r.height / 2)) < GRAB_R;
+    if (near && movePid === null) {
       movePid = e.pointerId;
       moveStart = { x: e.clientX, y: e.clientY };
-      // float the joystick base to the finger — visible, and no reach needed
+      // hop the base to the finger — small jump within its own neighborhood
       joy.style.left = (e.clientX - 60) + 'px';
       joy.style.top = (e.clientY - 60) + 'px';
       joy.style.bottom = 'auto';
