@@ -702,7 +702,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.code === 'Space') e.preventDefault();
   keys.add(e.code);
-  if (!controls.isLocked) return;
+  if (!ready) return;  // hotkeys work right away, lock or no lock
   if (e.code === 'KeyI') showInfo();
   if (e.code === 'KeyM' && !e.repeat) {
     if (measureMode) exitMeasureMode();
