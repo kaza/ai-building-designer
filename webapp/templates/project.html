@@ -10,7 +10,7 @@
 
 <div class="grid">
   {% for p in plans %}
-  <figure><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy">
+  <figure><img data-src="{{ p.url }}" alt="{{ p.caption }}">
     <figcaption>{{ p.caption }}</figcaption></figure>
   {% endfor %}
 </div>
@@ -41,7 +41,7 @@
 <p class="hint">No feedback yet — press F inside the walkthrough to submit the first one.</p>
 {% endif %}
 <script>
-  // Deferred: the page renders instantly; the (full-size, CSS-shrunk)
+  // Deferred: the page renders instantly; plan images and feedback
   // screenshots trickle in only after everything else has loaded.
   window.addEventListener('load', () => {
     for (const img of document.querySelectorAll('img[data-src]'))
