@@ -365,24 +365,26 @@
         5.5,
         2.7,
         5.95,
-        3.3
+        3.33
       ],
-      "h": 0.42,
+      "h": 0.6,
       "facing": "N",
-      "asset": "kenney_toilet"
+      "asset": "kenney_toilet",
+      "scale_by": "height"
     },
     {
       "name": "Guest toilet",
       "type": "ceramic",
       "bounds": [
         6.7,
-        2.85,
+        2.8,
         7.15,
-        3.3
+        3.43
       ],
-      "h": 0.42,
+      "h": 0.6,
       "facing": "N",
-      "asset": "kenney_toilet"
+      "asset": "kenney_toilet",
+      "scale_by": "height"
     },
     {
       "name": "Guest sink",
