@@ -412,30 +412,28 @@
     },
     {
       "name": "Lounger 1",
-      "type": "wood",
+      "type": "sunbed",
       "bounds": [
         7.7,
         12.2,
         8.4,
         13.9
       ],
-      "h": 0.35,
+      "h": 0.3,
       "z": 0.0,
-      "asset": "kenney_loungeChairRelax",
       "facing": "N"
     },
     {
       "name": "Lounger 2",
-      "type": "wood",
+      "type": "sunbed",
       "bounds": [
         8.6,
         12.2,
         9.3,
         13.9
       ],
-      "h": 0.35,
+      "h": 0.3,
       "z": 0.0,
-      "asset": "kenney_loungeChairRelax",
       "facing": "N"
     },
     {

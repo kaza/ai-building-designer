@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-07T08:50:59.758Z",
+  "where": "outside \u2014 Ground Floor",
+  "model": {
+    "x": 8.47,
+    "y": 15.09,
+    "h": 1.27
+  },
+  "camera": {
+    "x": 8.471,
+    "y": 1.267,
+    "z": -15.093,
+    "yawDeg": 172.6,
+    "pitchDeg": -19.94
+  },
+  "debugHash": "#debug=8.47,1.27,-15.09,172.6,-19.9",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "hey I dont like the lougner_1 and lounger_2 models can you change them with something more appropaire for the beach",
+  "strokes": []
+}

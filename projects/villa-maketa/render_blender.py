@@ -601,6 +601,62 @@ def make_table(name, x0, y0, x1, y1, z0, h):
                 MATS["wood"], bevel=0.01)
 
 
+def make_sun_lounger(name, x0, y0, x1, y1, z0, facing="N"):
+    """Pool chaise (feedback #031): slatted teak bed on low runners with
+    an angled backrest at the end AWAY from `facing` (feet point that
+    way). Long axis follows the footprint's long side."""
+    import math as _m
+    bed_h = 0.30
+    long_y = (y1 - y0) >= (x1 - x0)
+    # runners
+    if long_y:
+        for rx in (x0 + 0.03, x1 - 0.09):
+            add_box(f"{name}_runner", rx, y0 + 0.05, rx + 0.06, y1 - 0.05,
+                    z0, z0 + bed_h - 0.05, MATS["wood"], bevel=0.01)
+    else:
+        for ry in (y0 + 0.03, y1 - 0.09):
+            add_box(f"{name}_runner", x0 + 0.05, ry, x1 - 0.05, ry + 0.06,
+                    z0, z0 + bed_h - 0.05, MATS["wood"], bevel=0.01)
+    # slatted bed: flat part covers ~60% (feet side), backrest the rest
+    length = (y1 - y0) if long_y else (x1 - x0)
+    flat = length * 0.6
+    n_slats = 7
+    step = flat / n_slats
+    for i in range(n_slats):
+        off = i * step
+        if long_y:
+            fy = y1 - off if facing == "N" else y0 + off
+            s0, s1 = sorted((fy, fy - step * 0.8 if facing == "N"
+                             else fy + step * 0.8))
+            add_box(f"{name}_slat", x0 + 0.02, s0, x1 - 0.02, s1,
+                    z0 + bed_h - 0.05, z0 + bed_h, MATS["wood"], bevel=0.005)
+        else:
+            fx = x1 - off if facing == "E" else x0 + off
+            s0, s1 = sorted((fx, fx - step * 0.8 if facing == "E"
+                             else fx + step * 0.8))
+            add_box(f"{name}_slat", s0, y0 + 0.02, s1, y1 - 0.02,
+                    z0 + bed_h - 0.05, z0 + bed_h, MATS["wood"], bevel=0.005)
+    # backrest: single angled board rising ~50deg over the remaining 40%
+    back = length - flat
+    rise = back * _m.tan(_m.radians(50)) * 0.6
+    if long_y:
+        by0, by1 = ((y0, y0 + back) if facing == "N" else (y1 - back, y1))
+        board = add_box(f"{name}_back", x0 + 0.02, by0, x1 - 0.02, by1,
+                        z0 + bed_h - 0.05, z0 + bed_h, MATS["wood"],
+                        bevel=0.005)
+        board.rotation_euler[0] = _m.radians(-50 if facing == "N" else 50)
+        board.location.z += rise / 2
+        board.location.y += (back * 0.18) * (1 if facing == "N" else -1)
+    else:
+        bx0, bx1 = ((x0, x0 + back) if facing == "E" else (x1 - back, x1))
+        board = add_box(f"{name}_back", bx0, y0 + 0.02, bx1, y1 - 0.02,
+                        z0 + bed_h - 0.05, z0 + bed_h, MATS["wood"],
+                        bevel=0.005)
+        board.rotation_euler[1] = _m.radians(50 if facing == "E" else -50)
+        board.location.z += rise / 2
+        board.location.x += (back * 0.18) * (1 if facing == "E" else -1)
+
+
 def make_counter(name, x0, y0, x1, y1, z0, h):
     add_box(f"{name}_body", x0, y0, x1, y1, z0, z0 + h - 0.04, MATS["counter"])
     add_box(f"{name}_top", x0 - 0.02, y0 - 0.02, x1 + 0.02, y1 + 0.02,
@@ -759,6 +815,8 @@ for item in furniture["items"]:
         make_table(name, x0, y0, x1, y1, z0, h)
     elif t == "counter":
         make_counter(name, x0, y0, x1, y1, z0, h)
+    elif t == "sunbed":
+        make_sun_lounger(name, x0, y0, x1, y1, z0, item.get("facing", "N"))
     else:
         add_box(name, x0, y0, x1, y1, z0, z0 + h, MATS[t], bevel=0.03)
 
