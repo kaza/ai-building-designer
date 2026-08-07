@@ -14,7 +14,7 @@ Auth: uses the az CLI login (key lookup), no secrets in the repo.
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ACCOUNT = "stbuildingdesigner"
@@ -68,7 +68,7 @@ def main() -> None:
 
     build = {
         "sha": sha,
-        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "built_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "model": f"villa-{sha}.glb",
         "walkthrough": f"walkthrough-{sha}.html",
         "plans": plans,

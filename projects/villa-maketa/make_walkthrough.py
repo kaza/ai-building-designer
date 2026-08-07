@@ -137,6 +137,7 @@ TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Villa Maketa — walkthrough</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; }
@@ -169,11 +170,26 @@ TEMPLATE = """<!DOCTYPE html>
     pointer-events: none;
   }
   #labels { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-  #draw { position: absolute; inset: 0; z-index: 7; display: none; cursor: crosshair; }
+  #draw { position: absolute; inset: 0; z-index: 7; display: none; cursor: crosshair; touch-action: none; }
+  #touchui { display: none; }
+  body.touch #touchui { display: block; }
+  body.touch #overlay-legend { font-size: 12px; }
+  body.touch #fbhint { display: none; }  /* keyboard hints mean nothing on touch */
+  .tbtn {
+    position: absolute; z-index: 6; border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(16,20,24,0.55); color: #e8e4da; border-radius: 12px;
+    font: 600 18px/1 -apple-system, system-ui, sans-serif;
+    padding: 14px 18px; touch-action: none; user-select: none;
+    -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  #btn-fb   { top: 12px; left: 12px; font-size: 15px; }
+  #btn-up   { right: 16px; bottom: 100px; }
+  #btn-down { right: 16px; bottom: 28px; }
   #fbpanel {
     position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
     z-index: 8; display: none; flex-direction: column; gap: 6px;
-    width: min(64ch, 82vw); background: rgba(16, 20, 24, 0.92);
+    width: min(64ch, calc(100% - 24px)); box-sizing: border-box;
+    background: rgba(16, 20, 24, 0.92);
     border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
     padding: 10px; color: #e8e4da;
     font: 13px/1.4 -apple-system, system-ui, sans-serif;
@@ -183,7 +199,7 @@ TEMPLATE = """<!DOCTYPE html>
     background: #101418; color: #e8e4da; padding: 6px; font: inherit;
     border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
   }
-  #fbpanel .row { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+  #fbpanel .row { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
   #fbhint { margin-right: auto; opacity: 0.7; }
   #fbpanel button {
     font: inherit; padding: 4px 14px; border-radius: 4px; cursor: pointer;
@@ -207,7 +223,6 @@ TEMPLATE = """<!DOCTYPE html>
   }
   #loadbar-fill {
     width: 0%; height: 100%; background: #2b7de9; border-radius: 4px;
-    transition: width 0.15s linear;
   }
 </style>
 </head>
@@ -215,10 +230,15 @@ TEMPLATE = """<!DOCTYPE html>
 <div id="overlay"><h1>Villa Maketa</h1>
   <div id="overlay-msg">Loading scene…</div>
   <div id="loadbar"><div id="loadbar-fill"></div></div>
-  <div>WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
+  <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
        N — names on/off &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+</div>
+<div id="touchui">
+  <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
+  <button class="tbtn" id="btn-up">&#9650;</button>
+  <button class="tbtn" id="btn-down">&#9660;</button>
 </div>
 <div id="reticle"></div>
 <div id="hud"></div>
@@ -228,6 +248,7 @@ TEMPLATE = """<!DOCTYPE html>
   <textarea id="fbtext" placeholder="What's wrong here? Drag on the view to mark it."></textarea>
   <div class="row">
     <span id="fbhint">drag — draw &nbsp;·&nbsp; Z — undo stroke &nbsp;·&nbsp; Esc — cancel</span>
+    <button id="fbundo">Undo</button>
     <button id="fbcancel">Cancel</button>
     <button id="fbsubmit" class="primary">Submit</button>
   </div>
@@ -249,6 +270,16 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 
 const overlay = document.getElementById('overlay');
 const overlayMsg = document.getElementById('overlay-msg');
+// Phones/tablets: no pointer lock, no keyboard — touch drag + buttons instead.
+const isTouch = matchMedia('(pointer: coarse)').matches ||
+  (location.hash.startsWith('#debug') &&
+   new URLSearchParams(location.search).get('touch') === '1');  // test seam
+if (isTouch) {
+  document.body.classList.add('touch');
+  document.getElementById('overlay-legend').innerHTML =
+    'left half — walk &nbsp;·&nbsp; right half — look around<br>' +
+    '&#9650; / &#9660; — up / down &nbsp;·&nbsp; &#9998; Feedback — draw + comment';
+}
 const errorBox = document.getElementById('error');
 const fatal = (err) => {
   console.error(err);
@@ -330,12 +361,18 @@ try {
   const reader = resp.body.getReader();
   const chunks = [];
   let received = 0;
+  let shownMb = -1;
   const fillEl = document.getElementById('loadbar-fill');
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
     received += value.length;
+    // Update the DOM at most every ~0.5 MB — per-chunk style writes
+    // (64 KB each) throttle the very download they narrate.
+    const halfMb = Math.floor(received / 524288);
+    if (halfMb === shownMb) continue;
+    shownMb = halfMb;
     const mb = (received / 1048576).toFixed(1);
     if (total) {
       const pct = Math.min(100, received / total * 100);
@@ -586,7 +623,19 @@ const controls = new PointerLockControls(camera, renderer.domElement);
 const keys = new Set();
 const clearKeys = () => keys.clear();
 
-overlay.addEventListener('click', () => { if (ready) controls.lock(); });
+let touchWalking = false;
+const touchMove = { x: 0, z: 0 };
+let touchUp = 0;
+overlay.addEventListener('click', () => {
+  if (!ready) return;
+  if (isTouch) {  // pointer lock is rejected on mobile browsers
+    touchWalking = true;
+    overlay.classList.add('hidden');
+    reticle.style.display = 'block';
+  } else {
+    controls.lock();
+  }
+});
 controls.addEventListener('lock', () => {
   overlay.classList.add('hidden');
   reticle.style.display = 'block';
@@ -631,6 +680,61 @@ document.addEventListener('keyup', (e) => keys.delete(e.code));
 renderer.domElement.addEventListener('click', () => {
   if (controls.isLocked && measureMode) measureClick();
 });
+if (isTouch) {
+  // Left half of the screen = virtual joystick (drag away from the first
+  // touch), right half = look. Two simultaneous pointers, routed by id.
+  const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+  let movePid = null, lookPid = null, moveStart = null, lookLast = null;
+  const el = renderer.domElement;
+  el.style.touchAction = 'none';
+  el.addEventListener('pointerdown', (e) => {
+    if (!touchWalking || fbMode) return;
+    if (e.clientX < innerWidth / 2 && movePid === null) {
+      movePid = e.pointerId;
+      moveStart = { x: e.clientX, y: e.clientY };
+    } else if (lookPid === null) {
+      lookPid = e.pointerId;
+      lookLast = { x: e.clientX, y: e.clientY };
+    }
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId === movePid) {
+      const dx = (e.clientX - moveStart.x) / 60;  // ~60 px = full speed
+      const dy = (e.clientY - moveStart.y) / 60;
+      const len = Math.hypot(dx, dy);
+      const s = len > 1 ? 1 / len : 1;
+      touchMove.x = dx * s;
+      touchMove.z = -dy * s;  // drag up = walk forward
+    } else if (e.pointerId === lookPid) {
+      euler.setFromQuaternion(camera.quaternion);
+      euler.y -= (e.clientX - lookLast.x) * 0.005;
+      euler.x -= (e.clientY - lookLast.y) * 0.005;
+      euler.x = Math.max(-1.55, Math.min(1.55, euler.x));
+      camera.quaternion.setFromEuler(euler);
+      lookLast = { x: e.clientX, y: e.clientY };
+    }
+  });
+  const releaseTouch = (e) => {
+    if (e.pointerId === movePid) { movePid = null; touchMove.x = touchMove.z = 0; }
+    if (e.pointerId === lookPid) lookPid = null;
+  };
+  el.addEventListener('pointerup', releaseTouch);
+  el.addEventListener('pointercancel', releaseTouch);
+
+  const hold = (id, val) => {
+    const b = document.getElementById(id);
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); touchUp = val; });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave'])
+      b.addEventListener(ev, () => { touchUp = 0; });
+  };
+  hold('btn-up', 1);
+  hold('btn-down', -1);
+  document.getElementById('btn-fb').addEventListener('click', () => {
+    if (!ready || fbMode) return;
+    touchWalking = true;  // works straight from the start overlay too
+    enterFeedback();
+  });
+}
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -778,10 +882,14 @@ function enterFeedback() {
   showFeedbackLabels();
   infoText = 'FEEDBACK — drag to draw, comment, Submit';
   setHud();
-  fbText.focus();
+  if (isTouch) document.getElementById('touchui').style.display = 'none';
+  else fbText.focus();  // on phones the keyboard would cover the view
 }
 
 function exitFeedback(message = '') {
+  const btn = document.getElementById('fbsubmit');
+  btn.disabled = false;
+  btn.textContent = 'Submit';
   fbMode = false;
   strokes = [];
   liveStroke = null;
@@ -791,6 +899,7 @@ function exitFeedback(message = '') {
   fbText.value = '';
   infoText = message;
   setHud();
+  if (isTouch) document.getElementById('touchui').style.display = '';
   overlay.classList.remove('hidden');  // click to resume walking
 }
 
@@ -835,6 +944,13 @@ function strokeElements(stroke) {
 }
 
 async function submitFeedback() {
+  // Guard against double submission: the PNG upload takes seconds, and a
+  // second click mid-flight stored the same feedback twice (DB rows 1+2,
+  // 2026-08-07). The button is re-enabled in exitFeedback().
+  const btn = document.getElementById('fbsubmit');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
   renderer.render(scene, camera);  // fresh frame for toDataURL
   const composite = document.createElement('canvas');
   composite.width = renderer.domElement.width;
@@ -898,6 +1014,10 @@ async function submitFeedback() {
 
 document.getElementById('fbsubmit').addEventListener('click', submitFeedback);
 document.getElementById('fbcancel').addEventListener('click', () => exitFeedback());
+document.getElementById('fbundo').addEventListener('click', () => {
+  strokes.pop();
+  drawStrokes();
+});
 
 // ?feedback=1 — open the panel; ?feedback=submit — also inject a stroke and
 // submit (exercises raycast tags + composite + POST). Test seams for
@@ -920,14 +1040,14 @@ let labelFrame = 0;
 let labelsOn = false;  // N — persistent tag badges while walking
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1); // clamp after tab suspension
-  if (controls.isLocked) {
+  if (controls.isLocked || (touchWalking && !fbMode)) {
     const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 12 : 4;
     move.set(
-      (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0),
+      (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + touchMove.x,
       0,
-      (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0),
+      (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0) + touchMove.z,
     );
-    if (move.lengthSq() > 0) move.normalize();
+    if (move.lengthSq() > 1) move.normalize();  // keys full speed, joystick analog
     controls.moveRight(move.x * speed * dt);
     controls.moveForward(move.z * speed * dt);
     // Vertical at HALF speed: full walk speed on C sank the owner 2m in a
@@ -936,7 +1056,7 @@ renderer.setAnimationLoop(() => {
     // Vertical flight is UNRESTRICTED by owner decision (2026-08-07):
     // no slab clamp, no modifier, no collision — the owner flies through
     // floors on purpose. Do not "fix" this again.
-    const up = (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0);
+    const up = (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0) + touchUp;
     camera.position.y += up * speed * 0.5 * dt;
   }
   if (hudFrame++ % 15 === 0) setHud();  // live position/room readout

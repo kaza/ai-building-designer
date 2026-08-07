@@ -18,17 +18,16 @@ Run locally:
 """
 import base64
 import json
+import os
 import re
 import time
+from pathlib import Path
 
+import psycopg
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from pathlib import Path
-
-import os
-import psycopg
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 STORAGE_CONN = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
@@ -171,7 +170,7 @@ async def submit_feedback(project: str, request: Request):
         png = base64.b64decode(match.group(1), validate=True)
     except HTTPException:
         raise
-    except Exception as err:  # noqa: BLE001 — becomes a 400, not silence
+    except Exception as err:
         raise HTTPException(400, f"bad feedback payload: {err}") from err
 
     with db() as conn:

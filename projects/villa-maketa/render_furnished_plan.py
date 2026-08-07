@@ -32,6 +32,7 @@ STYLE = {
     "bed": ("#FAF8F6", "#6D4C41"),
     "wardrobe": ("#D7CCC8", "#5D4037"),
     "ceramic": ("#FFFFFF", "#0277BD"),
+    "sunbed": ("#EFEBE9", "#8D6E63"),  # pool loungers (feedback #031)
 }
 LW = 0.9  # symbol line width
 Z = 6     # draw above the base plan

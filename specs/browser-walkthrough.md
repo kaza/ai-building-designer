@@ -48,6 +48,8 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 | 2026-08-06 | A submitted feedback is a WORK ORDER, not a discussion prompt | owner (#005): analysis-then-wait on #003 read as ignoring the feedback | Almir |
 | 2026-08-06 | ~~Slabs solid to vertical flight (swept clamp) + digit-key storey teleports~~ REVERTED next day | see next row | Claude |
 | 2026-08-07 | Vertical flight is unrestricted — FINAL owner decision. No clamp, no collision, no modifier, no teleport keys; never restrict walkthrough movement without an explicit owner request | owner: "it was never accident i did it on purpose, just leave it as it was, no more no less" — flying through floors is how he reviews; the "two floors" confusion is handled by the HUD readout + labels ([storey-datum.md](storey-datum.md)) | Almir |
+| 2026-08-08 | Submit button disables while the feedback POST is in flight (re-enabled in exitFeedback) | double-click during the seconds-long PNG upload stored the same feedback twice (cloud DB rows 1+2); one POST = one row, so the guard belongs client-side | Almir + Claude |
+| 2026-08-08 | Touch controls on coarse-pointer devices: left-half drag = analog walk, right-half drag = look, ▲/▼ hold = fly, ✏ Feedback button = F-key equivalent; strokes/undo/cancel via touch (pointer events); `?touch=1` debug seam; no pointer lock on mobile (browsers reject it) | owner: "add mobile controls on mobile devices, and one button for feedback, equivalent of current one" | Almir |
 
 ## Related
 Villa v1 implementation details + review lessons: `projects/villa-maketa/spec.md`
