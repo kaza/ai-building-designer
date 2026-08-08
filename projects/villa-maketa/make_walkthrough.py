@@ -169,6 +169,12 @@ TEMPLATE = """<!DOCTYPE html>
   }
   #reticle::before { left: 6px; top: 0; width: 2px; height: 14px; }
   #reticle::after { left: 0; top: 6px; width: 14px; height: 2px; }
+  #aim-chip {
+    position: absolute; left: calc(50% + 16px); top: calc(50% - 10px);
+    z-index: 6; display: none; pointer-events: none;
+    background: rgba(20,22,30,0.85); color: #fff; border-radius: 6px;
+    padding: 2px 7px; font: 600 12px ui-monospace, monospace;
+  }
   #hud {
     position: absolute; right: 12px; top: 12px; z-index: 6; max-width: 34ch;
     color: #e8e4da; font: 13px/1.5 ui-monospace, monospace; text-align: right;
@@ -271,6 +277,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="joy"><div id="joy-knob"></div></div>
 </div>
 <div id="reticle"></div>
+<div id="aim-chip"></div>
 <div id="hud"></div>
 <div id="labels"></div>
 <canvas id="draw"></canvas>
@@ -1367,6 +1374,16 @@ function updateAim(now) {
     }
   }
   if (next !== aimText) { aimText = next; setHud(); }
+  // tiny stress chip at the crosshair (owner 2026-08-08: "a tiny text on
+  // top of it") — X-ray mode only, just the pointed tile's %
+  const chip = document.getElementById('aim-chip');
+  if (structuralMode === 'fem' && next) {
+    const m = next.match(/tile (\d+)%/);
+    chip.textContent = m ? m[1] + '%' : '';
+    chip.style.display = m ? 'block' : 'none';
+  } else {
+    chip.style.display = 'none';
+  }
 }
 
 renderer.setAnimationLoop(() => {

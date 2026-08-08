@@ -191,7 +191,8 @@ def walkthrough(project: str):
     project_row(project)
     build = get_build(project)
     return HTMLResponse(
-        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['walkthrough']}"))
+        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['walkthrough']}"),
+        headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/{project}/xray", response_class=HTMLResponse)
@@ -203,7 +204,8 @@ def xray(project: str):
     if "xray" not in build:
         raise HTTPException(404, "no X-ray published for this project")
     return HTMLResponse(
-        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['xray']}"))
+        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['xray']}"),
+        headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/{project}/{model_file}.glb")
