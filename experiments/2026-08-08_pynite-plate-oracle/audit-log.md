@@ -82,3 +82,15 @@
   swapped in (beams keep strip values, bannered), villa.glb copied,
   served on localhost:8787, opened in the owner's browser with
   ?start=1&loads=1. Production pipeline unchanged.
+
+## Attempt 07 — 2026-08-08 19:20 (per-fragment X-ray view)
+- Owner: "increase resolution, understand which fragments are stressed."
+- villa_fem.py emits per-quad field (logs/fem-field-mesh0.18.json,
+  17 352 fragments, u at each quad center); write_xray.py renders them
+  as a standalone three.js page (same color ramp as the walkthrough,
+  fragments shrunk 6% for visible seams, hover tooltip = element +
+  exact %, kind toggles). Served at localhost:8787/xray.html, verified
+  (HTTP 200, extracted module passes node --check), opened in browser.
+- Banner states beams are NOT in the model yet — bands over beamed
+  openings still over-read until beams are meshed (owner has not yet
+  ordered that step).

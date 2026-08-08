@@ -384,6 +384,22 @@ def main():
             fem[ifc] = dict(kind="slab", u=round(r["u"], 3),
                             M=round(max(r["mx_design"], r["my_design"]), 1),
                             balance=1.0)
+    # per-quad field for the X-ray fragment view
+    field = []
+    wall_cap = db.wall_phi * db.wall_fd
+    for qname, (kind, elem) in m.quad_elem.items():
+        q = m.model.quads[qname]
+        nds = (q.i_node, q.j_node, q.m_node, q.n_node)
+        if kind == "wall":
+            u = abs(float(q.membrane(0, 0, combo_name="ULS")[1][0])) / wall_cap
+        else:
+            mom = q.moment(0, 0, combo_name="ULS")
+            u = max(abs(float(mom[0][0])), abs(float(mom[1][0]))) / db.strip_moment_capacity(q.t)
+        field.append(dict(k=kind, e=elem, u=round(u, 3),
+                          c=[[round(n.X, 3), round(n.Y, 3), round(n.Z, 3)] for n in nds]))
+    Path(f"logs/fem-field-mesh{args.mesh}.json").write_text(json.dumps(field))
+    print(f"field: {len(field)} quads -> logs/fem-field-mesh{args.mesh}.json")
+
     fem["_assumptions"] = [
         f"PyNite {__import__('importlib.metadata', fromlist=['version']).version('PyNiteFEA')} plate FEM, mesh {args.mesh} m, quads: {m.qn}",
         "same DesignBasis as the strip engine (ULS 1.35G+1.5Q, snow 1.32)",
