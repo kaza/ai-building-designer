@@ -116,39 +116,67 @@ def main():
             band = w["height"] - head
             openings.append((o, w, head, band))
 
-    print(f"{'opening':34s} {'wall':24s} {'span':>5s} {'band':>5s} "
-          f"{'q_A':>6s} {'q_B':>6s} {'M_A':>6s} {'util_plain_A':>12s} "
-          f"{'util_plain_B':>12s} {'util_2xO12_A':>12s}")
+    beams = gf.get("beams", []) if isinstance(gf, dict) else []
+
+    def covering_beam(w, o):
+        # same coverage idea as E062, simplified for the known geometry
+        (ux, uy), wl = wall_dir(w)
+        a = o["position"]; bpos = o["position"] + o["width"]
+        for bm in beams:
+            bux = bm["end"]["x"] - bm["start"]["x"]
+            buy = bm["end"]["y"] - bm["start"]["y"]
+            bl = math.hypot(bux, buy)
+            if bl < 1e-6: continue
+            bux, buy = bux / bl, buy / bl
+            if abs(ux * buy - uy * bux) > 0.26: continue
+            for t in (a, bpos):
+                px = w["start"]["x"] + ux * t; py = w["start"]["y"] + uy * t
+                rx, ry = px - bm["start"]["x"], py - bm["start"]["y"]
+                along = rx * bux + ry * buy
+                lat = abs(-rx * buy + ry * bux)
+                if lat > 0.2 or along < -0.2 or along > bl + 0.2: break
+            else:
+                return bm
+        return None
+
+    print(f"{'opening':34s} {'beam b x d':>10s} {'span':>5s} "
+          f"{'q_A':>6s} {'q_B':>6s} {'M_A':>6s} {'M_B':>6s} "
+          f"{'util_A':>7s} {'util_B':>7s}")
     results = []
     for o, w, head, band in openings:
         q, coverage = line_load(gf, w, roofs, lb_walls)
         span = o["width"] + BEARING
-        b = w["thickness"]
-        # band self-weight on top of the roof strip load
-        self_w = GAMMA_G * band * b * WALL_DENSITY
+        bm = covering_beam(w, o)
+        if bm is None:
+            note = ("below 1.25m threshold, band carries it"
+                    if o["width"] < 1.25 else "-> E062 fires")
+            print(f"{o['name'][:34]:34s} {'NO BEAM':>10s} {span:5.2f}  {note}")
+            continue
+        bw, bd = bm["width"], bm["depth"]
+        # beam self-weight + the wall band's weight riding on it
+        self_w = GAMMA_G * (bw * bd + max(band, 0) * w["thickness"]) * WALL_DENSITY
         rows = {}
         for name, ql in q.items():
             q_tot = ql + self_w
             m = q_tot * span ** 2 / 8
-            w_el = b * band ** 2 / 6 if band > 0 else 0.0  # m3
-            m_plain = w_el * FCTD
-            d_eff = max(band - 0.04, 0.01)
-            m_rc = AS_MM2 * FYD * 0.9 * d_eff * 1e-3  # kNm
-            rows[name] = (q_tot, m,
-                          m / m_plain if m_plain > 0 else float("inf"),
-                          m / m_rc)
+            d_eff = max(bd - 0.05, 0.01)
+            as_mm2 = 0.005 * bw * d_eff * 1e6  # rho 0.5%
+            m_rd = as_mm2 * FYD * 0.9 * d_eff * 1e-3  # kNm
+            rows[name] = (q_tot, m, m / m_rd)
         a, bsc = rows[list(SCENARIOS)[0]], rows[list(SCENARIOS)[1]]
-        print(f"{o['name'][:34]:34s} {w['name'][:24]:24s} {span:5.2f} {band:5.2f} "
-              f"{a[0]:6.1f} {bsc[0]:6.1f} {a[1]:6.1f} {a[2]:12.2f} "
-              f"{bsc[2]:12.2f} {a[3]:12.2f}")
-        results.append((o["name"], w["name"], span, band, rows, coverage))
+        print(f"{o['name'][:34]:34s} {bw:4.2f}x{bd:4.2f} {span:5.2f} "
+              f"{a[0]:6.1f} {bsc[0]:6.1f} {a[1]:6.1f} {bsc[1]:6.1f} "
+              f"{a[2]:7.2f} {bsc[2]:7.2f}")
+        results.append((o["name"], bm["name"], rows))
 
-    print("\nutil > 1.0 = section fails that check (plain = unreinforced band;"
-          "\n2xO12 = minimally reinforced RC ring beam). Scenario A = roof as"
-          "\nmodeled (0.45m solid RC), B = realistic build-up. ULS 1.35G+1.5S.")
-    worst = max(results, key=lambda r: r[4][list(SCENARIOS)[0]][2])
-    print(f"\nworst plain-band utilization: {worst[0]} over {worst[1]}: "
-          f"{worst[4][list(SCENARIOS)[0]][2]:.1f}x (scenario A)")
+    print("\nutil = M_ed / M_rd of the PLACED beam (RC, rho 0.5%, fyd 435)."
+          "\nScenario A = roof as modeled (0.45m solid RC), B = realistic"
+          "\nbuild-up (0.20m RC + 2.0). ULS 1.35G+1.5S. util <= 1.0 passes.")
+    if results:
+        worst = max(results, key=lambda r: r[2][list(SCENARIOS)[0]][2])
+        print(f"\nworst beam: {worst[1]} ({worst[0]}): "
+              f"{worst[2][list(SCENARIOS)[0]][2]:.2f} (A) / "
+              f"{worst[2][list(SCENARIOS)[1]][2]:.2f} (B)")
 
 
 if __name__ == "__main__":

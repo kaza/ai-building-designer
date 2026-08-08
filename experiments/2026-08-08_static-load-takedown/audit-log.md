@@ -33,3 +33,16 @@
   "Vila Kitchen Door" on the now-bearing x=4.5 wall passes (0.63).
 - Conclusion: the bearing line is the enabler, not the cure — every wide
   opening still needs an engineered beam (ring-beam / E06x feature).
+
+## Attempt 05 — 2026-08-08 ~15:00 (check the PLACED beams)
+- Script extended: per opening, find the covering beam (E062-style) and
+  check ITS section (RC, rho 0.5%) instead of the naked band.
+- Result: heuristic span/10 depths undersized 4 beams under scenario B
+  (realistic roof): Win7 1.50, Win4 1.28, west band 1.17, Win6 1.02.
+  Kitchen 0.28 / Win2 0.42 pass. Sub-1.25m openings correctly beamless.
+
+## Attempt 06 — 2026-08-08 ~15:05 (resized)
+- Explicit depths: west band 0.40, Win4/Win7 0.45, Win6 0.60.
+- Result: all beams util 0.28-0.87 under scenario B (design target —
+  finding #3: the modeled 0.45m roof is visual). Scenario A (fictional
+  solid slab) still shows 1.06-1.25 — documented, not chased.

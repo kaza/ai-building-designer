@@ -320,15 +320,18 @@ story.apartments.append(apartment)
 # spans fail 6-144x; the roof was structurally resting on glass. Upstand
 # ring-beam segments (depth = span/10 heuristic, hidden in the wall band
 # + roof-edge zone) carry it instead. Phase B sizes them for real loads.
-for _opening in (
-    "Kitchen Window",
-    "Living Band Window",       # west clerestory (Win3)
-    "Living Glass W2",          # west clerestory (Win2)
-    "Living Sliding Window",    # Win4
-    "Living Band Window N",     # Win7
-    "Hallway Window",           # Win6 — the 5.3m showstopper (0.55 deep)
+# Depths sized by load-takedown attempt 05/06 (scenario B "realistic
+# roof" is the design target — the modeled 0.45m solid slab is visual,
+# experiment finding #3). rho 0.5% RC assumption; util <= ~0.9 each.
+for _opening, _depth in (
+    ("Kitchen Window", None),          # heuristic 0.35 passes (util 0.28)
+    ("Living Band Window", 0.40),      # west clerestory (Win3) — was 1.17
+    ("Living Glass W2", None),         # west clerestory (Win2), util 0.42
+    ("Living Sliding Window", 0.45),   # Win4 — was 1.28 at 0.35
+    ("Living Band Window N", 0.45),    # Win7 — was 1.50 at 0.35
+    ("Hallway Window", 0.60),          # Win6, 5.3m — was 1.02 at 0.55
 ):
-    b.add_beam_over(GF, _opening)
+    b.add_beam_over(GF, _opening, depth=_depth)
 b.add_beam_over(GAR, "Garage Vehicle Door")
 
 garage_story = b.get_story(GAR)

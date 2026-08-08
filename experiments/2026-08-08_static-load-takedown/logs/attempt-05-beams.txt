@@ -1,0 +1,19 @@
+opening                            beam b x d  span    q_A    q_B    M_A    M_B  util_A  util_B
+Kitchen Window                     0.30x0.35  1.75   54.5   38.1   20.9   14.6    0.39    0.28
+Living Band Window                 0.30x0.35  3.60   54.5   38.1   88.3   61.8    1.67    1.17
+Living Glass W2                    0.30x0.35  2.15   54.5   38.1   31.5   22.0    0.60    0.42
+Living Sliding Window              0.30x0.35  2.40  137.9   93.7   99.3   67.5    1.88    1.28
+Room 2 Sliding Door                   NO BEAM  1.35  -> E062 would fire
+Hallway Window                     0.30x0.55  5.55   54.8   39.0  210.9  150.2    1.44    1.02
+Living Band Window N               0.30x0.35  2.60  137.9   93.7  116.6   79.2    2.21    1.50
+Vila Entry Door                       NO BEAM  1.25  -> E062 would fire
+Vila Kitchen Door                     NO BEAM  1.15  -> E062 would fire
+Vila Room 2 Terrace Door              NO BEAM  1.35  -> E062 would fire
+Vila Master Bedroom Terrace Door      NO BEAM  1.20  -> E062 would fire
+Vila Master Bedroom Terrace Door S    NO BEAM  0.80  -> E062 would fire
+
+util = M_ed / M_rd of the PLACED beam (RC, rho 0.5%, fyd 435).
+Scenario A = roof as modeled (0.45m solid RC), B = realistic
+build-up (0.20m RC + 2.0). ULS 1.35G+1.5S. util <= 1.0 passes.
+
+worst beam: RB Living Band Window N (Living Band Window N): 2.21 (A) / 1.50 (B)

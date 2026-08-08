@@ -1,0 +1,19 @@
+opening                            beam b x d  span    q_A    q_B    M_A    M_B  util_A  util_B
+Kitchen Window                     0.30x0.35  1.75   54.5   38.1   20.9   14.6    0.39    0.28
+Living Band Window                 0.30x0.40  3.60   55.0   38.7   89.1   62.6    1.24    0.87
+Living Glass W2                    0.30x0.35  2.15   54.5   38.1   31.5   22.0    0.60    0.42
+Living Sliding Window              0.30x0.45  2.40  139.0   94.7  100.1   68.2    1.06    0.73
+Room 2 Sliding Door                   NO BEAM  1.35  below 1.25m threshold, band carries it
+Hallway Window                     0.30x0.60  5.55   55.3   39.5  212.9  152.2    1.20    0.86
+Living Band Window N               0.30x0.45  2.60  139.0   94.7  117.4   80.0    1.25    0.85
+Vila Entry Door                       NO BEAM  1.25  below 1.25m threshold, band carries it
+Vila Kitchen Door                     NO BEAM  1.15  below 1.25m threshold, band carries it
+Vila Room 2 Terrace Door              NO BEAM  1.35  below 1.25m threshold, band carries it
+Vila Master Bedroom Terrace Door      NO BEAM  1.20  below 1.25m threshold, band carries it
+Vila Master Bedroom Terrace Door S    NO BEAM  0.80  below 1.25m threshold, band carries it
+
+util = M_ed / M_rd of the PLACED beam (RC, rho 0.5%, fyd 435).
+Scenario A = roof as modeled (0.45m solid RC), B = realistic
+build-up (0.20m RC + 2.0). ULS 1.35G+1.5S. util <= 1.0 passes.
+
+worst beam: RB Living Band Window N (Living Band Window N): 1.25 (A) / 0.85 (B)
