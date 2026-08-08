@@ -576,14 +576,68 @@ let loadsOn = false;
 const _savedMats = new Map();  // mesh.uuid -> original material
 
 function loadRampColor(u) {
-  // green (<=0.5) -> yellow (0.8) -> red (>=1.0)
-  const c = new THREE.Color();
-  if (u <= 0.5) c.set(0x2e7d32);
-  else if (u <= 0.8) c.lerpColors(new THREE.Color(0x2e7d32),
-                                  new THREE.Color(0xf9a825), (u - 0.5) / 0.3);
-  else c.lerpColors(new THREE.Color(0xf9a825),
-                    new THREE.Color(0xc62828), Math.min(1, (u - 0.8) / 0.2));
-  return c;
+  // continuous FEM rainbow (bridge-game style): blue 0 -> cyan -> green
+  // -> yellow -> red 1.0+
+  const t = Math.max(0, Math.min(1, u));
+  return new THREE.Color().setHSL((1 - t) * 2 / 3, 1.0, 0.5);
+}
+
+// local intensity along the member: beams bend (parabola peaking at the
+// utilization mid-span, cool at the supports); walls follow the emitted
+// 8-bucket load profile.
+function localU(data, t) {
+  if (data.kind === 'beam') return data.u * 4 * t * (1 - t);
+  if (data.profile && data.profile.length) {
+    const f = t * (data.profile.length - 1);
+    const i = Math.floor(f);
+    const j = Math.min(i + 1, data.profile.length - 1);
+    return data.profile[i] + (data.profile[j] - data.profile[i]) * (f - i);
+  }
+  return data.u;
+}
+
+const _v3 = new THREE.Vector3();
+const _gradientCache = new Map();  // element key -> CanvasTexture
+
+function gradientTexture(key, data) {
+  // 1D gradient of localU along the member. UV-mapped faces interpolate
+  // the texture BETWEEN vertices — a box beam with corner-only vertices
+  // still shows its bending parabola (vertex colors could not).
+  if (_gradientCache.has(key)) return _gradientCache.get(key);
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  for (let x = 0; x < 256; x++) {
+    ctx.fillStyle = '#' + loadRampColor(localU(data, x / 255)).getHexString();
+    ctx.fillRect(x, 0, 1, 1);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _gradientCache.set(key, tex);
+  return tex;
+}
+
+function paintByLoad(mesh, data, key) {
+  // param each vertex along the element axis (model x/y -> three x/-z)
+  // into UV.x; the gradient texture does the rest. Geometry cloned once —
+  // GLB shares geometries between meshes; don't tint a sibling.
+  mesh.geometry = mesh.geometry.clone();
+  const pos = mesh.geometry.getAttribute('position');
+  const uvs = new Float32Array(pos.count * 2);
+  const ax = data.a[0], az = -data.a[1];
+  const dx = data.b[0] - data.a[0], dz = -data.b[1] + data.a[1];
+  const len2 = dx * dx + dz * dz || 1;
+  mesh.updateWorldMatrix(true, false);
+  for (let i = 0; i < pos.count; i++) {
+    _v3.fromBufferAttribute(pos, i);
+    mesh.localToWorld(_v3);
+    const t = Math.max(0, Math.min(1,
+      ((_v3.x - ax) * dx + (_v3.z - az) * dz) / len2));
+    uvs[i * 2] = t;
+    uvs[i * 2 + 1] = 0.5;
+  }
+  mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  mesh.material = new THREE.MeshBasicMaterial({ map: gradientTexture(key, data) });
 }
 
 function loadDataFor(node) {
@@ -608,10 +662,10 @@ function toggleLoads() {
     if (loadsOn) {
       _savedMats.set(n.uuid, n.material);
       const data = loadDataFor(n);
-      if (data) {
-        n.material = new THREE.MeshStandardMaterial({
-          color: loadRampColor(data.u), roughness: 0.8,
-        });
+      if (data && data.a) {
+        paintByLoad(n, data, (n.name || '').split('.')[0]);
+      } else if (data) {
+        n.material = new THREE.MeshBasicMaterial({ color: loadRampColor(data.u) });
       } else {
         const ghost = n.material.clone();
         ghost.transparent = true;
@@ -626,7 +680,7 @@ function toggleLoads() {
   });
   if (!loadsOn) _savedMats.clear();
   infoText = loadsOn
-    ? 'LOADS — green ok · yellow busy · red overloaded\\naim + I for numbers · L to exit'
+    ? 'LOADS — blue cold → green → yellow → red overloaded\\naim + I for numbers · L to exit'
     : '';
   setHud();
 }

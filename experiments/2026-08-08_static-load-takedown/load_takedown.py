@@ -95,7 +95,8 @@ def line_load(gf, wall, roofs, lb_walls):
             q_area = GAMMA_G * dead + GAMMA_Q * SNOW
             per_scenario[name].append(q_area * trib)
     coverage = covered / n
-    return {name: (sum(v) / len(v)) for name, v in per_scenario.items()}, coverage
+    avgs = {name: (sum(v) / len(v)) for name, v in per_scenario.items()}
+    return avgs, coverage, per_scenario
 
 
 def main():
@@ -145,7 +146,7 @@ def main():
           f"{'util_A':>7s} {'util_B':>7s}")
     results = []
     for o, w, head, band in openings:
-        q, coverage = line_load(gf, w, roofs, lb_walls)
+        q, coverage, _samples = line_load(gf, w, roofs, lb_walls)
         span = o["width"] + BEARING
         bm = covering_beam(w, o)
         if bm is None:
@@ -188,17 +189,31 @@ def main():
                 "M": round(rows[b_name][1], 1),
                 "section": f"{bm['width']:.2f}x{bm['depth']:.2f}",
                 "over": oname,
+                "a": [bm["start"]["x"], bm["start"]["y"]],
+                "b": [bm["end"]["x"], bm["end"]["y"]],
             }
-        wall_q = {}
+        wall_rows = {}
         for w in lb_walls:
-            q, coverage = line_load(gf, w, roofs, lb_walls)
-            wall_q[w["name"]] = q[b_name]
-        qmax = max(wall_q.values()) or 1.0
-        for name, q in wall_q.items():
+            q, coverage, samples = line_load(gf, w, roofs, lb_walls)
+            wall_rows[w["name"]] = (w, q[b_name], samples[b_name])
+        qmax = max(v[1] for v in wall_rows.values()) or 1.0
+        for name, (w, q, samples) in wall_rows.items():
+            # 8-bucket profile along the wall: the view shades the member by
+            # where the load actually sits (bridge-game look)
+            nb = 8
+            per = max(1, len(samples) // nb)
+            profile = [
+                round(0.9 * (sum(samples[i * per:(i + 1) * per])
+                             / max(1, len(samples[i * per:(i + 1) * per]))) / qmax, 2)
+                for i in range(nb)
+            ]
             data["IfcWallStandardCase_" + name.replace(" ", "_")] = {
                 "kind": "wall",
                 "u": round(0.9 * q / qmax, 2),
                 "q": round(q, 1),
+                "a": [w["start"]["x"], w["start"]["y"]],
+                "b": [w["end"]["x"], w["end"]["y"]],
+                "profile": profile,
             }
         out_path.write_text(json.dumps(data, indent=1, sort_keys=True))
         print(f"\nwrote {out_path} ({len(data)} elements)")
