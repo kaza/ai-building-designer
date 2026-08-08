@@ -188,6 +188,34 @@ class Window(BaseModel):
         return v
 
 
+class Beam(BaseModel):
+    """A horizontal structural member (ring beam / lintel segment).
+
+    Centerline start→end, rectangular section width × depth. z_top is
+    meters above the storey datum; the beam occupies [z_top − depth,
+    z_top] and MAY rise above the storey height (upstand hidden in the
+    roof-edge zone — how band-window facades carry a roof).
+    Spec: specs/structural-plausibility.md.
+    """
+
+    global_id: str = Field(default_factory=generate_ifc_id, description="IFC GlobalId")
+    name: str = ""
+    description: str = ""
+    start: Point2D
+    end: Point2D
+    width: float = Field(gt=0, description="Horizontal width ⊥ to the axis (m)")
+    depth: float = Field(gt=0, description="Vertical depth (m)")
+    z_top: float = Field(description="Top of beam above storey datum (m)")
+    material: Literal["rc", "steel", "timber"] = "rc"
+
+    @model_validator(mode="after")
+    def _non_degenerate(self) -> Beam:
+        if (abs(self.end.x - self.start.x) < 1e-6
+                and abs(self.end.y - self.start.y) < 1e-6):
+            raise ValueError("beam start and end coincide (zero length)")
+        return self
+
+
 class RoofType(str, Enum):
     """Supported roof types."""
 

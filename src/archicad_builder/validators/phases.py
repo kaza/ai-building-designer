@@ -11,6 +11,8 @@ Validates each phase of the architect's building design process:
 
 v3 additions:
   E060: Core wall opening > 1.20m → ERROR
+  E062: Wide opening on bearing wall without a beam → ERROR
+  E063: Covering beam implausibly slender → ERROR
   E061: Window on core/staircase wall → ERROR
   W060: Any door > 1.20m → WARNING (suspicious width)
   E070: Enclosed room has no door → ERROR
@@ -1216,6 +1218,11 @@ def validate_phase6_vertical(building: Building) -> list[ValidationError]:
     errors: list[ValidationError] = []
     stories = sorted(building.stories, key=lambda s: s.elevation)
 
+    # E062/E063 are per-storey — they must not hide behind the two-storey
+    # guard the inter-storey rules need (specs/structural-plausibility.md).
+    for story in stories:
+        errors.extend(_validate_beams_over_openings(story))
+
     if len(stories) < 2:
         return errors
 
@@ -1411,6 +1418,108 @@ def _opening_footprint(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
+
+# E063 span/depth limits per material (specs/structural-plausibility.md;
+# rc lintel practice ~L/15, steel stiffer per unit depth, timber softer).
+_SLENDERNESS_LIMIT = {"rc": 15.0, "steel": 20.0, "timber": 12.0}
+_BEAM_MIN_OPENING = 1.25   # m — narrower openings survive a reinforced band
+_BEAM_LATERAL_TOL = 0.15   # m off the wall axis
+_BEAM_BEARING = 0.10       # m required past each opening edge
+
+
+def _validate_beams_over_openings(story) -> list[ValidationError]:
+    """E062: wide opening on a bearing wall without a covering beam.
+    E063: the covering beam is implausibly slender for the clear span.
+    (E060/E061 are the core-integrity rules — reusing their prefixes would
+    let existing waivers silently suppress beam findings; Codex review.)
+    One beam must cover the whole opening — collinear part-beams jointly
+    covering are NOT accepted (a ring beam is continuous; Phase A)."""
+    errors: list[ValidationError] = []
+    walls = {w.global_id: w for w in story.walls}
+    openings = [(d, d.height, "Door") for d in story.doors] + [
+        (w, w.sill_height + w.height, "Window") for w in story.windows
+    ]
+    for opening, head, kind in openings:
+        wall = walls.get(opening.wall_id)
+        if wall is None or not wall.load_bearing:
+            continue
+        if opening.width < _BEAM_MIN_OPENING:
+            continue
+        length = math.hypot(wall.end.x - wall.start.x,
+                            wall.end.y - wall.start.y)
+        if length < 1e-6:
+            continue
+        ux = (wall.end.x - wall.start.x) / length
+        uy = (wall.end.y - wall.start.y) / length
+        # opening extent along the wall, extended by the required bearing
+        a = opening.position - _BEAM_BEARING
+        bpos = opening.position + opening.width + _BEAM_BEARING
+        p0 = (wall.start.x + ux * a, wall.start.y + uy * a)
+        p1 = (wall.start.x + ux * bpos, wall.start.y + uy * bpos)
+        covering = next(
+            (bm for bm in story.beams
+             if _beam_covers(bm, wall, ux, uy, p0, p1, head)),
+            None,
+        )
+        if covering is None:
+            errors.append(ValidationError(
+                severity="error",
+                element_type=kind,
+                element_id=opening.global_id,
+                message=(
+                    f"E062: Opening '{opening.name}' ({opening.width:.2f}m) "
+                    f"on load-bearing wall '{wall.name}' has no beam over "
+                    f"it — a {opening.width:.2f}m span cannot ride on the "
+                    f"wall band alone."
+                ),
+            ))
+            continue
+        limit = _SLENDERNESS_LIMIT[covering.material]
+        if opening.width / covering.depth > limit:
+            errors.append(ValidationError(
+                severity="error",
+                element_type="Beam",
+                element_id=covering.global_id,
+                message=(
+                    f"E063: Beam '{covering.name}' over '{opening.name}' is "
+                    f"implausibly slender: span/depth "
+                    f"{opening.width / covering.depth:.1f} > {limit:.0f} "
+                    f"({covering.material})."
+                ),
+            ))
+    return errors
+
+
+def _beam_covers(beam, wall, ux, uy, p0, p1, head) -> bool:
+    """Does `beam` span the opening? Parallel to the wall (±15°), laterally
+    within tolerance, both extended endpoints projecting inside the beam
+    segment (real end bearing — extended points merely NEAR the beam end
+    would fake bearing), wide enough for the wall, above the head."""
+    bdx = beam.end.x - beam.start.x
+    bdy = beam.end.y - beam.start.y
+    blen = math.hypot(bdx, bdy)
+    if blen < 1e-6:
+        return False
+    bux, buy = bdx / blen, bdy / blen
+    if abs(ux * buy - uy * bux) > 0.26:  # ~15°, modulo 180 via |cross|
+        return False
+    # thin walls need a tighter lateral fit: a beam 0.15m off a 0.12m wall
+    # misses it entirely (Codex review 2026-08-08)
+    lateral_tol = min(_BEAM_LATERAL_TOL, wall.thickness / 2)
+    if beam.width < wall.thickness - 0.05:
+        return False
+    if beam.z_top - beam.depth < head - 0.05:
+        return False
+    for px, py in (p0, p1):
+        rx, ry = px - beam.start.x, py - beam.start.y
+        along = rx * bux + ry * buy
+        lateral = abs(rx * -buy + ry * bux)
+        if lateral > lateral_tol:
+            return False
+        if along < -1e-6 or along > blen + 1e-6:
+            return False
+    return True
+
 
 def _storey_footprint(story):
     """Union of a storey's slab outlines, mitre-buffered 0.05m so a wall

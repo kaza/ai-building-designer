@@ -6,11 +6,13 @@ Follows IFC conventions for spatial hierarchy and element naming.
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
 
 from archicad_builder.models.elements import (
+    Beam,
     Door,
     DoorOperationType,
     Roof,
@@ -49,6 +51,7 @@ class Story(BaseModel):
     windows: list[Window] = Field(default_factory=list)
     roofs: list[Roof] = Field(default_factory=list)
     staircases: list[Staircase] = Field(default_factory=list)
+    beams: list[Beam] = Field(default_factory=list)
     virtual_elements: list[VirtualElement] = Field(default_factory=list)
     spaces: list[Space] = Field(default_factory=list)
     apartments: list[Apartment] = Field(default_factory=list)
@@ -348,6 +351,81 @@ class Building(BaseModel):
         )
         story.slabs.append(slab)
         return slab
+
+    def add_beam(
+        self,
+        story_name: str,
+        start: tuple[float, float],
+        end: tuple[float, float],
+        width: float,
+        depth: float,
+        name: str = "",
+        description: str = "",
+        z_top: float | None = None,
+        material: str = "rc",
+    ) -> Beam:
+        """Add a ring beam / lintel. z_top defaults to the storey height
+        (beam hangs below the wall top); pass head + depth for an upstand
+        over a full-height opening. Spec: specs/structural-plausibility.md."""
+        story = self._require_story(story_name)
+        beam = Beam(
+            name=name,
+            description=description,
+            start=Point2D(x=start[0], y=start[1]),
+            end=Point2D(x=end[0], y=end[1]),
+            width=width,
+            depth=depth,
+            z_top=story.height if z_top is None else z_top,
+            material=material,
+        )
+        story.beams.append(beam)
+        return beam
+
+    def add_beam_over(
+        self,
+        story_name: str,
+        opening_name: str,
+        depth: float | None = None,
+        width: float | None = None,
+        material: str = "rc",
+    ) -> Beam:
+        """Ring-beam segment over a named opening: extends 0.15m past each
+        edge (E060 wants ≥0.10 bearing), width = host wall thickness,
+        upstand z_top = opening head + depth. Default depth is the
+        span/10-rounded-up heuristic (min 0.35) from the load-takedown
+        experiment; Phase B sizes properly."""
+        story = self._require_story(story_name)
+        opening = next(
+            (o for o in [*story.doors, *story.windows]
+             if o.name == opening_name),
+            None,
+        )
+        if opening is None:
+            raise ValueError(f"no opening named {opening_name!r} on {story_name!r}")
+        wall = story.get_wall(opening.wall_id)
+        if wall is None:
+            raise ValueError(f"opening {opening_name!r} has no host wall")
+        head = getattr(opening, "sill_height", 0.0) + opening.height
+        if depth is None:
+            depth = max(0.35, math.ceil(opening.width / 10 / 0.05) * 0.05)
+        length = math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y)
+        ux = (wall.end.x - wall.start.x) / length
+        uy = (wall.end.y - wall.start.y) / length
+        # NOT clamped to the wall extent: an opening at a wall corner
+        # (position 0) still needs bearing — the ring beam continues past
+        # the corner into the return wall's zone, like real ring beams do.
+        a = opening.position - 0.15
+        b = opening.position + opening.width + 0.15
+        return self.add_beam(
+            story_name,
+            (wall.start.x + ux * a, wall.start.y + uy * a),
+            (wall.start.x + ux * b, wall.start.y + uy * b),
+            width=width if width is not None else wall.thickness,
+            depth=depth,
+            name=f"RB {opening.name}",
+            z_top=head + depth,
+            material=material,
+        )
 
     def add_staircase(
         self,

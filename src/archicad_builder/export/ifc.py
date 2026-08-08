@@ -437,6 +437,10 @@ class IFCExporter:
             ifc_stair = self._create_staircase(staircase, story.elevation)
             products.append(ifc_stair)
 
+        # Export beams (ring beams / lintels)
+        for beam in story.beams:
+            products.append(self._create_beam(beam, story.elevation))
+
         # Export roofs
         for roof in story.roofs:
             ifc_roof = self._create_roof(roof, story.elevation + story.height)
@@ -719,6 +723,57 @@ class IFCExporter:
             PredefinedType=slab.slab_type.value,
         )
         return ifc_slab
+
+    def _create_beam(
+        self, beam, elevation: float
+    ) -> ifcopenshell.entity_instance:
+        """IfcBeam: rectangle footprint along the centerline extruded up by
+        depth from (elevation + z_top − depth). Upstands over full-height
+        openings rise into the roof zone (specs/structural-plausibility.md)."""
+        import math as _math
+
+        dx = beam.end.x - beam.start.x
+        dy = beam.end.y - beam.start.y
+        length = _math.hypot(dx, dy)
+        ux, uy = dx / length, dy / length
+        nx, ny = -uy * beam.width / 2, ux * beam.width / 2
+        corners = [
+            (beam.start.x + nx, beam.start.y + ny),
+            (beam.end.x + nx, beam.end.y + ny),
+            (beam.end.x - nx, beam.end.y - ny),
+            (beam.start.x - nx, beam.start.y - ny),
+        ]
+        ifc_points = [self.file.createIfcCartesianPoint(c) for c in corners]
+        ifc_points.append(ifc_points[0])
+        profile = self.file.createIfcArbitraryClosedProfileDef(
+            ProfileType="AREA",
+            OuterCurve=self.file.createIfcPolyline(Points=ifc_points),
+        )
+        placement = self._create_local_placement(
+            origin=(0.0, 0.0, elevation + beam.z_top - beam.depth),
+        )
+        solid = self.file.createIfcExtrudedAreaSolid(
+            SweptArea=profile,
+            Position=self.file.createIfcAxis2Placement3D(
+                Location=self.file.createIfcCartesianPoint((0.0, 0.0, 0.0)),
+            ),
+            ExtrudedDirection=self.file.createIfcDirection((0.0, 0.0, 1.0)),
+            Depth=beam.depth,
+        )
+        shape = self.file.createIfcShapeRepresentation(
+            ContextOfItems=self._body_context,
+            RepresentationIdentifier="Body",
+            RepresentationType="SweptSolid",
+            Items=[solid],
+        )
+        return self.file.createIfcBeam(
+            GlobalId=beam.global_id,
+            Name=beam.name or "Beam",
+            ObjectPlacement=placement,
+            Representation=self.file.createIfcProductDefinitionShape(
+                Representations=[shape],
+            ),
+        )
 
     def _create_roof(
         self, roof: Roof, elevation: float

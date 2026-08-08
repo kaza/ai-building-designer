@@ -726,7 +726,8 @@
           "position": 4.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3F_HO6jqn8Su4sWU60tdzj",
@@ -737,7 +738,8 @@
           "position": 7.8,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3Swi_XZ9j7cQZtfstkP4q7",
@@ -748,7 +750,8 @@
           "position": 10.8,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1V7pnZTW9ACgLzz8NtjDzH",
@@ -759,7 +762,8 @@
           "position": 14.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "0hFMfozv501eqbSqPHi5aC",
@@ -770,7 +774,8 @@
           "position": 5.5,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3pAjIZM853re_1Ql8gdqMb",
@@ -781,7 +786,8 @@
           "position": 9.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1Sw4c6Xtn22u7b2EQsTyoH",
@@ -792,7 +798,8 @@
           "position": 13.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         }
       ],
       "roofs": [],
@@ -826,6 +833,127 @@
           "width": 1.2,
           "riser_height": 0.175,
           "tread_length": 0.28
+        }
+      ],
+      "beams": [
+        {
+          "global_id": "2i4HccunL1O8rbyELV_iGa",
+          "name": "RB Apt S1 Living Window",
+          "description": "",
+          "start": {
+            "x": 3.85,
+            "y": 0.0
+          },
+          "end": {
+            "x": 5.65,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "24BPOQxVj5BfqEWS1k3u3I",
+          "name": "RB Apt S1 Bed1 Window",
+          "description": "",
+          "start": {
+            "x": 7.6499999999999995,
+            "y": 0.0
+          },
+          "end": {
+            "x": 9.450000000000001,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "2zxXXybXTB0eVJd4WOMrUY",
+          "name": "RB Apt S1 Bed2 Window",
+          "description": "",
+          "start": {
+            "x": 10.65,
+            "y": 0.0
+          },
+          "end": {
+            "x": 12.450000000000001,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "2A9tNMps5AAf94hvXZGJ7I",
+          "name": "RB Apt S1 Living2 Window",
+          "description": "",
+          "start": {
+            "x": 13.85,
+            "y": 0.0
+          },
+          "end": {
+            "x": 15.65,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "12d56oxuvCqeeRXrjdXn30",
+          "name": "RB Apt N1 Living Window",
+          "description": "",
+          "start": {
+            "x": 5.35,
+            "y": 12.0
+          },
+          "end": {
+            "x": 7.15,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "0W04QbunTBxh5TJmmHQLyP",
+          "name": "RB Apt N1 Master Window",
+          "description": "",
+          "start": {
+            "x": 8.85,
+            "y": 12.0
+          },
+          "end": {
+            "x": 10.65,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "2ADzKPihP5yvGiyXNHFqs8",
+          "name": "RB Apt N1 Child Window",
+          "description": "",
+          "start": {
+            "x": 12.85,
+            "y": 12.0
+          },
+          "end": {
+            "x": 14.65,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
         }
       ],
       "virtual_elements": [],
@@ -2068,7 +2196,8 @@
           "position": 1.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3DSo6FRev7BxrqbN4ZdDao",
@@ -2079,7 +2208,8 @@
           "position": 5.5,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "1sM4g_onLCTAkB_9lBtMw0",
@@ -2090,7 +2220,8 @@
           "position": 12.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "14XZ3hBhn7HAF8H$tjYhCz",
@@ -2101,7 +2232,8 @@
           "position": 9.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "3eimeZ3kv0uOMWYSrSvk68",
@@ -2112,7 +2244,8 @@
           "position": 5.5,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2jhkvvZEDCYviNJYgD2vv7",
@@ -2123,7 +2256,8 @@
           "position": 9.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         },
         {
           "global_id": "2VnSaPBQb7yRrrIm_eALgx",
@@ -2134,7 +2268,8 @@
           "position": 13.0,
           "width": 1.5,
           "height": 1.5,
-          "sill_height": 0.9
+          "sill_height": 0.9,
+          "pane_side": "outer"
         }
       ],
       "roofs": [],
@@ -2168,6 +2303,127 @@
           "width": 1.2,
           "riser_height": 0.175,
           "tread_length": 0.28
+        }
+      ],
+      "beams": [
+        {
+          "global_id": "1vBsG1EpT6a8xQQuiimiFp",
+          "name": "RB Apt S1 Living Window",
+          "description": "",
+          "start": {
+            "x": 0.85,
+            "y": 0.0
+          },
+          "end": {
+            "x": 2.65,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "0PkDuOn0D8XQKAY$oSbeBl",
+          "name": "RB Apt S1 Bedroom Window",
+          "description": "",
+          "start": {
+            "x": 5.35,
+            "y": 0.0
+          },
+          "end": {
+            "x": 7.15,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "3XjWNZ0g156AP087LPVn7I",
+          "name": "RB Apt S2 Living Window",
+          "description": "",
+          "start": {
+            "x": 11.85,
+            "y": 0.0
+          },
+          "end": {
+            "x": 13.65,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "1V5pteNj55zhO988j6kGOG",
+          "name": "RB Apt S2 Bedroom Window",
+          "description": "",
+          "start": {
+            "x": 8.85,
+            "y": 0.0
+          },
+          "end": {
+            "x": 10.65,
+            "y": 0.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "3ijO7NdAD0ywtqoJDZTFbF",
+          "name": "RB Apt N1 Living Window",
+          "description": "",
+          "start": {
+            "x": 5.35,
+            "y": 12.0
+          },
+          "end": {
+            "x": 7.15,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "3yh6zbXLr1vwIwOqj0xvpr",
+          "name": "RB Apt N1 Master Window",
+          "description": "",
+          "start": {
+            "x": 8.85,
+            "y": 12.0
+          },
+          "end": {
+            "x": 10.65,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
+        },
+        {
+          "global_id": "3Wdu9h3A519PrJ0w0GgF8E",
+          "name": "RB Apt N1 Child Window",
+          "description": "",
+          "start": {
+            "x": 12.85,
+            "y": 12.0
+          },
+          "end": {
+            "x": 14.65,
+            "y": 12.0
+          },
+          "width": 0.25,
+          "depth": 0.35,
+          "z_top": 2.75,
+          "material": "rc"
         }
       ],
       "virtual_elements": [],

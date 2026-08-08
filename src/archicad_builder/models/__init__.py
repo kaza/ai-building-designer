@@ -2,6 +2,7 @@
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.elements import (
+    Beam,
     Door,
     DoorOperationType,
     Roof,
@@ -20,6 +21,7 @@ from archicad_builder.models.spaces import Apartment, RoomType, Space
 
 __all__ = [
     "Apartment",
+    "Beam",
     "Building",
     "Door",
     "DoorOperationType",

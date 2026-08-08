@@ -59,6 +59,7 @@ def _copy_story_elements(
     target.doors = []
     target.windows = []
     target.staircases = []
+    target.beams = []
     target.virtual_elements = []
     target.spaces = []
     target.apartments = []
@@ -94,6 +95,11 @@ def _copy_story_elements(
     for slab in source.slabs:
         new_slab = slab.model_copy(update={"global_id": generate_ifc_id()})
         target.slabs.append(new_slab)
+
+    # Copy beams (ring beams / lintels — forgetting them re-trips E062 on
+    # every replicated floor; Codex review 2026-08-08)
+    for beam in source.beams:
+        target.beams.append(beam.model_copy(update={"global_id": generate_ifc_id()}))
 
     # Copy staircases
     for staircase in source.staircases:

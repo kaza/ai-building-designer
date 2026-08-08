@@ -315,6 +315,22 @@ story = b.get_story(GF)
 assert story is not None
 story.apartments.append(apartment)
 
+# --- Ring beams over every wide opening on a bearing wall (E062) ---
+# The load-takedown experiment (2026-08-08): 0.20m wall bands over these
+# spans fail 6-144x; the roof was structurally resting on glass. Upstand
+# ring-beam segments (depth = span/10 heuristic, hidden in the wall band
+# + roof-edge zone) carry it instead. Phase B sizes them for real loads.
+for _opening in (
+    "Kitchen Window",
+    "Living Band Window",       # west clerestory (Win3)
+    "Living Glass W2",          # west clerestory (Win2)
+    "Living Sliding Window",    # Win4
+    "Living Band Window N",     # Win7
+    "Hallway Window",           # Win6 — the 5.3m showstopper (0.55 deep)
+):
+    b.add_beam_over(GF, _opening)
+b.add_beam_over(GAR, "Garage Vehicle Door")
+
 garage_story = b.get_story(GAR)
 assert garage_story is not None
 garage_story.spaces.append(space(

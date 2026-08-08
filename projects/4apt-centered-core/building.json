@@ -1237,6 +1237,7 @@
           "tread_length": 0.28
         }
       ],
+      "beams": [],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [
@@ -3122,6 +3123,7 @@
           "tread_length": 0.28
         }
       ],
+      "beams": [],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [
