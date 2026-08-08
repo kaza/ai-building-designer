@@ -10,7 +10,7 @@
 
 <div class="grid">
   {% for p in plans %}
-  <figure><img data-src="{{ p.url }}" alt="{{ p.caption }}">
+  <figure><a href="{{ p.url }}" target="_blank"><img data-src="{{ p.url }}" alt="{{ p.caption }}"></a>
     <figcaption>{{ p.caption }}</figcaption></figure>
   {% endfor %}
 </div>
