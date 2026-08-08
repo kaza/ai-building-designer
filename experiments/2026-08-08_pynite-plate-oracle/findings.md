@@ -21,7 +21,7 @@
    design. Promotable: E062 should merge openings separated by less
    than ~a pier width into one effective opening.
 
-5. **The deck cantilever loads the corner beams, not just the roof.**
+3. **The deck cantilever loads the corner beams, not just the roof.**
    With beams meshed (attempt 08, converged 0.4→0.18): RB Living Glass
    W2 at 2.15 and RB Living Sliding Window at 1.25 — the cantilever's
    back-forces anchor into the two beams at the deck corner. The strip
@@ -30,7 +30,7 @@
    designed (0.01–0.23). Any fix for the deck (columns / shorter roof /
    thicker edge) must re-check these two members.
 
-3. **Per-panel strips understate moments where panels are continuous.**
+4. **Per-panel strips understate moments where panels are continuous.**
    The deck cantilever's hogging anchors across the shared Roof West /
    Roof East edge: FEM says Roof East 1.71 vs strip 0.76 (UNDER ×2.2,
    converged, attempt 05); Roof South shows the same effect (≥1.2 vs
@@ -40,7 +40,7 @@
    continuous-strip work must either join coplanar adjoining panels or
    keep this FEM as the check that catches it.
 
-4. **Pier/jamb concentrations are real and measurable.** Walls hosting
+5. **Pier/jamb concentrations are real and measurable.** Walls hosting
    the wide openings concentrate base stress far above the whole-wall
    average the strip engine reports: North Wall 1.32 vs 0.14, Living
    East Wall 1.56 vs 0.25 (converged, attempt 05). E066's gross-average
