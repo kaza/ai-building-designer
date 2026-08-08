@@ -23,3 +23,13 @@
   unchanged — removal of one opening does not relieve its neighbors
   (tributary loads are per-wall-strip, not redistributed). Worst
   remains Hallway Window: 144x plain / 20x with 2Ø12 over 5.55 m.
+
+## Attempt 04 — 2026-08-08 ~14:00 (garage A + x=4.5 bearing line)
+- Input: building.json with garage x4.5-9.5/y0.6-8 and Living East Wall
+  load-bearing. Command: same → logs/attempt-04-garage-A.txt
+- Result: E/W facade line loads drop ~35-45% (west 86→51 kN/m, east
+  75→49). Win6: 144x→95x plain (20x→13x with 2Ø12); Win2: 25x→15x
+  (3.5x→2.1x). North facade unchanged (the new line runs N-S). New row
+  "Vila Kitchen Door" on the now-bearing x=4.5 wall passes (0.63).
+- Conclusion: the bearing line is the enabler, not the cure — every wide
+  opening still needs an engineered beam (ring-beam / E06x feature).

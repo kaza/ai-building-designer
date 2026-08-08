@@ -66,6 +66,17 @@ IFC would show openings sunk below the finished floor. Nothing caught it.
   sink, deck furniture) must shift with the datum — the flip is a breaking
   change for any hand-authored elevation.
 
+## E050 — partial basements (2026-08-08)
+A load-bearing wall needs aligned support below ONLY where it stands over
+the lower storey's slab footprint (union of slab outlines, +0.05m mitre
+buffer); portions outside stand on foundations/grade and are exempt.
+Support = parallel (±15°) lower bearing walls, flat-cap buffered by
+thickness/2 + 0.1; the longest contiguous unsupported inside run ≥ 0.1m
+errors. A lower storey with NO slab geometry falls back to the legacy
+whole-wall check — missing data must not silently exempt (Codex review).
+Why: the old whole-wall rule force-modeled full basements (villa-maketa
+grew a 90 m² garage as a workaround). Tests: test_e050_partial_basement.py.
+
 ## Decision log
 | Date | Decision | Why |
 |------|----------|-----|

@@ -1,0 +1,19 @@
+opening                            wall                      span  band    q_A    q_B    M_A util_plain_A util_plain_B util_2xO12_A
+Kitchen Window                     South Wall                1.75  0.20   51.0   34.6   19.5         9.75         6.62         1.38
+Living Band Window                 West Wall                 3.60  0.20   51.0   34.6   82.5        41.27        28.03         5.83
+Living Glass W2                    West Wall                 2.15  0.20   51.0   34.6   29.4        14.72        10.00         2.08
+Living Sliding Window              Living North Wall         2.40  0.20  134.4   90.2   96.8        48.39        32.46         6.84
+Room 2 Sliding Door                North Wall                1.35  0.20  139.6   93.6   31.8        15.90        10.66         2.25
+Hallway Window                     East Wall                 5.55  0.20   49.2   33.4  189.5        94.74        64.38        13.39
+Living Band Window N               Living North Wall         2.60  0.20  134.4   90.2  113.6        56.79        38.09         8.02
+Vila Entry Door                    South Wall East           1.25  0.90   58.0   41.7   11.3         0.28         0.20         0.15
+Vila Kitchen Door                  Living East Wall          1.15  0.90   61.9   42.4   10.2         0.63         0.43         0.13
+Vila Room 2 Terrace Door           North Wall                1.35  0.20  139.6   93.6   31.8        15.90        10.66         2.25
+Vila Master Bedroom Terrace Door   Master North Wall         1.20  0.20  149.7  100.3   26.9        13.47         9.03         1.90
+Vila Master Bedroom Terrace Door S Master North Wall         0.80  0.20  149.7  100.3   12.0         5.99         4.01         0.85
+
+util > 1.0 = section fails that check (plain = unreinforced band;
+2xO12 = minimally reinforced RC ring beam). Scenario A = roof as
+modeled (0.45m solid RC), B = realistic build-up. ULS 1.35G+1.5S.
+
+worst plain-band utilization: Hallway Window over East Wall: 94.7x (scenario A)

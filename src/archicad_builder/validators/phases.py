@@ -22,7 +22,9 @@ from __future__ import annotations
 
 import math
 
+from shapely.geometry import LineString as ShapelyLine
 from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.ops import unary_union
 from shapely.validation import make_valid
 
 from archicad_builder.models.building import Building, Story
@@ -1223,12 +1225,33 @@ def validate_phase6_vertical(building: Building) -> list[ValidationError]:
         upper = stories[i]
         lower = stories[i - 1]
 
-        # E050: Load-bearing walls not vertically aligned
+        # E050: Load-bearing walls must be supported below — but only where
+        # the lower storey actually exists. A wall (or portion) outside the
+        # lower slab footprint stands on foundations/grade and needs nothing
+        # (2026-08-08: the old whole-wall rule force-modeled full basements —
+        # villa-maketa grew a 90 m² garage because of it). A lower storey
+        # with NO slab geometry falls back to the legacy whole-wall check:
+        # missing data must not silently exempt (Codex review 2026-08-08).
         upper_bearing = [w for w in upper.walls if w.load_bearing]
         lower_bearing = [w for w in lower.walls if w.load_bearing]
+        footprint = _storey_footprint(lower)
 
         for wall in upper_bearing:
-            if not _has_aligned_wall(wall, lower_bearing, tolerance=0.1):
+            if footprint is None:
+                if not _has_aligned_wall(wall, lower_bearing, tolerance=0.1):
+                    errors.append(ValidationError(
+                        severity="error",
+                        element_type="Wall",
+                        element_id=wall.global_id,
+                        message=(
+                            f"E050: Load-bearing wall '{wall.name}' on "
+                            f"'{upper.name}' has no aligned wall below on "
+                            f"'{lower.name}'."
+                        ),
+                    ))
+                continue
+            unsupported = _unsupported_length(wall, footprint, lower_bearing)
+            if unsupported >= 0.1:
                 errors.append(ValidationError(
                     severity="error",
                     element_type="Wall",
@@ -1236,7 +1259,8 @@ def validate_phase6_vertical(building: Building) -> list[ValidationError]:
                     message=(
                         f"E050: Load-bearing wall '{wall.name}' on "
                         f"'{upper.name}' has no aligned wall below on "
-                        f"'{lower.name}'."
+                        f"'{lower.name}' ({unsupported:.2f}m over the "
+                        f"lower storey lacks support)."
                     ),
                 ))
 
@@ -1387,6 +1411,56 @@ def _opening_footprint(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
+
+def _storey_footprint(story):
+    """Union of a storey's slab outlines, mitre-buffered 0.05m so a wall
+    centerline riding the slab edge still counts as inside. None when the
+    storey has no valid slab geometry (caller falls back to legacy check)."""
+    polys = []
+    for slab in story.slabs:
+        if len(slab.outline.vertices) < 3:
+            continue
+        p = ShapelyPolygon([(v.x, v.y) for v in slab.outline.vertices])
+        if not p.is_valid:
+            p = make_valid(p)
+        if not p.is_empty:
+            polys.append(p)
+    if not polys:
+        return None
+    return unary_union(polys).buffer(0.05, join_style=2)
+
+
+def _unsupported_length(wall, footprint, lower_bearing) -> float:
+    """Longest contiguous run of `wall`'s centerline that lies over the
+    lower footprint without a parallel load-bearing wall body under it.
+    Parallel filter + flat-cap thickness buffers per Codex review
+    2026-08-08 — round caps would fake ~15cm of support past wall ends,
+    and perpendicular crossings are not support."""
+    line = ShapelyLine([(wall.start.x, wall.start.y), (wall.end.x, wall.end.y)])
+    if line.length < 1e-6:
+        return 0.0
+    inside = line.intersection(footprint)
+    if inside.is_empty or inside.length < 0.1:
+        return 0.0  # on grade
+    ux = (wall.end.x - wall.start.x) / line.length
+    uy = (wall.end.y - wall.start.y) / line.length
+    supports = []
+    for other in lower_bearing:
+        seg = ShapelyLine([(other.start.x, other.start.y),
+                           (other.end.x, other.end.y)])
+        if seg.length < 1e-6:
+            continue
+        ox = (other.end.x - other.start.x) / seg.length
+        oy = (other.end.y - other.start.y) / seg.length
+        if abs(ux * oy - uy * ox) > 0.26:  # ~15 degrees off parallel
+            continue
+        supports.append(seg.buffer(other.thickness / 2 + 0.1, cap_style=2))
+    uncovered = inside.difference(unary_union(supports)) if supports else inside
+    if uncovered.is_empty:
+        return 0.0
+    pieces = getattr(uncovered, "geoms", [uncovered])
+    return max((g.length for g in pieces), default=0.0)
+
 
 def _has_aligned_wall(wall, candidates: list, tolerance: float) -> bool:
     """Check if a wall has a vertically aligned counterpart."""

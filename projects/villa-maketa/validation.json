@@ -14,16 +14,6 @@
       "reason": "4.2m2 master en-suite; adaptable-housing minimum waived by owner"
     },
     {
-      "rule": "E050",
-      "match": "'South Wall' on 'Ground Floor'",
-      "reason": "maquette photo #22: GF south facade cantilevers 0.6m over the recessed garage face"
-    },
-    {
-      "rule": "E050",
-      "match": "'South Wall East' on 'Ground Floor'",
-      "reason": "maquette photo #22: GF south facade cantilevers 0.6m over the recessed garage face"
-    },
-    {
       "rule": "E011",
       "match": "'Garage' has no door to the vertical core",
       "reason": "open private spiral stair, no enclosed core; fire-core rule is for multi-party blocks"

@@ -18,8 +18,12 @@ INT = 0.12       # interior wall thickness
 
 b = Building(name="Villa Maketa", description="Villa from cardboard maquette: garage + ground floor")
 
-# ── Garage storey (full L-footprint basement; E050 needs every GF
-#    load-bearing wall aligned with one below) ─────────────────────────
+# ── Garage storey — Option A (owner 2026-08-08): x4.5-9.5 × y0.6-8,
+#    ~37m² / 2 cars, under the east block only. The old full-L basement was
+#    an E050 workaround; E050 now understands partial basements (walls
+#    outside the footprint stand on foundations). The garage perimeter sits
+#    exactly under the GF bearing lines x=4.5 / x=9.5 / y=8, making x=4.5 a
+#    real bearing line for the roof (load-takedown experiment 2026-08-08). ──
 GAR = "Garage"
 GH = 2.89  # clear 2.52 after 0.37 structure — exactly the W001 target
 b.add_story(GAR, height=GH, elevation=-GH)
@@ -36,24 +40,19 @@ def gwall(name, start, end):
 # (GF cantilevers over it, carport-style); the spiral-stair shaft pokes
 # through the gap x6.1-7.6. Side walls keep their full length to the y=0
 # corners — the stone reaches the front, only the door plane is recessed.
-gwall("Garage South Wall", (0, 0.6), (6.1, 0.6))
-gwall("Garage East Wall", (9.5, 0), (9.5, 12))
-gwall("Garage North Wall", (9.5, 12), (6.0, 12))
-gwall("Garage West Wall Upper", (6.0, 12), (6.0, 8))
-gwall("Garage North Wall West", (6.0, 8), (4.5, 8))
-gwall("Garage Northwest Wall", (4.5, 8), (0, 8))
-gwall("Garage West Wall", (0, 8), (0, 2.7))
-# appended AFTER the original seven so their W1-W7 tags stay stable
+gwall("Garage South Wall", (4.5, 0.6), (6.1, 0.6))
 gwall("Garage South Wall East", (7.6, 0.6), (9.5, 0.6))
-# mirrors the GF west-wall split (E050 wants exact segment alignment)
-gwall("Garage West Wall South", (0, 2.7), (0, 0))
+gwall("Garage East Wall", (9.5, 0), (9.5, 8))
+gwall("Garage North Wall", (9.5, 8), (4.5, 8))
+gwall("Garage West Wall", (4.5, 8), (4.5, 0))
 
-# vehicle door on the south wall (driveway from the south); NOTDEFINED =
-# sectional, no swing arc and no lever handles (framework skips both)
-b.add_door(GAR, "Garage South Wall", position=1.0, width=2.4, height=2.1,
+# vehicle door on the EAST wall (owner 2026-08-08) — the shrunk south face
+# has only 1.6m/1.9m segments beside the stair shaft, a 2.4m door no longer
+# fits there; driveway approaches from the east. NOTDEFINED = sectional.
+b.add_door(GAR, "Garage East Wall", position=1.0, width=2.4, height=2.1,
            name="Garage Vehicle Door",
            operation_type=DoorOperationType.NOTDEFINED)
-b.add_slab(GAR, [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
+b.add_slab(GAR, [(4.5, 0.6), (9.5, 0.6), (9.5, 8), (4.5, 8)],
            thickness=0.25, name="Garage Slab")
 # spiral stair shaft aligned with the ground-floor one (E051); straddles the
 # south facade — the tower is half OUTSIDE the house (maquette photo #22)
@@ -95,6 +94,11 @@ w_west.finish = "accent"
 # Naming matters: validators match corridor walls and doors by name
 # (E022 wants "corridor" in a wall name; E070 wants "<apt> <room> Door").
 w_divider = wall("Living East Wall", (4.5, 0), (4.5, 8))          # west column vs center
+# The x=4.5 line is the interior BEARING line (garage west wall directly
+# below): halves the roof spans so the band-window facades stop carrying
+# the whole roof (load-takedown experiment 2026-08-08). Kept at INT
+# thickness — a 12cm RC bearing wall; sizing is the future E06x feature.
+w_divider.load_bearing = True
 w_hall_w = wall("Corridor West Wall", (8, 2.5), (8, 8))           # hallway vs baths/master
 w_bath_s = wall("Bath South Wall", (4.5, 2.5), (8, 2.5))          # passage vs baths
 # Guest bathroom needs >= 1.30m CLEAR between W11 and W9 (owner requirement —
@@ -315,7 +319,7 @@ garage_story = b.get_story(GAR)
 assert garage_story is not None
 garage_story.spaces.append(space(
     "Garage", RoomType.UTILITY,
-    [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
+    [(4.5, 0.6), (9.5, 0.6), (9.5, 8), (4.5, 8)],
 ))
 
 out = Path(__file__).parent / "building.json"
