@@ -36,6 +36,7 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 ## Decision log
 
 | 2026-08-08 | L toggles `off ↔ FEM x-ray` (`setStructuralMode`); `?loads=1` and `?xray=1` both map to fem; FEM mode raycasts fragments only | owner first asked for a 3-state cycle, then cut the strip paint mode the same evening ("only the second one is needed") — strip engine keeps validators + aim+I numbers ([fem-xray.md](fem-xray.md)) |
+| 2026-08-08 | Top-right HUD shows a live aim readout (throttled 150 ms): element name in normal mode, element + tile % + element max in X-ray mode; I still gives the detailed numbers | owner: "the top right text should always be showing the element I am pointing to… and in load mode the stress of the tile" |
 | 2026-08-08 | Building(z-up) → GLB scene transform is `(x, z, −y)`; fragments sanity-check their bbox against the model and console-warn on regression | same mapping paintByLoad already used; plan review demanded a runtime check over blind hardcoding |
 | Date | Decision | Why | Who |
 |------|----------|-----|-----|

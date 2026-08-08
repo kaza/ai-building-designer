@@ -478,12 +478,13 @@ let measureMode = false;
 let pendingPoint = null;   // first click of the current measurement
 let rubberLine = null;     // live preview line
 let infoText = '';
+let aimText = '';   // top-right live readout: what the crosshair points at
 
 function setHud() {
   const mode = measureMode
     ? (pendingPoint ? 'MEASURE — click second point' : 'MEASURE — click first point')
     : '';
-  hud.textContent = [mode, infoText, positionLine()].filter(Boolean).join('\\n');
+  hud.textContent = [mode, aimText, infoText, positionLine()].filter(Boolean).join('\\n');
 }
 
 function centerHit() {
@@ -744,14 +745,20 @@ function cycleStructural() {
   setStructuralMode(structuralMode === 'fem' ? 'off' : 'fem');
 }
 
-function femInfo() {
+function femHit() {
   const ray = new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2(0, 0), camera);
   const hits = ray.intersectObjects(femLookup || [], false);
-  if (!hits.length) { infoText = 'no fragment hit'; setHud(); return; }
+  if (!hits.length) return null;
   const mesh = hits[0].object;
   const q = mesh.userData.femIds[Math.floor(hits[0].faceIndex / 2)];
-  const el = femEnv.elems[femEnv.quads.elem[q]];
+  return { q, el: femEnv.elems[femEnv.quads.elem[q]] };
+}
+
+function femInfo() {
+  const hit = femHit();
+  if (!hit) { infoText = 'no fragment hit'; setHud(); return; }
+  const { q, el } = hit;
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
     'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity\\n' +
     'element max ' + Math.round(el.u * 100) + '%';
@@ -1343,7 +1350,27 @@ const move = new THREE.Vector3();
 let hudFrame = 0;
 let labelFrame = 0;
 let labelsOn = false;  // N — persistent tag badges while walking
+let _aimLast = 0;
+function updateAim(now) {
+  if (now - _aimLast < 150 || !ready) return;
+  _aimLast = now;
+  let next = '';
+  if (!measureMode && !fbMode) {
+    if (structuralMode === 'fem') {
+      const hit = femHit();
+      if (hit) next = hit.el.name + ' — tile ' +
+        Math.round(femEnv.quads.u[hit.q] * 100) + '% · element max ' +
+        Math.round(hit.el.u * 100) + '%';
+    } else {
+      const hit = centerHit();
+      if (hit) next = displayName(semanticNode(hit.object).label);
+    }
+  }
+  if (next !== aimText) { aimText = next; setHud(); }
+}
+
 renderer.setAnimationLoop(() => {
+  updateAim(performance.now());
   const dt = Math.min(clock.getDelta(), 0.1); // clamp after tab suspension
   // Movement works the moment the scene is up (owner: "commands should
   // work right away") — only mouse-look waits for the pointer-lock click,
