@@ -21,6 +21,7 @@ import json
 import os
 import re
 import time
+import urllib.request
 from pathlib import Path
 
 import psycopg
@@ -41,13 +42,33 @@ FEEDBACK_CONTAINER = "feedback"
 MAX_BODY = 30_000_000  # same cap as serve.py — a full-screen PNG data URL
 
 app = FastAPI()
-# Fail-fast transport: App Service reaps idle outbound sockets silently, and
-# a stale blob connection hung /{project}/ requests for 60s+ (probed live
-# 2026-08-08 — the "stuck sometimes"). With short timeouts a dead socket
-# errors in seconds and azure-core's retry policy re-dials fresh.
-_blob = BlobServiceClient.from_connection_string(
-    STORAGE_CONN, connection_timeout=5, read_timeout=15)
-BLOB_BASE = f"https://{_blob.account_name}.blob.core.windows.net"
+# THE rule of this deployment, learned the hard way (DB pool wedged a worker;
+# kept-alive blob sockets stalled first-after-idle requests up to 37s even
+# WITH read timeouts — the SDK retried through several rotten sockets in a
+# row): NO long-lived outbound connections of any kind. App Service reaps
+# idle sockets silently. Public blob reads use one fresh Connection: close
+# request; SDK operations get a fresh client per request.
+BLOB_BASE = (
+    f"https://{BlobServiceClient.from_connection_string(STORAGE_CONN).account_name}"
+    ".blob.core.windows.net"
+)
+
+
+def blob_service() -> BlobServiceClient:
+    return BlobServiceClient.from_connection_string(
+        STORAGE_CONN, connection_timeout=5, read_timeout=15)
+
+
+def fetch_public(path: str) -> bytes:
+    req = urllib.request.Request(
+        f"{BLOB_BASE}/{path}", headers={"Connection": "close"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.read()
+    except urllib.error.HTTPError as err:
+        if err.code == 404:
+            raise HTTPException(404, f"not published: {path}") from err
+        raise
 
 _jinja = Environment(
     loader=FileSystemLoader(Path(__file__).parent / "templates"),
@@ -76,10 +97,8 @@ def get_build(project: str) -> dict:
     hit = _build_cache.get(project)
     if hit and now - hit[0] < _BUILD_TTL:
         return hit[1]
-    blob = _blob.get_blob_client(PROJECTS_CONTAINER, f"{project}/build.json")
-    if not blob.exists():
-        raise HTTPException(404, f"no published build for {project!r}")
-    build = json.loads(blob.download_blob().readall())
+    build = json.loads(
+        fetch_public(f"{PROJECTS_CONTAINER}/{project}/build.json"))
     _build_cache[project] = (now, build)
     return build
 
@@ -98,7 +117,7 @@ def project_row(project: str) -> tuple:
 def health():
     with db() as conn:
         conn.execute("SELECT 1")
-    _blob.get_container_client(PROJECTS_CONTAINER).exists()
+    blob_service().get_container_client(PROJECTS_CONTAINER).exists()
     return {"ok": True}
 
 
@@ -158,7 +177,7 @@ def feedback_shot(project: str, fb_id: int):
         ).fetchone()
     if row is None or not row[0]:
         raise HTTPException(404, f"no screenshot for feedback {fb_id}")
-    blob = _blob.get_blob_client(FEEDBACK_CONTAINER, row[0])
+    blob = blob_service().get_blob_client(FEEDBACK_CONTAINER, row[0])
     return Response(
         blob.download_blob().readall(), media_type="image/png",
         headers={"Cache-Control": "public, max-age=86400, immutable"},
@@ -171,10 +190,8 @@ def walkthrough(project: str):
     # relative fetch('feedback') lands on POST /{project}/feedback below.
     project_row(project)
     build = get_build(project)
-    blob = _blob.get_blob_client(
-        PROJECTS_CONTAINER, f"{project}/{build['walkthrough']}"
-    )
-    return HTMLResponse(blob.download_blob().readall())
+    return HTMLResponse(
+        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['walkthrough']}"))
 
 
 @app.get("/{project}/{model_file}.glb")
@@ -230,7 +247,7 @@ async def submit_feedback(project: str, request: Request):
         ).fetchone()
         fb_id = row[0]
         key = f"{project}/{fb_id:05d}.png"
-        _blob.get_blob_client(FEEDBACK_CONTAINER, key).upload_blob(
+        blob_service().get_blob_client(FEEDBACK_CONTAINER, key).upload_blob(
             png, overwrite=True,
             content_settings=ContentSettings(content_type="image/png"),
         )
