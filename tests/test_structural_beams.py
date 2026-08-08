@@ -215,6 +215,8 @@ class TestBeamIfcExport:
         assert abs(z - (-3.0 + 3.2 - 0.5)) < 1e-6
 
     def test_zero_length_beam_rejected(self):
-        with pytest.raises(Exception):
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError):
             Beam(name="dot", start=Point2D(x=1, y=1), end=Point2D(x=1, y=1),
                  width=0.3, depth=0.4, z_top=3.0)
