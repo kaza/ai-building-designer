@@ -1,0 +1,9 @@
+
+== ss_strip (1-way, L=4, q=10) ==
+  midspan Mx [kNm/m]                 computed    19.9951  expected    20.0000  ratio  1.000  PASS
+  midspan deflection [m]             computed     0.0016  expected     0.0016  ratio  0.998  PASS
+  sum reactions Rz [kN]              computed    40.0000  expected    40.0000  ratio  1.000  PASS
+  => PASS
+
+==== SUMMARY ====
+  ss_strip     PASS

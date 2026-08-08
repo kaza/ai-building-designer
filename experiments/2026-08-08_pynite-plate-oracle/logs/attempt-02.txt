@@ -1,0 +1,23 @@
+
+== cantilever (L=2, q=10) ==
+  root Mx [kNm/m]                    computed    21.2373  expected    20.0000  ratio  1.062  PASS
+  tip deflection [m]                 computed     0.0010  expected     0.0010  ratio  0.994  PASS
+  sum reactions Rz [kN]              computed    20.0000  expected    20.0000  ratio  1.000  PASS
+  => PASS
+
+== two_span (2x4 m continuous) ==
+  support Mx [kNm/m]                 computed    19.2023  expected    20.0000  ratio  0.960  PASS
+  center reaction [kN]               computed    50.0234  expected    50.0000  ratio  1.000  PASS
+  end reaction [kN]                  computed    14.9883  expected    15.0000  ratio  0.999  PASS
+  sum reactions Rz [kN]              computed    80.0000  expected    80.0000  ratio  1.000  PASS
+  => PASS
+
+== wall_axial (3x4 m, 100 kN/m top) ==
+  base reaction [kN]                 computed   400.0000  expected   400.0000  ratio  1.000  PASS
+  mid-height sigma_y [kN/m2]         computed   335.9626  expected   333.3333  ratio  1.008  PASS
+  => PASS
+
+==== SUMMARY ====
+  cantilever   PASS
+  two_span     PASS
+  wall_axial   PASS

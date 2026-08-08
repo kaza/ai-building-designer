@@ -1,0 +1,377 @@
+{
+ "IfcSlab_Roof_East": {
+  "kind": "slab",
+  "u": 1.741,
+  "M": 164.9,
+  "balance": 1.0
+ },
+ "IfcSlab_Roof_South_White": {
+  "kind": "slab",
+  "u": 1.204,
+  "M": 114.1,
+  "balance": 1.0
+ },
+ "IfcSlab_Roof_West": {
+  "kind": "slab",
+  "u": 1.335,
+  "M": 126.5,
+  "balance": 1.0
+ },
+ "IfcSlab_Ground_Slab": {
+  "kind": "slab",
+  "u": 0.332,
+  "M": 31.4,
+  "balance": 1.0
+ },
+ "IfcWallStandardCase_East_Wall": {
+  "kind": "wall",
+  "u": 0.315,
+  "profile": [
+   0.162,
+   0.011,
+   0.08,
+   0.059,
+   0.017,
+   0.103,
+   0.132,
+   0.155
+  ],
+  "q": 170.0,
+  "a": [
+   9.5,
+   0.0
+  ],
+  "b": [
+   9.5,
+   12.0
+  ]
+ },
+ "IfcWallStandardCase_Garage_East_Wall": {
+  "kind": "wall",
+  "u": 0.251,
+  "profile": [
+   0.105,
+   0.0,
+   0.0,
+   0.25,
+   0.229,
+   0.192,
+   0.143,
+   0.131
+  ],
+  "q": 135.3,
+  "a": [
+   9.5,
+   0.0
+  ],
+  "b": [
+   9.5,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_Garage_North_Wall": {
+  "kind": "wall",
+  "u": 0.194,
+  "profile": [
+   0.176,
+   0.141,
+   0.129,
+   0.124,
+   0.121,
+   0.115,
+   0.11,
+   0.131
+  ],
+  "q": 104.9,
+  "a": [
+   9.5,
+   8.0
+  ],
+  "b": [
+   4.5,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_Garage_South_Wall": {
+  "kind": "wall",
+  "u": 0.078,
+  "profile": [
+   0.082,
+   0.074,
+   0.072,
+   0.071,
+   0.071,
+   0.07,
+   0.066,
+   0.057
+  ],
+  "q": 42.0,
+  "a": [
+   4.5,
+   0.6
+  ],
+  "b": [
+   6.1,
+   0.6
+  ]
+ },
+ "IfcWallStandardCase_Garage_South_Wall_East": {
+  "kind": "wall",
+  "u": 0.093,
+  "profile": [
+   0.091,
+   0.092,
+   0.093,
+   0.093,
+   0.092,
+   0.09,
+   0.087,
+   0.087
+  ],
+  "q": 50.4,
+  "a": [
+   7.6,
+   0.6
+  ],
+  "b": [
+   9.5,
+   0.6
+  ]
+ },
+ "IfcWallStandardCase_Garage_West_Wall": {
+  "kind": "wall",
+  "u": 0.225,
+  "profile": [
+   0.091,
+   0.101,
+   0.148,
+   0.185,
+   0.215,
+   0.224,
+   0.217,
+   0.205
+  ],
+  "q": 121.7,
+  "a": [
+   4.5,
+   8.0
+  ],
+  "b": [
+   4.5,
+   0.0
+  ]
+ },
+ "IfcWallStandardCase_Living_East_Wall": {
+  "kind": "wall",
+  "u": 1.492,
+  "profile": [
+   0.162,
+   0.263,
+   0.189,
+   0.283,
+   0.441,
+   0.657,
+   1.08,
+   1.443
+  ],
+  "q": 322.3,
+  "a": [
+   4.5,
+   0.0
+  ],
+  "b": [
+   4.5,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_Living_North_Wall": {
+  "kind": "wall",
+  "u": 0.159,
+  "profile": [
+   0.039,
+   0.037,
+   0.037,
+   0.037,
+   0.019,
+   0.001,
+   0.001,
+   0.133
+  ],
+  "q": 85.9,
+  "a": [
+   4.5,
+   8.0
+  ],
+  "b": [
+   0.0,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_Master_North_Wall": {
+  "kind": "wall",
+  "u": 1.319,
+  "profile": [
+   1.925,
+   0.714,
+   0.639,
+   0.471,
+   0.333,
+   0.205,
+   0.02,
+   0.238
+  ],
+  "q": 712.4,
+  "a": [
+   6.0,
+   8.0
+  ],
+  "b": [
+   4.5,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_North_Wall": {
+  "kind": "wall",
+  "u": 1.27,
+  "profile": [
+   0.425,
+   1.27,
+   0.0,
+   0.0,
+   0.0,
+   0.006,
+   0.114,
+   0.208
+  ],
+  "q": 686.0,
+  "a": [
+   9.5,
+   12.0
+  ],
+  "b": [
+   6.0,
+   12.0
+  ]
+ },
+ "IfcWallStandardCase_Room_2_West_Wall": {
+  "kind": "wall",
+  "u": 0.32,
+  "profile": [
+   0.289,
+   0.15,
+   0.042,
+   0.055,
+   0.137,
+   0.219,
+   0.236,
+   0.134
+  ],
+  "q": 173.0,
+  "a": [
+   6.0,
+   12.0
+  ],
+  "b": [
+   6.0,
+   8.0
+  ]
+ },
+ "IfcWallStandardCase_South_Wall": {
+  "kind": "wall",
+  "u": 0.148,
+  "profile": [
+   0.123,
+   0.059,
+   0.071,
+   0.089,
+   0.096,
+   0.061,
+   0.024,
+   0.077
+  ],
+  "q": 79.9,
+  "a": [
+   0.0,
+   0.0
+  ],
+  "b": [
+   6.1,
+   0.0
+  ]
+ },
+ "IfcWallStandardCase_South_Wall_East": {
+  "kind": "wall",
+  "u": 0.297,
+  "profile": [
+   0.297,
+   0.199,
+   0.141,
+   0.044,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "q": 160.1,
+  "a": [
+   7.6,
+   0.0
+  ],
+  "b": [
+   9.5,
+   0.0
+  ]
+ },
+ "IfcWallStandardCase_West_Wall": {
+  "kind": "wall",
+  "u": 0.099,
+  "profile": [
+   0.06,
+   0.0,
+   0.005,
+   0.037,
+   0.037,
+   0.037,
+   0.037,
+   0.039
+  ],
+  "q": 53.2,
+  "a": [
+   0.0,
+   8.0
+  ],
+  "b": [
+   0.0,
+   2.7
+  ]
+ },
+ "IfcWallStandardCase_West_Wall_South": {
+  "kind": "wall",
+  "u": 0.359,
+  "profile": [
+   0.189,
+   0.162,
+   0.187,
+   0.246,
+   0.31,
+   0.339,
+   0.362,
+   0.333
+  ],
+  "q": 193.6,
+  "a": [
+   0.0,
+   2.7
+  ],
+  "b": [
+   0.0,
+   0.0
+  ]
+ },
+ "_assumptions": [
+  "PyNite 3.0.0 plate FEM, mesh 0.25 m, quads: 9621",
+  "same DesignBasis as the strip engine (ULS 1.35G+1.5Q, snow 1.32)",
+  "design values: 1 m strip-averaged plate moments / 0.5 m averaged wall base stress",
+  "load balance 1.0000"
+ ]
+}

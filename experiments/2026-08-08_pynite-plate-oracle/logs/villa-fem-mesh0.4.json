@@ -1,0 +1,150 @@
+{
+ "mesh": 0.4,
+ "nodes": 5162,
+ "quads": 5024,
+ "applied": 4817.211862499975,
+ "reactions": 4817.211862499208,
+ "results": {
+  "roof Roof East": {
+   "kind": "roof",
+   "mx_design": 160.53598565822713,
+   "my_design": 63.05305653632393,
+   "mx_peak": 179.70791307791885,
+   "my_peak": 70.04491399860137,
+   "cap": 94.74300000000001,
+   "u": 1.6944363769167867
+  },
+  "roof Roof South White": {
+   "kind": "roof",
+   "mx_design": 32.80124819145408,
+   "my_design": 110.90519739890483,
+   "mx_peak": 42.0099999232955,
+   "my_peak": 143.431959459761,
+   "cap": 94.74300000000001,
+   "u": 1.1705898842015223
+  },
+  "roof Roof West": {
+   "kind": "roof",
+   "mx_design": 114.78587772735033,
+   "my_design": 114.1521985153424,
+   "mx_peak": 133.45649855064715,
+   "my_peak": 142.39775853875085,
+   "cap": 94.74300000000001,
+   "u": 1.2115499585969445
+  },
+  "slab Ground Slab": {
+   "kind": "slab",
+   "mx_design": 31.50634844394776,
+   "my_design": 18.339291938107994,
+   "mx_peak": 31.76032851916497,
+   "my_peak": 18.615577856430797,
+   "cap": 94.74300000000001,
+   "u": 0.33254539590204824
+  },
+  "wall East Wall": {
+   "kind": "wall",
+   "sigma": 585.4601380478402,
+   "sigma_peak": 585.4601380478402,
+   "base_z": 0.025,
+   "u": 0.32525563224880016
+  },
+  "wall Garage East Wall": {
+   "kind": "wall",
+   "sigma": 456.8598095770965,
+   "sigma_peak": 457.021939262578,
+   "base_z": -2.715,
+   "u": 0.2538110053206092
+  },
+  "wall Garage North Wall": {
+   "kind": "wall",
+   "sigma": 366.8496132427885,
+   "sigma_peak": 366.8496132427885,
+   "base_z": -2.715,
+   "u": 0.20380534069043807
+  },
+  "wall Garage South Wall": {
+   "kind": "wall",
+   "sigma": 164.72466487425615,
+   "sigma_peak": 164.72466487425615,
+   "base_z": -2.715,
+   "u": 0.09151370270792009
+  },
+  "wall Garage South Wall East": {
+   "kind": "wall",
+   "sigma": 211.37426875882443,
+   "sigma_peak": 212.2234433540799,
+   "base_z": -2.715,
+   "u": 0.11743014931045802
+  },
+  "wall Garage West Wall": {
+   "kind": "wall",
+   "sigma": 414.1142281712633,
+   "sigma_peak": 414.1142281712633,
+   "base_z": -2.715,
+   "u": 0.23006346009514628
+  },
+  "wall Living East Wall": {
+   "kind": "wall",
+   "sigma": 2854.2346972145933,
+   "sigma_peak": 2854.2346972145933,
+   "base_z": 0.025,
+   "u": 1.5856859428969963
+  },
+  "wall Living North Wall": {
+   "kind": "wall",
+   "sigma": 747.1057309792347,
+   "sigma_peak": 747.1057309792347,
+   "base_z": 0.025,
+   "u": 0.4150587394329082
+  },
+  "wall Master North Wall": {
+   "kind": "wall",
+   "sigma": 3870.330047606353,
+   "sigma_peak": 3870.330047606353,
+   "base_z": 2.9,
+   "u": 2.150183359781307
+  },
+  "wall North Wall": {
+   "kind": "wall",
+   "sigma": 2335.0983894599867,
+   "sigma_peak": 3047.6490073955265,
+   "base_z": 0.025,
+   "u": 1.297276883033326
+  },
+  "wall Room 2 West Wall": {
+   "kind": "wall",
+   "sigma": 808.6608811019576,
+   "sigma_peak": 808.6608811019576,
+   "base_z": 0.025,
+   "u": 0.44925604505664307
+  },
+  "wall South Wall": {
+   "kind": "wall",
+   "sigma": 257.02586831012877,
+   "sigma_peak": 353.9617986207432,
+   "base_z": 0.025,
+   "u": 0.14279214906118265
+  },
+  "wall South Wall East": {
+   "kind": "wall",
+   "sigma": 548.5739471916452,
+   "sigma_peak": 672.3675059445876,
+   "base_z": 0.025,
+   "u": 0.30476330399535845
+  },
+  "wall West Wall": {
+   "kind": "wall",
+   "sigma": 172.30583046718462,
+   "sigma_peak": 376.83650713256117,
+   "base_z": 0.025,
+   "u": 0.09572546137065813
+  },
+  "wall West Wall South": {
+   "kind": "wall",
+   "sigma": 652.2621498147166,
+   "sigma_peak": 654.6654789470316,
+   "base_z": 0.025,
+   "u": 0.3623678610081759
+  }
+ }
+}
