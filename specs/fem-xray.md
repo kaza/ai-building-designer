@@ -101,6 +101,7 @@ like to see this when I click L."
 | 2026-08-08 | Field payload is a versioned envelope (schema, coord system, building digest, assumptions, balance, flat quantized arrays) | Codex #13 + Gemini payload review |
 | 2026-08-08 | villa publish gains optional FEM artifacts (both-or-neither, digest-checked against building.json); xray-only publishing for walkthrough-less projects is future work; PyNiteFEA pinned to 3.0.x | Codex #14/#16, CodeRabbit review |
 | 2026-08-08 | Tension-aware wall coloring: per-fragment governing component (vert compression vs Φ·f_d; horiz/vert tension vs fctd 1.0 MPa), component + MPa in tooltips; envelope gains parallel `g`/`s` arrays (additive, schema 1) | owner: beams looked useless in the beam-less X-ray because bands fail in bending tension, which wasn't painted |
+| 2026-08-08 | Standalone X-ray page carries its view in the URL hash `#v=px,py,pz,tx,ty,tz` (camera + orbit target, `controls.update()` after restore) with the same 1 s throttled `replaceState` writer and a copy-link button; the walkthrough's own hash scheme lives in [browser-walkthrough.md](browser-walkthrough.md) | owner: refresh keeps the view; a link sent to an engineer opens at the sender's exact view |
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |
 
 ## Acceptance

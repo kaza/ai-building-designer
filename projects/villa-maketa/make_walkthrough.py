@@ -262,7 +262,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
-       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; K — copy view link &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
@@ -271,6 +271,7 @@ TEMPLATE = """<!DOCTYPE html>
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
     <button class="tbtn" id="m-loads">X-ray: off</button>
+    <button class="tbtn" id="m-link">Copy view link</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
   <button class="tbtn" id="btn-down">&#9660;</button>
@@ -317,6 +318,59 @@ if (isTouch) {
     'left half — walk &nbsp;·&nbsp; right half — look around<br>' +
     '&#9650; / &#9660; — up / down &nbsp;·&nbsp; &#9998; Feedback — draw + comment';
 }
+// --- shareable view state in the URL hash (specs/browser-walkthrough.md) ---
+// #v=x,y,z,yaw,pitch[,xray] — the same camera numbers #debug= and the P
+// filename use. The incoming hash is frozen HERE, synchronously: a slow GLB
+// load must not let the writer clobber a pasted link before it is read
+// (Codex plan review). The writer stays off entirely in #debug mode.
+const DEBUG_MODE = location.hash.startsWith('#debug');
+const INITIAL_VIEW = (() => {
+  if (DEBUG_MODE || !location.hash.startsWith('#v=')) return null;
+  const parts = location.hash.slice(3).split(',');
+  const xray = parts.length === 6 && parts[5] === 'xray';
+  if (parts.length !== 5 && !xray) return null;
+  // Number('') is 0, so blank components must be rejected explicitly —
+  // '#v=,,,,' would otherwise teleport to the origin (Codex review).
+  if (parts.slice(0, 5).some((s) => s.trim() === '')) return null;
+  const nums = parts.slice(0, 5).map(Number);
+  if (!nums.every(Number.isFinite)) return null;
+  // finite but absurd is still unrecoverable: the camera far plane is 500 m,
+  // so a truncated/mangled 1e9 would show an empty screen AND be written
+  // straight back into the hash (CodeRabbit).
+  if (nums.slice(0, 3).some((v) => Math.abs(v) > 5000)) return null;
+  return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4], xray };
+})();
+let viewHashOn = false;   // flips on once the initial view (if any) applied
+let _lastViewHash = '';
+function writeViewHash() {
+  if (!viewHashOn || DEBUG_MODE) return;
+  const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '');
+  if (spec === _lastViewHash) return;  // change detector: Safari caps
+  try {                                // replaceState at 100 calls / 30 s
+    history.replaceState(history.state, '', '#v=' + spec);
+    _lastViewHash = spec;   // only after it landed — recording a write that
+  } catch (err) {           // threw would freeze the URL AND the copy link
+    console.warn('view hash update failed', err);   // cosmetic: keep flying
+  }
+}
+function copyViewLink() {
+  writeViewHash();   // flush first — the address bar can be up to 1 s stale
+  const prev = infoText;   // X-ray banner / I readout must survive the toast
+  const ok = () => {
+    infoText = 'view link copied';
+    setHud();
+    setTimeout(() => {
+      if (infoText === 'view link copied') { infoText = prev; setHud(); }
+    }, 2000);
+  };
+  // navigator.clipboard is undefined on plain http:// (non-localhost), and a
+  // HUD line cannot be selected while the pointer is locked — prompt() gives
+  // copyable text and releases the lock by itself.
+  const fail = () => prompt('Copy view link:', location.href);
+  if (!navigator.clipboard) { fail(); return; }
+  navigator.clipboard.writeText(location.href).then(ok, fail);
+}
+
 const errorBox = document.getElementById('error');
 const fatal = (err) => {
   console.error(err);
@@ -937,6 +991,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
   if (e.code === 'KeyL' && !e.repeat) cycleStructural();
+  if (e.code === 'KeyK' && !e.repeat) copyViewLink();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
     if (!labelsOn) clearFeedbackLabels();
@@ -1026,6 +1081,9 @@ if (isTouch) {
   });
   document.getElementById('m-loads').addEventListener('click', () => {
     cycleStructural();
+  });
+  document.getElementById('m-link').addEventListener('click', () => {
+    copyViewLink();
   });
   document.getElementById('m-names').addEventListener('click', (e) => {
     labelsOn = !labelsOn;
@@ -1340,6 +1398,19 @@ document.getElementById('fbundo').addEventListener('click', () => {
 // ?feedback=1 — open the panel; ?feedback=submit — also inject a stroke and
 // submit (exercises raycast tags + composite + POST). Test seams for
 // headless verification, same #debug gating as ?roof / ?measure.
+// #v= — restore a shared or refreshed view: exact camera, plus the X-ray if
+// the link carried it. Lives HERE, not in the loader block: the loader's
+// top-level await suspends module evaluation, so setStructuralMode's state
+// (`let structuralMode`) is still in its temporal dead zone up there.
+if (INITIAL_VIEW && ready) {
+  camera.position.set(INITIAL_VIEW.pos[0], INITIAL_VIEW.pos[1],
+                      INITIAL_VIEW.pos[2]);
+  camera.rotation.set(INITIAL_VIEW.pitch * Math.PI / 180,
+                      INITIAL_VIEW.yaw * Math.PI / 180, 0, 'YXZ');
+  if (INITIAL_VIEW.xray) setStructuralMode('fem');
+}
+viewHashOn = ready;   // a failed load must not overwrite a pasted link
+
 if (location.hash.startsWith('#debug') && ready) {
   const seams = new URLSearchParams(location.search);
   if (seams.get('loads') === '1' || seams.get('xray') === '1')
@@ -1366,6 +1437,7 @@ let hudFrame = 0;
 let labelFrame = 0;
 let labelsOn = false;  // N — persistent tag badges while walking
 let _aimLast = 0;
+let _viewLast = 0;   // 1 s throttle for the #v= URL writer
 function updateAim(now) {
   if (now - _aimLast < 150 || !ready) return;
   _aimLast = now;
@@ -1424,6 +1496,8 @@ renderer.setAnimationLoop(() => {
     camera.position.y += up * speed * 0.5 * dt;
   }
   if (hudFrame++ % 15 === 0) setHud();  // live position/room readout
+  const nowMs = performance.now();
+  if (nowMs - _viewLast > 1000) { _viewLast = nowMs; writeViewHash(); }
   if (labelsOn && !fbMode && labelFrame++ % 30 === 0) {
     clearFeedbackLabels();
     showFeedbackLabels();

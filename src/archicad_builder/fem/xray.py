@@ -111,6 +111,36 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(ctr);
 controls.update();
 
+// #v=px,py,pz,tx,ty,tz — shareable view (specs/fem-xray.md): camera + orbit
+// target, applied before first render; written back below, 1s-throttled.
+if (location.hash.startsWith('#v=')) {
+  const raw = location.hash.slice(3).split(',');
+  // Number('') is 0 — blank components must not pass as a valid view.
+  const v = raw.some(s => s.trim() === '') ? [] : raw.map(Number);
+  // finite but absurd is unrecoverable (it would be written back on the next
+  // frame), so the view must stay within a few model diameters of the model.
+  const sane = v.length === 6 && v.every(Number.isFinite) &&
+    v.every((c, i) => Math.abs(c - ctr.getComponent(i % 3)) < size * 10);
+  if (sane && (v[0] !== v[3] || v[1] !== v[4] || v[2] !== v[5])) {
+    camera.position.set(v[0], v[1], v[2]);
+    controls.target.set(v[3], v[4], v[5]);
+    controls.update();
+  } else console.warn('#v: ignoring malformed view', location.hash);
+}
+let _lastHash = '';
+function writeViewHash() {
+  const p = camera.position, t = controls.target;
+  const spec = [p.x, p.y, p.z, t.x, t.y, t.z]
+    .map(v => v.toFixed(2)).join(',');
+  if (spec === _lastHash) return;   // change detector: Safari caps
+  try {                             // replaceState at 100 calls / 30 s
+    history.replaceState(history.state, '', '#v=' + spec);
+    _lastHash = spec;   // only after it landed — recording a failed write
+  } catch (err) {       // would freeze both the URL and the copy link
+    console.warn('view hash update failed', err);   // cosmetic: keep drawing
+  }
+}
+
 const byKind = {};
 for (let q = 0; q < n; q++) {
   const kind = env.elems[elem[q]].kind;
@@ -149,6 +179,23 @@ for (const [kind, ids] of Object.entries(byKind)) {
   document.getElementById('hud').appendChild(label);
 }
 
+const copyBtn = document.createElement('button');
+copyBtn.textContent = 'copy view link';
+copyBtn.style.cssText = 'margin-top:6px;cursor:pointer;display:block';
+copyBtn.onclick = () => {
+  writeViewHash();   // flush first — the address bar can be up to 1 s stale
+  const ok = () => {
+    copyBtn.textContent = 'copied ✓';
+    setTimeout(() => { copyBtn.textContent = 'copy view link'; }, 1500);
+  };
+  // navigator.clipboard is undefined on plain http:// (non-localhost) — the
+  // prompt fallback is selectable text, unlike a button label.
+  const fail = () => prompt('Copy view link:', location.href);
+  if (!navigator.clipboard) { fail(); return; }
+  navigator.clipboard.writeText(location.href).then(ok, fail);
+};
+document.getElementById('hud').appendChild(copyBtn);
+
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
 const tip = document.getElementById('tip');
 addEventListener('mousemove', ev => {
@@ -181,8 +228,11 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+let _viewLast = 0;
 renderer.setAnimationLoop(() => {
   controls.update();
+  const now = performance.now();
+  if (now - _viewLast > 1000) { _viewLast = now; writeViewHash(); }
   renderer.render(scene, camera);
 });
 </script>
