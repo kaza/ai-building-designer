@@ -209,12 +209,13 @@ b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
 # showed its 3.85m band was one of the worst structural offenders (79x).
 
 # --- Slab (full L footprint) ---
-b.add_slab(
+gslab = b.add_slab(
     GF,
     [(0, 0), (9.5, 0), (9.5, 12), (6.0, 12), (6.0, 8), (0, 8)],
     thickness=0.25,
     name="Ground Slab",
 )
+gslab.span_direction = "x"  # over the garage: x=4.5 -> x=9.5 bearing lines
 
 # --- Outdoor: deck, pool, lawn (render/IFC only — outside the apartment) ---
 b.add_slab(
@@ -243,25 +244,30 @@ b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.1
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
 # skylight aperture over the deck). Two polygons frame the hole — a C-shaped
 # west part and an east strip (facade-finishes.md). ---
-b.add_roof(
+roof_w = b.add_roof(
     GF,
     [(-0.6, 2.7), (4.3, 2.7), (4.3, 9.2), (2.3, 9.2),
      (2.3, 11.2), (4.3, 11.2), (4.3, 12.6), (-0.6, 12.6)],
     thickness=0.45, name="Roof West", finish="roof_brown",
 )
-b.add_roof(
+# Structural span direction (Phase B, specs/structural-plausibility.md):
+# all roofs span E-W onto the x=0 / x=4.5 / x=9.5 bearing lines.
+roof_w.span_direction = "x"
+roof_e = b.add_roof(
     GF,
     [(4.3, 2.7), (10.1, 2.7), (10.1, 12.6), (4.3, 12.6)],
     thickness=0.45, name="Roof East", finish="roof_brown",
 )
+roof_e.span_direction = "x"
 # The roof splits into TWO clean rectangles (owner, P-shot 2026-08-06):
 # white south band + brown rest, tops flush at 3.45. The white part has NO
 # overhang — flush with the wall outer faces, "wall goes up then flat".
-b.add_roof(
+roof_s = b.add_roof(
     GF,
     [(-0.15, -0.15), (9.65, -0.15), (9.65, 2.7), (-0.15, 2.7)],
     thickness=0.45, name="Roof South White",
 )
+roof_s.span_direction = "x"
 
 # --- Spiral staircase down to garage (matches the maquette) ---
 b.add_staircase(
@@ -325,11 +331,11 @@ story.apartments.append(apartment)
 # experiment finding #3). rho 0.5% RC assumption; util <= ~0.9 each.
 for _opening, _depth in (
     ("Kitchen Window", None),          # heuristic 0.35 passes (util 0.28)
-    ("Living Band Window", 0.40),      # west clerestory (Win3) — was 1.17
+    ("Living Band Window", 0.50),      # west clerestory (Win3): Phase B single-direction load path raised q
     ("Living Glass W2", None),         # west clerestory (Win2), util 0.42
     ("Living Sliding Window", 0.45),   # Win4 — was 1.28 at 0.35
     ("Living Band Window N", 0.45),    # Win7 — was 1.50 at 0.35
-    ("Hallway Window", 0.60),          # Win6, 5.3m — was 1.02 at 0.55
+    ("Hallway Window", 0.70),          # Win6, 5.3m: Phase B load path, util ~0.7
 ):
     b.add_beam_over(GF, _opening, depth=_depth)
 b.add_beam_over(GAR, "Garage Vehicle Door")

@@ -83,6 +83,11 @@ class Slab(BaseModel):
         default=None,
         description="Renderer finish tag (specs/facade-finishes.md); None = default",
     )
+    span_direction: Literal["x", "y"] | None = Field(
+        default=None,
+        description="Structural one-way span axis (specs/structural-plausibility.md"
+                    " Phase B); None = structural analysis reports 'unresolved'",
+    )
 
     @property
     def area(self) -> float:
@@ -233,6 +238,10 @@ class Roof(BaseModel):
     description: str = ""
     outline: Polygon2D
     roof_type: RoofType = RoofType.FLAT
+    span_direction: Literal["x", "y"] | None = Field(
+        default=None,
+        description="Structural one-way span axis (Phase B); None = unresolved",
+    )
     pitch: float = Field(default=0.0, ge=0, le=89, description="Roof pitch in degrees")
     thickness: float = Field(default=0.3, gt=0, description="Roof thickness in meters")
     finish: str | None = Field(

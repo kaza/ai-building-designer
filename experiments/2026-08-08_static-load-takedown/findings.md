@@ -23,3 +23,13 @@
    11.25 kN/m² dead. Real flat roof ≈ 0.20 m RC + build-up ≈ 7 kN/m².
    The 0.45 in the model is a visual thickness (fascia look), which a
    structural phase must not take literally; scenario B exists for this.
+
+4. **Promoted (2026-08-08 evening).** The takedown method now lives in
+   `src/archicad_builder/structural.py` (Phase B: declared span
+   directions, cantilever moments, load conservation, E064-E066) — this
+   experiment's emitter is retired from the villa pipeline in favor of
+   `archicad_builder loads villa-maketa`. First framework run caught
+   Roof West's 4.3m deck cantilever at 1.95 utilization (E065, waived
+   pending the owner's columns-vs-shorter-roof decision) and exposed
+   that the experiment's both-directions tributary understated beam
+   loads (west band beam 0.87 -> 1.48 before resizing to 0.50 deep).

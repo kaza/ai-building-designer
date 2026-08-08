@@ -37,6 +37,10 @@
       "rule": "W060",
       "match": "Garage Vehicle Door",
       "reason": "2.4m vehicle door \u2014 garage doors are wide on purpose"
+    },
+    {
+      "rule": "E065",
+      "reason": "Roof West's deck strip cantilevers 4.3m with no western support \u2014 REAL finding (the floating deck roof, load-takedown experiment). Fix is an owner design decision pending: columns at the deck edge vs shortening the roof to the glass line (asked 2026-08-08)."
     }
   ]
 }

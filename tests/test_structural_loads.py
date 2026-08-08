@@ -33,8 +33,9 @@ def _box_building(with_mid_wall=False, roof_thickness=0.25,
                    name="Mid", is_external=False, load_bearing=True)
     b.add_slab("GF", [(0, 0), (6, 0), (6, 4), (0, 4)], thickness=0.25,
                name="Floor")
-    b.add_roof("GF", [(0, 0), (6, 0), (6, 4), (0, 4)],
-               thickness=roof_thickness, name="Roof")
+    roof = b.add_roof("GF", [(0, 0), (6, 0), (6, 4), (0, 4)],
+                      thickness=roof_thickness, name="Roof")
+    roof.span_direction = "x"
     return b
 
 
@@ -69,9 +70,9 @@ class TestComputeLoads:
         loads = compute_loads(_box_building())
         roof = loads["IfcSlab_Roof"]
         assert roof["kind"] == "slab"
-        # 6x4 box: governing one-way span ~4m -> well within a 0.25 strip
+        # 6x4 box spanning x: governing span ~6m
         assert 0.0 < roof["u"] < 1.0
-        assert roof["span"] == pytest.approx(4.0, abs=0.5)
+        assert roof["span"] == pytest.approx(6.0, abs=0.5)
 
     def test_mid_wall_cuts_the_roof_span(self):
         without = compute_loads(_box_building(with_mid_wall=False))
@@ -100,8 +101,9 @@ class TestStructuralValidators:
         ]:
             b.add_wall("GF", s, e, height=3.0, thickness=0.3,
                        name=name, is_external=True, load_bearing=True)
-        b.add_roof("GF", [(0, 0), (14, 0), (14, 12), (0, 12)],
-                   thickness=0.25, name="Big Roof")
+        roof = b.add_roof("GF", [(0, 0), (14, 0), (14, 12), (0, 12)],
+                          thickness=0.25, name="Big Roof")
+        roof.span_direction = "x"  # 14m one-way: hopeless, as intended
         errors = [e for e in validate_structural_loads(b)
                   if "E065" in e.message]
         assert len(errors) == 1
@@ -115,6 +117,39 @@ class TestStructuralValidators:
         errors = [e for e in validate_structural_loads(b)
                   if "E064" in e.message]
         assert len(errors) == 1
+
+    def test_undeclared_span_direction_is_unresolved_not_error(self):
+        b = _box_building()
+        b.get_story("GF").roofs[0].span_direction = None
+        loads = compute_loads(b)
+        assert "IfcSlab_Roof" not in {k for k in loads if not k.startswith("_")}
+        assert "IfcSlab_Roof" in loads["_unresolved"]
+        assert [e for e in validate_structural_loads(b)
+                if "E065" in e.message] == []
+
+    def test_cantilever_governs_with_double_moment(self):
+        # roof extends 4m past the east wall, no support: M = qL^2/2 = 8q
+        # beats the 6m interior span's qL^2/8 = 4.5q -> cantilever governs
+        b = _box_building()
+        b.get_story("GF").roofs[0].outline.vertices[1].x = 10.0
+        b.get_story("GF").roofs[0].outline.vertices[2].x = 10.0
+        loads = compute_loads(b)
+        roof = loads["IfcSlab_Roof"]
+        assert roof["cantilever"] is True
+        assert roof["span"] == pytest.approx(4.0, abs=0.4)
+
+    def test_load_conservation_on_simple_box(self):
+        loads = compute_loads(_box_building())
+        assert loads["IfcSlab_Roof"]["balance"] == pytest.approx(1.0, abs=0.15)
+
+    def test_non_rc_beam_is_unresolved(self):
+        b = _box_building()
+        b.add_window("GF", "South", position=1.0, width=3.0, height=0.75,
+                     sill_height=2.05, name="Band")
+        beam = b.add_beam_over("GF", "Band", depth=0.5)
+        beam.material = "steel"
+        loads = compute_loads(b)
+        assert "IfcBeam_RB_Band" in loads["_unresolved"]
 
     def test_beam_without_load_data_is_not_checked(self):
         # a beam not over any opening has no bending model in Phase B

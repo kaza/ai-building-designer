@@ -68,6 +68,8 @@ def validate_all_phases(building: Building) -> list[ValidationError]:
     errors.extend(validate_phase5_rooms(building))
     errors.extend(validate_apartment_connectivity(building))
     errors.extend(validate_phase6_vertical(building))
+    # Phase B structural loads (specs/structural-plausibility.md)
+    errors.extend(validate_structural_loads(building))
     # v3 additions
     errors.extend(validate_core_integrity(building))
     errors.extend(validate_interior_enclosure(building))
@@ -1519,6 +1521,42 @@ def _beam_covers(beam, wall, ux, uy, p0, p1, head) -> bool:
         if along < -1e-6 or along > blen + 1e-6:
             return False
     return True
+
+
+def validate_structural_loads(building) -> list[ValidationError]:
+    """Phase B (specs/structural-plausibility.md): load-based checks.
+    E064 rc beam bending util > 1.0; E065 roof slab spanning util > 1.0
+    (incl. cantilever and deflection proxy) — only for declared span
+    directions; E066 gross wall axial util > 1.0. Unresolved elements
+    never error."""
+    from archicad_builder.structural import compute_loads
+
+    errors: list[ValidationError] = []
+    loads = compute_loads(building)
+    for key, data in loads.items():
+        if key.startswith("_"):
+            continue
+        name = key.split("_", 1)[1].replace("_", " ")
+        if data["kind"] == "beam" and data["u"] > 1.0:
+            errors.append(ValidationError(
+                severity="error", element_type="Beam", element_id=key,
+                message=(f"E064: Beam '{name}' at {data['u']:.2f} of bending "
+                         f"capacity over '{data['over']}' (M {data['M']} kNm)."),
+            ))
+        elif data["kind"] == "slab" and data["u"] > 1.0:
+            what = "cantilever" if data.get("cantilever") else "span"
+            errors.append(ValidationError(
+                severity="error", element_type="Slab", element_id=key,
+                message=(f"E065: Roof slab '{name}' at {data['u']:.2f} of "
+                         f"capacity — governing {what} {data['span']}m."),
+            ))
+        elif data["kind"] == "wall" and data["u"] > 1.0:
+            errors.append(ValidationError(
+                severity="error", element_type="Wall", element_id=key,
+                message=(f"E066: Bearing wall '{name}' at {data['u']:.2f} of "
+                         f"gross axial capacity (q {data['q']} kN/m)."),
+            ))
+    return errors
 
 
 def _storey_footprint(story):

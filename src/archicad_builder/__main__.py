@@ -174,6 +174,34 @@ def render(
     _output({"ok": True, "rendered": rendered})
 
 
+@app.command("loads")
+def loads_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    output: str | None = typer.Option(None, "--output", "-o"),
+):
+    """Structural load analysis (Phase B) -> output/loads.json."""
+    import json as _json
+
+    from archicad_builder.structural import compute_loads
+
+    building = _load_building(project)
+    result = compute_loads(building)
+    out = (Path(output) if output
+           else PROJECTS_DIR / project / "output" / "loads.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(_json.dumps(result, indent=1, sort_keys=True))
+    worst = sorted(
+        ((k, v["u"]) for k, v in result.items()
+         if not k.startswith("_")), key=lambda t: -t[1])[:5]
+    _output({
+        "ok": True,
+        "written": str(out),
+        "elements": sum(1 for k in result if not k.startswith("_")),
+        "unresolved": result["_unresolved"],
+        "worst": [{"element": k, "u": u} for k, u in worst],
+    })
+
+
 @app.command("list")
 def list_cmd(
     project: str = typer.Argument(..., help="Project directory name"),

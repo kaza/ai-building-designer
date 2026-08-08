@@ -58,11 +58,31 @@ bread and butter; the model must carry the thing that makes it stand.
   bounding that gap is Phase B territory (Gemini review 2026-08-08).
 - Doors are floor-level by schema (no sill field); head = height. If a
   door sill is ever added, E062's head math must follow.
-- Phase B (not commissioned): promote the experiment's tributary load
-  takedown into the validator and check beam utilization with a stated
-  reinforcement assumption; roof dead load capped at
-  `min(thickness, 0.25)·25 + 2.0 kN/m²` (finding #3: modeled roof
-  thickness is visual).
+- ~~Phase B (not commissioned)~~ SHIPPED 2026-08-08: `structural.py`
+  computes one explicit load path — roof/floor panels with DECLARED
+  one-way `span_direction` are sliced into strips (per station, disjoint
+  polygon intervals never bridge); supported segments use qL²/8,
+  free-edge cantilevers qL²/2 (Gemini review); reactions accumulate on
+  bearing walls (station-sampled profiles), transfer to aligned walls
+  below; floor panels are clipped to the storey-below footprint (on
+  grade = loads the soil). Per-panel load-balance ratio is reported.
+  Checks: E064 rc-beam bending util > 1 (station-sampled q over the
+  opening, not whole-wall average — Codex), E065 roof panel util > 1
+  (bending or span/depth deflection proxy: 30 supported / 10
+  cantilever), E066 gross wall axial util > 1 (t·Φ·f_d; jamb/pier
+  concentrations documented out of scope). Undeclared span directions
+  and non-rc beams are `unresolved`, never errors (Codex). All
+  assumptions live in `DesignBasis`; the output is labelled structural
+  PLAUSIBILITY, not Eurocode compliance. CLI: `loads <project>` →
+  output/loads.json (the walkthrough Loads view consumes it — slabs
+  render flat-colored; walls/beams gradient).
+- Phase C candidates (not commissioned): continuous Euler-Bernoulli
+  beam per strip (negative moments over interior supports; reactions
+  and envelope from ONE model — Codex brainstorm 2026-08-08); PyNite as
+  a benchmark oracle on curated slabs before any 2D FEM dependency
+  (both brainstorms: the trap is boundary conditions and meshing, not
+  the solver); wall jamb/pier concentration checks; SLS deflection
+  beyond the span/depth proxy.
 
 ## Worked example
 projects/villa-maketa: ring-beam segments over every ≥1.25 m opening on
