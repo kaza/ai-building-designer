@@ -126,6 +126,11 @@ def build(mesh_size):
                 base = w["start"]["x" if horiz else "y"]
                 sign = 1 if (w["end"]["x" if horiz else "y"] > base) else -1
                 (xs if horiz else ys).update((base + sign * a0, base + sign * a1))
+        for bm in s.get("beams", []):
+            xs.update((bm["start"]["x"], bm["end"]["x"]))
+            ys.update((bm["start"]["y"], bm["end"]["y"]))
+            zs.update((s["elevation"] + bm["z_top"] - bm["depth"],
+                       s["elevation"] + bm["z_top"]))
         for coll in ("slabs", "roofs"):
             for sl in s.get(coll, []):
                 for v in sl["outline"]["vertices"]:
@@ -134,6 +139,27 @@ def build(mesh_size):
     gz = subdivide(zs, mesh_size)
 
     m = Mesher(mesh_size)
+
+    # ---- beam boxes (mesh later; walls skip cells inside them) ----
+    beam_meta = {}
+    for s in (gar, gf):
+        for bm in s.get("beams", []):
+            horiz = abs(bm["end"]["y"] - bm["start"]["y"]) < TOL
+            const = bm["start"]["y"] if horiz else bm["start"]["x"]
+            lo = min(bm["start"]["x" if horiz else "y"], bm["end"]["x" if horiz else "y"])
+            hi = max(bm["start"]["x" if horiz else "y"], bm["end"]["x" if horiz else "y"])
+            beam_meta[bm["name"]] = dict(
+                horiz=horiz, const=const, a_lo=lo, a_hi=hi,
+                width=bm["width"], depth=bm["depth"],
+                z_lo=s["elevation"] + bm["z_top"] - bm["depth"],
+                z_hi=s["elevation"] + bm["z_top"])
+
+    def in_beam(horiz, const, ac, zc):
+        return any(
+            bmm["horiz"] == horiz and abs(bmm["const"] - const) < 0.05
+            and bmm["a_lo"] - TOL < ac < bmm["a_hi"] + TOL
+            and bmm["z_lo"] - TOL < zc < bmm["z_hi"] + TOL
+            for bmm in beam_meta.values())
 
     # ---- walls (bearing only) ----
     wall_meta = {}
@@ -157,6 +183,8 @@ def build(mesh_size):
                     arel = abs(ac - a_start)
                     if any(r[0] < arel < r[1] and r[2] < zc < r[3] for r in rects):
                         continue
+                    if in_beam(horiz, const, ac, zc):
+                        continue                 # the beam meshes this box
                     if horiz:
                         c = [(a, const, z), (a2, const, z), (a2, const, z2), (a, const, z2)]
                         m.quad(c, w["thickness"], "Y", "wall", w["name"])
@@ -167,6 +195,22 @@ def build(mesh_size):
                                         z_lo=z_lo, horiz=horiz,
                                         a=(w["start"]["x"], w["start"]["y"]),
                                         b=(w["end"]["x"], w["end"]["y"]))
+
+    # ---- beams as deep plate strips (true width and depth) ----
+    for bname, bmm in beam_meta.items():
+        grid_a = [a for a in (gx if bmm["horiz"] else gy)
+                  if bmm["a_lo"] - TOL <= a <= bmm["a_hi"] + TOL]
+        grid_z = [z for z in gz if bmm["z_lo"] - TOL <= z <= bmm["z_hi"] + TOL]
+        for a, a2 in zip(grid_a, grid_a[1:]):
+            for z, z2 in zip(grid_z, grid_z[1:]):
+                if bmm["horiz"]:
+                    c = [(a, bmm["const"], z), (a2, bmm["const"], z),
+                         (a2, bmm["const"], z2), (a, bmm["const"], z2)]
+                    m.quad(c, bmm["width"], "Y", "beam", bname)
+                else:
+                    c = [(bmm["const"], a, z), (bmm["const"], a2, z),
+                         (bmm["const"], a2, z2), (bmm["const"], a, z2)]
+                    m.quad(c, bmm["width"], "X", "beam", bname)
 
     # ---- horizontal plates: roofs + Ground Slab ----
     panels = []
@@ -190,15 +234,15 @@ def build(mesh_size):
                                t, "Z", kind, name)
                 m.model.add_quad_surface_pressure(qname, -q, case="U")
 
-    # ---- wall self-weight (factored) as node loads ----
+    # ---- wall + beam self-weight (factored) as node loads ----
     for qname, (kind, elem) in m.quad_elem.items():
-        if kind != "wall":
+        if kind not in ("wall", "beam"):
             continue
         quad = m.model.quads[qname]
         nds = (quad.i_node, quad.j_node, quad.m_node, quad.n_node)
         xs_ = [n.X for n in nds]; ys_ = [n.Y for n in nds]; zs_ = [n.Z for n in nds]
         area = (max(xs_) - min(xs_) + max(ys_) - min(ys_)) * (max(zs_) - min(zs_))
-        f = area * wall_meta[elem]["t"] * db.rc_density * db.gamma_g / 4
+        f = area * quad.t * db.rc_density * db.gamma_g / 4
         for n in nds:
             m.model.add_node_load(n.name, "FZ", -f, case="U")
 
@@ -225,7 +269,7 @@ def build(mesh_size):
     clamped = soil = 0
     for (x, y, z), name in m.nodes.items():
         planes = m.node_planes[name]
-        clamp = False
+        clamp = False  # noqa: kept explicit for the audit trail
         if abs(z - gar["elevation"]) < TOL and ("X" in planes or "Y" in planes):
             clamp = True                                    # garage wall base
         elif abs(z - gf["elevation"]) < TOL and ("X" in planes or "Y" in planes) \
@@ -248,7 +292,7 @@ def build(mesh_size):
             m.model.def_support(name, False, False, False, False, True, False)
         elif planes == {"X"}:
             m.model.def_support(name, False, False, False, True, False, False)
-    return m, db, wall_meta, panels, clamped, soil
+    return m, db, wall_meta, beam_meta, panels, clamped, soil
 
 
 def main():
@@ -257,7 +301,7 @@ def main():
     args = ap.parse_args()
 
     t0 = time.time()
-    m, db, wall_meta, panels, clamped, soil = build(args.mesh)
+    m, db, wall_meta, beam_meta, panels, clamped, soil = build(args.mesh)
     print(f"mesh {args.mesh}: {len(m.model.nodes)} nodes, {m.qn} quads, "
           f"{clamped} clamped, {soil} soil-DZ  (built {time.time()-t0:.1f}s)")
 
@@ -291,8 +335,28 @@ def main():
             best = max(best, abs(sum(win) / len(win)))
         return best
 
+    beam_quad_u = {}
     for (kind, elem), quads in sorted(by_elem.items()):
-        if kind == "wall":
+        if kind == "beam":
+            bmm = beam_meta[elem]
+            z_mid = (bmm["z_lo"] + bmm["z_hi"]) / 2
+            stations = defaultdict(list)
+            for q in quads:
+                xc, yc, zc = centers(q)
+                nds = (q.i_node, q.j_node, q.m_node, q.n_node)
+                h = max(n.Z for n in nds) - min(n.Z for n in nds)
+                sx = float(q.membrane(0, 0, combo_name="ULS")[0][0])
+                stations[round(xc if bmm["horiz"] else yc, 3)].append((q, sx, zc, h))
+            cap = db.beam_moment_capacity(bmm["width"], bmm["depth"])
+            m_best = 0.0
+            for sams in stations.values():
+                mom = sum(sx * bmm["width"] * h * (zc - z_mid) for _, sx, zc, h in sams)
+                m_best = max(m_best, abs(mom))
+                for q, *_ in sams:
+                    beam_quad_u[q.name] = abs(mom) / cap
+            results[f"beam {elem}"] = dict(kind="beam", M=m_best, cap=cap,
+                                           u=m_best / cap)
+        elif kind == "wall":
             base_z = min(centers(q)[2] for q in quads)
             stations = []
             for q in quads:
@@ -355,7 +419,9 @@ def main():
 
     print(f"\n{'element':42s} {'u':>6s}  detail")
     for name, r in sorted(results.items(), key=lambda kv: -kv[1]["u"]):
-        if r["kind"] == "wall":
+        if r["kind"] == "beam":
+            print(f"{name:42s} {r['u']:6.2f}  M {r['M']:6.1f} cap {r['cap']:.1f}")
+        elif r["kind"] == "wall":
             print(f"{name:42s} {r['u']:6.2f}  sigma {r['sigma']:8.1f} "
                   f"(peak {r['sigma_peak']:8.1f}) kN/m2  base z {r['base_z']:.2f}")
         else:
@@ -373,7 +439,10 @@ def main():
     for name, r in results.items():
         kind, elem = name.split(" ", 1)
         slug = elem.replace(" ", "_")
-        if kind == "wall":
+        if kind == "beam":
+            fem[f"IfcBeam_{slug}"] = dict(kind="beam", u=round(r["u"], 3),
+                                          M=round(r["M"], 1))
+        elif kind == "wall":
             meta = wall_meta[elem]
             fem[f"IfcWallStandardCase_{slug}"] = dict(
                 kind="wall", u=round(r["u"], 3), profile=r["profile"],
@@ -390,7 +459,9 @@ def main():
     for qname, (kind, elem) in m.quad_elem.items():
         q = m.model.quads[qname]
         nds = (q.i_node, q.j_node, q.m_node, q.n_node)
-        if kind == "wall":
+        if kind == "beam":
+            u = beam_quad_u.get(qname, 0.0)
+        elif kind == "wall":
             u = abs(float(q.membrane(0, 0, combo_name="ULS")[1][0])) / wall_cap
         else:
             mom = q.moment(0, 0, combo_name="ULS")

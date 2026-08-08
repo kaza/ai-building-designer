@@ -35,11 +35,12 @@ TEMPLATE = r"""<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div id="banner">FEM X-RAY — per-fragment stress (experiment; beams NOT yet in the model)</div>
+<div id="banner">FEM X-RAY — per-fragment stress (experiment; ring beams included)</div>
 <div id="hud">
   <b>show</b>
   <label><input type="checkbox" id="cb-roof" checked> roofs</label>
   <label><input type="checkbox" id="cb-wall" checked> walls</label>
+  <label><input type="checkbox" id="cb-beam" checked> beams</label>
   <label><input type="checkbox" id="cb-slab" checked> floor slab</label>
   <div style="margin-top:6px;color:#aaa">drag orbit &middot; wheel zoom &middot; hover a fragment</div>
 </div>
@@ -81,14 +82,10 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(5, 6, 0.5);
 controls.update();
 
-const kinds = { roof: [], wall: [], slab: [] };
-for (const q of FIELD) kinds[q.k === 'wall' ? 'wall' : (q.k === 'slab' ? 'slab' : 'roof')].push(q);
-// roofs vs floor slab: element name decides
-kinds.slab = [];
-kinds.roof = [];
+const kinds = { roof: [], wall: [], beam: [], slab: [] };
 for (const q of FIELD) {
-  if (q.k === 'wall') continue;
-  (q.e.startsWith('Roof') ? kinds.roof : kinds.slab).push(q);
+  if (q.k === 'wall' || q.k === 'beam') kinds[q.k].push(q);
+  else (q.e.startsWith('Roof') ? kinds.roof : kinds.slab).push(q);
 }
 
 const meshes = {}, quadLists = {};
@@ -113,7 +110,7 @@ for (const [kind, quads] of Object.entries(kinds)) {
   quadLists[kind] = quads;
 }
 
-for (const kind of ['roof', 'wall', 'slab'])
+for (const kind of ['roof', 'wall', 'beam', 'slab'])
   document.getElementById('cb-' + kind).onchange = e => {
     meshes[kind].visible = e.target.checked;
   };

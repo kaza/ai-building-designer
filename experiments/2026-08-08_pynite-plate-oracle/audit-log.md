@@ -94,3 +94,27 @@
 - Banner states beams are NOT in the model yet — bands over beamed
   openings still over-read until beams are meshed (owner has not yet
   ordered that step).
+
+## Attempt 08 — 2026-08-08 19:45 (ring beams meshed into the model)
+- Owner go ("yes yes yes"). Beams meshed as deep plate strips with true
+  width/depth (incl. upstand above wall top); wall cells inside a beam
+  box skipped; beam self-weight added; beam bending harvested by
+  integrating horizontal membrane stress over the section per station,
+  u vs beam_moment_capacity (same ruler as the strip engine).
+- mesh 0.4 → 0.18 with beams (solve 375 s, balance 1.0000 both):
+  RB Living Glass W2 1.93→2.15, RB Living Sliding 1.16→1.25 — the two
+  beams at the deck corner pick up the cantilever's back-forces the
+  strip engine never routed to them (strips: 0.68 / 0.22).
+  All other beams relieved as designed: Band N 0.23, Band 0.21,
+  Hallway 0.18, Kitchen 0.04, Garage door 0.01.
+- Master North band: 0.86 (0.4) → 0.33 avg / 0.69 peak (0.18) — the
+  neighbouring ring beam (extends 0.15 m past corners) now bridges the
+  band. The VILLA-specific failure softens below capacity; the generic
+  validator gap (adjacent openings jointly evade E062's 1.25 m
+  threshold with no rule firing) still stands.
+- Roof East 1.67 / Roof South 1.36 / Roof West 1.27 / Living East Wall
+  1.63 / North Wall 1.31 — stable with beams present; roof findings
+  survive.
+- xray.html + walkthrough-fem.html regenerated from the 0.18 outputs
+  (beams now colored by their own bending utilization), verified 200 +
+  node --check, x-ray reopened in browser.

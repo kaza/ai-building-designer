@@ -23,8 +23,10 @@ fem = json.load(open(fem_path))
 
 merged = {k: v for k, v in strip.items() if v.get("kind") == "beam"} if isinstance(strip, dict) else {}
 merged.update({k: v for k, v in fem.items() if not k.startswith("_")})
-merged["_assumptions"] = fem.get("_assumptions", []) + [
-    "beams: strip-engine values (FEM beam extraction not in scope of this demo)"]
+has_fem_beams = any(k.startswith("IfcBeam_") for k in fem)
+merged["_assumptions"] = fem.get("_assumptions", []) + (
+    [] if has_fem_beams else
+    ["beams: strip-engine values (FEM beam extraction not in scope of this demo)"])
 merged["_unresolved"] = []
 
 html = (OUT / "walkthrough.html").read_text()

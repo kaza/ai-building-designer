@@ -12,12 +12,23 @@
 
 2. **E062 is evaded by adjacent openings.** Master North Wall (1.5 m)
    carries two terrace doors (0.95 + 0.55 m) that individually duck the
-   ≥1.25 m beam requirement but jointly glass out 100% of the wall; the
-   remaining 0.2 m band over them is over capacity at every mesh
-   (1.02–2.15, attempt 04–05). Promotable: E062 should merge openings
-   separated by less than ~a pier width into one effective opening —
-   same class of shipped error the original takedown caught for single
-   openings.
+   ≥1.25 m beam requirement but jointly glass out 100% of the wall — no
+   rule fires, no beam exists. Without beams in the model the naked
+   0.2 m band reads over capacity at every mesh (1.02–2.15, attempts
+   04–05); with the real ring beams meshed (attempt 08) the neighbouring
+   beam's corner extension bridges it down to 0.33 avg / 0.69 peak — so
+   THIS villa survives by an accident of an adjacent beam, not by
+   design. Promotable: E062 should merge openings separated by less
+   than ~a pier width into one effective opening.
+
+5. **The deck cantilever loads the corner beams, not just the roof.**
+   With beams meshed (attempt 08, converged 0.4→0.18): RB Living Glass
+   W2 at 2.15 and RB Living Sliding Window at 1.25 — the cantilever's
+   back-forces anchor into the two beams at the deck corner. The strip
+   engine rated them 0.68/0.22 because per-panel strips never route
+   roof forces around a corner. Every other beam is relieved as
+   designed (0.01–0.23). Any fix for the deck (columns / shorter roof /
+   thicker edge) must re-check these two members.
 
 3. **Per-panel strips understate moments where panels are continuous.**
    The deck cantilever's hogging anchors across the shared Roof West /
