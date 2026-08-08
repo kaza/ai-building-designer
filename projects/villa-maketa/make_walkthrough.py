@@ -571,9 +571,15 @@ function displayName(label) {
   return tag ? tag + ' — ' + pretty : (label.startsWith('F_') ? label.slice(2) : pretty);
 }
 
-// --- Loads view (L / menu): heat-color the structure by utilization ------
-let loadsOn = false;
+// --- Structural views (L / menu): off -> strip loads -> FEM x-ray --------
+// one enum state machine (plan review 2026-08-08): idempotent, teardown
+// before setup, ?loads=1 -> 'strip', ?xray=1 -> 'fem'. The two engines are
+// never blended: strip mode paints elements from LOADS (fast engine),
+// fem mode shows per-fragment plate-FEM results fetched on first use.
+let structuralMode = 'off';
 const _savedMats = new Map();  // mesh.uuid -> original material
+const FEM_FIELD_URL = 'fem-field.json';  // publish pins this to the SHA name
+let femEnv = null, femGroup = null, femLookup = null, femFetchSeq = 0;
 
 function loadRampColor(u) {
   // color = % of capacity used, nothing else (owner 2026-08-08: "show me
@@ -662,44 +668,183 @@ function loadDataFor(node) {
   return null;
 }
 
-function toggleLoads() {
-  loadsOn = !loadsOn;
-  if (!modelRoot) return;
-  if (loadsOn && !Object.keys(LOADS).length) {
-    loadsOn = false;
-    infoText = 'no loads data embedded (run the takedown with --emit-json, rebuild)';
-    setHud();
-    return;
-  }
+function _restoreMats() {
+  // restore geometry too: paintByLoad clones the geometry and overwrites
+  // its UVs — giving the original textured material the mangled clone
+  // corrupts every textured mesh after one L-cycle (review 2026-08-08)
   modelRoot.traverse((n) => {
-    if (!n.isMesh) return;
-    if (loadsOn) {
-      _savedMats.set(n.uuid, n.material);
-      const data = loadDataFor(n);
-      if (data && data.a) {
-        paintByLoad(n, data, (n.name || '').split('.')[0]);
-      } else if (data) {
-        n.material = new THREE.MeshBasicMaterial({ color: loadRampColor(data.u) });
-      } else {
-        const ghost = n.material.clone();
-        ghost.transparent = true;
-        ghost.opacity = 0.10;
-        ghost.depthWrite = false;
-        n.material = ghost;
-      }
-    } else if (_savedMats.has(n.uuid)) {
+    if (n.isMesh && _savedMats.has(n.uuid)) {
+      const saved = _savedMats.get(n.uuid);
       n.material.dispose();
-      n.material = _savedMats.get(n.uuid);
+      if (n.geometry !== saved.geometry) n.geometry.dispose();
+      n.material = saved.material;
+      n.geometry = saved.geometry;
     }
   });
-  if (!loadsOn) _savedMats.clear();
-  infoText = loadsOn
-    ? 'LOADS — color = % of capacity: gray → yellow → orange · RED only if OVER 100%\\naim + I for numbers · L to exit'
-    : '';
+  _savedMats.clear();
+}
+
+function _ghost(n) {
+  const ghost = n.material.clone();
+  ghost.transparent = true;
+  ghost.opacity = 0.10;
+  ghost.depthWrite = false;
+  n.material = ghost;
+}
+
+function _applyStrip() {
+  modelRoot.traverse((n) => {
+    if (!n.isMesh) return;
+    _savedMats.set(n.uuid, { material: n.material, geometry: n.geometry });
+    const data = loadDataFor(n);
+    if (data && data.a) {
+      paintByLoad(n, data, (n.name || '').split('.')[0]);
+    } else if (data) {
+      n.material = new THREE.MeshBasicMaterial({ color: loadRampColor(data.u) });
+    } else {
+      _ghost(n);
+    }
+  });
+}
+
+function _buildFemGroup(env) {
+  // building coords are z-up; the GLB scene is (x, y-up, z) = (x, z, -y) —
+  // same mapping paintByLoad uses. Sanity-check against the model bbox so a
+  // transform regression shows up as a console warning, not silent nonsense.
+  const { n, elem, u, pos } = env.quads;
+  const byKind = {};
+  for (let q = 0; q < n; q++) {
+    const kind = env.elems[elem[q]].kind;
+    (byKind[kind] ||= []).push(q);
+  }
+  const group = new THREE.Group();
+  femLookup = [];
+  for (const [kind, ids] of Object.entries(byKind)) {
+    const p = [], col = [];
+    for (const q of ids) {
+      const base = q * 12;
+      const cs = [0, 1, 2, 3].map((i) => {
+        const bx = pos[base + 3 * i], by = pos[base + 3 * i + 1],
+              bz = pos[base + 3 * i + 2];
+        return [bx, bz, -by];
+      });
+      const cx = (cs[0][0] + cs[1][0] + cs[2][0] + cs[3][0]) / 4;
+      const cy = (cs[0][1] + cs[1][1] + cs[2][1] + cs[3][1]) / 4;
+      const cz = (cs[0][2] + cs[1][2] + cs[2][2] + cs[3][2]) / 4;
+      const s = 0.94;
+      const sc = cs.map((v) => [cx + (v[0] - cx) * s, cy + (v[1] - cy) * s,
+                                cz + (v[2] - cz) * s]);
+      for (const tri of [[0, 1, 2], [0, 2, 3]]) {
+        for (const i of tri) p.push(...sc[i]);
+      }
+      const color = loadRampColor(u[q]);
+      for (let i = 0; i < 6; i++) col.push(color.r, color.g, color.b);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+      vertexColors: true, side: THREE.DoubleSide }));
+    mesh.userData.femKind = kind;
+    mesh.userData.femIds = ids;
+    group.add(mesh);
+    femLookup.push(mesh);
+  }
+  const mb = new THREE.Box3().setFromObject(modelRoot);
+  const fb = new THREE.Box3().setFromObject(group);
+  if (!mb.intersectsBox(fb)) {
+    console.warn('FEM fragments do not overlap the model bbox — coordinate transform regression?');
+  }
+  return group;
+}
+
+function _enterFem() {
+  modelRoot.traverse((n) => {
+    if (!n.isMesh) return;
+    _savedMats.set(n.uuid, { material: n.material, geometry: n.geometry });
+    _ghost(n);
+  });
+  femGroup.visible = true;
+  _updateLoadsBtn();
+  infoText = 'FEM X-RAY — plate model, per-fragment % of capacity (red = over 100%)\\nload balance ' +
+    femEnv.balance + ' · aim + I for a fragment · L to exit';
+  setHud();
+}
+
+function setStructuralMode(mode) {
+  if (!modelRoot || mode === structuralMode) return;
+  if (mode === 'strip' && !Object.keys(LOADS).length) mode = 'fem';
+  // teardown
+  if (structuralMode === 'strip') _restoreMats();
+  if (structuralMode === 'fem') {
+    if (femGroup) femGroup.visible = false;
+    _restoreMats();
+  }
+  structuralMode = 'off';
+  infoText = '';
+  // setup
+  if (mode === 'strip') {
+    _applyStrip();
+    structuralMode = 'strip';
+    infoText = 'ELEMENT LOADS (strip method) — color = % of capacity: gray → yellow → orange · RED only if OVER 100%\\naim + I for numbers · L for FEM x-ray';
+  } else if (mode === 'fem') {
+    structuralMode = 'fem';
+    if (femGroup) {
+      _enterFem();
+    } else {
+      const seq = ++femFetchSeq;
+      infoText = 'loading FEM field…';
+      setHud();
+      fetch(FEM_FIELD_URL)
+        .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then((env) => {
+          if (seq !== femFetchSeq || structuralMode !== 'fem') return;  // stale
+          if (env.schema !== 1) throw new Error('field schema ' + env.schema);
+          femEnv = env;
+          femGroup = _buildFemGroup(env);
+          scene.add(femGroup);
+          if (structuralMode === 'fem') _enterFem();
+        })
+        .catch((err) => {
+          if (seq !== femFetchSeq || structuralMode !== 'fem') return;
+          structuralMode = 'off';
+          _restoreMats();
+          infoText = 'FEM field unavailable (' + err.message + ') — L for element loads';
+          setHud();
+        });
+      return;
+    }
+  }
+  _updateLoadsBtn();
+  setHud();
+}
+
+function _updateLoadsBtn() {
+  const btn = document.getElementById('m-loads');
+  if (btn) btn.textContent = 'Loads: ' +
+    ({ off: 'off', strip: 'strip', fem: 'FEM x-ray' })[structuralMode];
+}
+
+function cycleStructural() {
+  setStructuralMode({ off: 'strip', strip: 'fem', fem: 'off' }[structuralMode]);
+}
+
+function femInfo() {
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = ray.intersectObjects(femLookup || [], false);
+  if (!hits.length) { infoText = 'no fragment hit'; setHud(); return; }
+  const mesh = hits[0].object;
+  const q = mesh.userData.femIds[Math.floor(hits[0].faceIndex / 2)];
+  const el = femEnv.elems[femEnv.quads.elem[q]];
+  infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
+    'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity\\n' +
+    'element max ' + Math.round(el.u * 100) + '%';
   setHud();
 }
 
 function showInfo() {
+  if (structuralMode === 'fem') { femInfo(); return; }
   const hit = centerHit();
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
   const { node, label } = semanticNode(hit.object);
@@ -854,7 +999,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyR' && !e.repeat) toggleRoof();
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
-  if (e.code === 'KeyL' && !e.repeat) toggleLoads();
+  if (e.code === 'KeyL' && !e.repeat) cycleStructural();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
     if (!labelsOn) clearFeedbackLabels();
@@ -942,9 +1087,8 @@ if (isTouch) {
     toggleRoof();
     e.target.textContent = 'Roof: ' + (roofVisible ? 'on' : 'off');
   });
-  document.getElementById('m-loads').addEventListener('click', (e) => {
-    toggleLoads();
-    e.target.textContent = 'Loads: ' + (loadsOn ? 'on' : 'off');
+  document.getElementById('m-loads').addEventListener('click', () => {
+    cycleStructural();
   });
   document.getElementById('m-names').addEventListener('click', (e) => {
     labelsOn = !labelsOn;
@@ -1261,7 +1405,8 @@ document.getElementById('fbundo').addEventListener('click', () => {
 // headless verification, same #debug gating as ?roof / ?measure.
 if (location.hash.startsWith('#debug') && ready) {
   const seams = new URLSearchParams(location.search);
-  if (seams.get('loads') === '1') toggleLoads();  // test seam
+  if (seams.get('loads') === '1') setStructuralMode('strip');  // test seam
+  if (seams.get('xray') === '1') setStructuralMode('fem');    // test seam
   if (isTouch && seams.get('start') === '1') {  // test seam: skip the tap
     touchWalking = true;
     overlay.classList.add('hidden');

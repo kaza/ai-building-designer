@@ -202,6 +202,38 @@ def loads_cmd(
     })
 
 
+@app.command("fem")
+def fem_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    mesh: float = typer.Option(0.25, "--mesh", help="Quad size in metres"),
+    xray: bool = typer.Option(True, "--xray/--no-xray",
+                              help="Also write output/xray.html"),
+):
+    """FEM X-ray (specs/fem-xray.md) -> output/fem-field.json + fem-loads.json."""
+    from archicad_builder.fem import compute_fem
+    from archicad_builder.fem.writers import building_digest, write_payloads
+    from archicad_builder.fem.xray import write_xray_page
+
+    building = _load_building(project)
+    result = compute_fem(building, mesh=mesh)
+    out = PROJECTS_DIR / project / "output"
+    out.mkdir(parents=True, exist_ok=True)
+    digest = building_digest(PROJECTS_DIR / project / "building.json")
+    write_payloads(result, out, digest)
+    if xray:
+        write_xray_page(out / "xray.html", building.name)
+    worst = sorted(result.elements.values(), key=lambda e: -e["u"])[:5]
+    _output({
+        "ok": True,
+        "written": str(out / "fem-field.json"),
+        "quads": len(result.field["quads"]),
+        "balance": round(result.balance, 4),
+        "unresolved": result.unresolved,
+        "worst": [{"element": e["name"], "kind": e["kind"],
+                   "u": round(e["u"], 2)} for e in worst],
+    })
+
+
 @app.command("list")
 def list_cmd(
     project: str = typer.Argument(..., help="Project directory name"),

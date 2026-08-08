@@ -1,10 +1,11 @@
 # Experiment: PyNite plate oracle — real FEM per-element loads for the L view
 
 ## Status
-RESULTS IN — hypothesis CONFIRMED for walls/roofs/slab (findings.md);
-open item: FEM beam extraction (band moments over openings) before the
-oracle covers 100% of bearing elements. Owner decisions pending on the
-four over-capacity findings.
+PROMOTED (2026-08-08 evening) — hypothesis CONFIRMED (findings.md).
+The engine now lives in `src/archicad_builder/fem/` (specs/fem-xray.md):
+CLI `fem <project>`, walkthrough L-cycle, published X-ray page; beam
+extraction included and gated by its own analytic benchmark (gate 5).
+Owner decisions still pending on the over-capacity findings.
 
 ## Hypothesis
 A PyNite (MIT, pure-Python FEM) plate model of our buildings — bearing

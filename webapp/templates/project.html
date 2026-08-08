@@ -5,6 +5,7 @@
 <h1>{{ name }}</h1>
 <p class="hint">build <code>{{ build.sha }}</code> · published {{ build.built_at }}</p>
 <a class="cta" href="/{{ project }}/walkthrough">▶ Enter 3D walkthrough</a>
+{% if build.xray %}<a class="cta" href="/{{ project }}/xray">🩻 Structural X-ray</a>{% endif %}
 <p class="hint">Controls: WASD + mouse to fly · Space / C — up / down · R — roof off ·
    I — object info · M — measure · P — screenshot · F — feedback (draw on the view + comment)</p>
 

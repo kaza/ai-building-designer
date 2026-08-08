@@ -97,5 +97,5 @@ in the project spec).
 | 2026-08-08 | 1.25 m threshold, L/depth ≤ 15 | attempt-01/04 data: ≤1.2 m openings pass a reinforced band (util ≤ ~0.9); L/15 matches RC lintel practice |
 
 ## Related
-[storey-datum.md](storey-datum.md) (E050–E052 phase) · the load-takedown
+[fem-xray.md](fem-xray.md) (plate-FEM oracle — the L-key X-ray; shares this spec's DesignBasis) · [storey-datum.md](storey-datum.md) (E050–E052 phase) · the load-takedown
 experiment · projects/villa-maketa/spec.md (worked example).

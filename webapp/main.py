@@ -194,16 +194,57 @@ def walkthrough(project: str):
         fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['walkthrough']}"))
 
 
+@app.get("/{project}/xray", response_class=HTMLResponse)
+def xray(project: str):
+    # Proxied like the walkthrough so its relative fem-field fetch stays
+    # on this origin and hits the exact-asset route below.
+    project_row(project)
+    build = get_build(project)
+    if "xray" not in build:
+        raise HTTPException(404, "no X-ray published for this project")
+    return HTMLResponse(
+        fetch_public(f"{PROJECTS_CONTAINER}/{project}/{build['xray']}"))
+
+
 @app.get("/{project}/{model_file}.glb")
 def model(project: str, model_file: str):
-    # The walkthrough fetches its GLB by the plain name it was built with;
-    # the published artifact is SHA-stamped. 307 to the real blob.
+    # New releases pin the exact SHA-stamped name into the HTML (307 to
+    # that exact blob). Pre-pinning walkthroughs fetch the plain name the
+    # page was built with — those still resolve through the live pointer.
     project_row(project)
+    if _PINNED_GLB.match(model_file):
+        return RedirectResponse(
+            f"{BLOB_BASE}/{PROJECTS_CONTAINER}/{project}/{model_file}.glb",
+            status_code=307,
+        )
     build = get_build(project)
     return RedirectResponse(
         f"{BLOB_BASE}/{PROJECTS_CONTAINER}/{project}/{build['model']}",
         status_code=307,
     )
+
+
+_EXACT_ASSET = re.compile(
+    r"^(?:fem-field-[0-9a-f]{7,40}\.json"
+    r"|xray-[0-9a-f]{7,40}\.html)$")
+_PINNED_GLB = re.compile(r"^[\w-]+-[0-9a-f]{7,40}$")
+
+
+# NOTE: catch-all for /{project}/<one-segment> — MUST stay the last GET
+# route in this file; any GET added after it would be swallowed and 404.
+@app.get("/{project}/{asset_file}")
+def exact_asset(project: str, asset_file: str):
+    # Release-pinned artifacts (spec fem-xray.md): published HTML references
+    # exact SHA-stamped names so a publish between page load and asset fetch
+    # can never mix two releases. 307 to the immutable blob.
+    if not _EXACT_ASSET.match(asset_file):
+        raise HTTPException(404, "unknown asset")
+    project_row(project)
+    return RedirectResponse(
+        f"{BLOB_BASE}/{PROJECTS_CONTAINER}/{project}/{asset_file}",
+        status_code=307,
+    )
+
 
 
 @app.post("/{project}/feedback")

@@ -11,6 +11,7 @@ The deliberate release step — NOT a push side effect:
 
 Auth: uses the az CLI login (key lookup), no secrets in the repo.
 """
+import hashlib
 import json
 import subprocess
 import sys
@@ -92,7 +93,43 @@ def main() -> None:
 
     print(f"publishing {project} @ {sha}")
     upload(glb, f"{project}/villa-{sha}.glb", "model/gltf-binary", IMMUTABLE)
-    upload(html, f"{project}/walkthrough-{sha}.html", "text/html", IMMUTABLE)
+
+    # release-pinning (specs/fem-xray.md): published HTML references exact
+    # SHA-stamped asset names so two releases can never mix mid-session.
+    xray = out / "xray.html"
+    field = out / "fem-field.json"
+    if xray.exists() != field.exists():
+        sys.exit("partial FEM artifacts: need BOTH xray.html and "
+                 "fem-field.json (or neither) — re-run `archicad_builder "
+                 "fem` or remove the stray file")
+    has_fem = xray.exists() and field.exists()
+    if has_fem:
+        digest = hashlib.sha256(
+            (REPO / "projects" / project / "building.json").read_bytes()
+        ).hexdigest()[:12]
+        if json.loads(field.read_text()).get("digest") != digest:
+            sys.exit("stale FEM results: fem-field.json was computed from a "
+                     "different building.json — re-run `archicad_builder "
+                     f"fem {project}` first")
+    with tempfile.TemporaryDirectory() as td_pin:
+        wt = html.read_text().replace("fetch('villa.glb')",
+                                       f"fetch('villa-{sha}.glb')")
+        if f"villa-{sha}.glb" not in wt:
+            sys.exit("release pinning failed: fetch('villa.glb') not found "
+                     "in walkthrough.html — did make_walkthrough change?")
+        if has_fem:
+            wt = wt.replace("fem-field.json", f"fem-field-{sha}.json")
+        pinned = Path(td_pin) / "walkthrough.html"
+        pinned.write_text(wt)
+        upload(pinned, f"{project}/walkthrough-{sha}.html", "text/html",
+               IMMUTABLE)
+        if has_fem:
+            upload(field, f"{project}/fem-field-{sha}.json",
+                   "application/json", IMMUTABLE)
+            xr = Path(td_pin) / "xray.html"
+            xr.write_text(xray.read_text().replace(
+                "fem-field.json", f"fem-field-{sha}.json"))
+            upload(xr, f"{project}/xray-{sha}.html", "text/html", IMMUTABLE)
     plan_entries = []
     with tempfile.TemporaryDirectory() as td:
         for p in plans:
@@ -112,6 +149,9 @@ def main() -> None:
         "walkthrough": f"walkthrough-{sha}.html",
         "plans": plan_entries,
     }
+    if has_fem:
+        build["xray"] = f"xray-{sha}.html"
+        build["fem_field"] = f"fem-field-{sha}.json"
     build_file = out / "build.json"
     build_file.write_text(json.dumps(build, indent=2))
     upload(build_file, f"{project}/build.json", "application/json", POINTER)
