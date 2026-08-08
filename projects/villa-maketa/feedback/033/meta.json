@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-08-08T14:53:21.368Z",
+  "where": "above the roof",
+  "model": {
+    "x": 7.95,
+    "y": -5.12,
+    "h": 10
+  },
+  "camera": {
+    "x": 7.949,
+    "y": 10,
+    "z": 5.124,
+    "yawDeg": 21.63,
+    "pitchDeg": -35.1
+  },
+  "debugHash": "#debug=7.95,10.00,5.12,21.6,-35.1",
+  "viewport": {
+    "w": 1462,
+    "h": 783
+  },
+  "comment": "common i am not buying this, we have only stress on the beams?",
+  "strokes": []
+}

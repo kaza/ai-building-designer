@@ -579,12 +579,15 @@ function loadRampColor(u) {
   // color = % of capacity used, nothing else (owner 2026-08-08: "show me
   // what would fail, not a light show"). One continuous ramp, no bands:
   // 0% calm gray -> amber -> 100%+ red.
-  const t = Math.max(0, Math.min(1, u));
+  // red is RESERVED for >= 100% (actual failure) — an 85% beam must read
+  // "working hard", not "on fire" (owner 2026-08-08).
   const c = new THREE.Color();
-  if (t < 0.6) c.lerpColors(new THREE.Color(0xdedede),
-                            new THREE.Color(0xf9a825), t / 0.6);
-  else c.lerpColors(new THREE.Color(0xf9a825),
-                    new THREE.Color(0xc62828), (t - 0.6) / 0.4);
+  if (u >= 1.0) return c.set(0xc62828);
+  const t = Math.max(0, Math.min(1, u));
+  if (t < 0.7) c.lerpColors(new THREE.Color(0xdedede),
+                            new THREE.Color(0xf9c74f), t / 0.7);
+  else c.lerpColors(new THREE.Color(0xf9c74f),
+                    new THREE.Color(0xf3722c), (t - 0.7) / 0.3);
   return c;
 }
 
@@ -643,7 +646,12 @@ function paintByLoad(mesh, data, key) {
     uvs[i * 2 + 1] = 0.5;
   }
   mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  mesh.material = new THREE.MeshBasicMaterial({ map: gradientTexture(key, data) });
+  mesh.material = new THREE.MeshBasicMaterial({
+    map: gradientTexture(key, data),
+    // beams' undersides are coplanar with window-frame tops — win the
+    // z-fight or the loads color speckles over the frames
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  });
 }
 
 function loadDataFor(node) {
@@ -686,7 +694,7 @@ function toggleLoads() {
   });
   if (!loadsOn) _savedMats.clear();
   infoText = loadsOn
-    ? 'LOADS — color = % of capacity used (gray 0 → amber → red 100)\\naim + I for numbers · L to exit'
+    ? 'LOADS — color = % of capacity: gray → yellow → orange · RED only if OVER 100%\\naim + I for numbers · L to exit'
     : '';
   setHud();
 }
