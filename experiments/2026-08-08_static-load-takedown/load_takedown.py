@@ -192,28 +192,99 @@ def main():
                 "a": [bm["start"]["x"], bm["start"]["y"]],
                 "b": [bm["end"]["x"], bm["end"]["y"]],
             }
-        wall_rows = {}
-        for w in lb_walls:
-            q, coverage, samples = line_load(gf, w, roofs, lb_walls)
-            wall_rows[w["name"]] = (w, q[b_name], samples[b_name])
-        qmax = max(v[1] for v in wall_rows.values()) or 1.0
-        for name, (w, q, samples) in wall_rows.items():
-            # 8-bucket profile along the wall: the view shades the member by
-            # where the load actually sits (bridge-game look)
+        # Walls: TRUE axial utilization (owner 2026-08-08: "show me what
+        # would fail, not a light show" — no relative shading, no cutoffs).
+        # Capacity per meter = thickness × Φ·f_d (f_d 3.0 MPa conservative
+        # masonry/RC-wall design value, Φ 0.6 slenderness) = t × 1800 kN/m².
+        # Wall q includes its own self-weight (3.0m storey, 25 kN/m³, γ_G).
+        PHI_FD = 0.6 * 3000.0  # kN/m2
+
+        def wall_entry(w, q_total, samples_total, extra=0.0):
+            cap = w["thickness"] * PHI_FD
+            self_w = GAMMA_G * 3.0 * w["thickness"] * 25.0
             nb = 8
-            per = max(1, len(samples) // nb)
+            per = max(1, len(samples_total) // nb)
             profile = [
-                round(0.9 * (sum(samples[i * per:(i + 1) * per])
-                             / max(1, len(samples[i * per:(i + 1) * per]))) / qmax, 2)
+                round((sum(samples_total[i * per:(i + 1) * per])
+                       / max(1, len(samples_total[i * per:(i + 1) * per]))
+                       + self_w + extra) / cap, 2)
                 for i in range(nb)
             ]
-            data["IfcWallStandardCase_" + name.replace(" ", "_")] = {
+            return {
                 "kind": "wall",
-                "u": round(0.9 * q / qmax, 2),
-                "q": round(q, 1),
+                "u": round((q_total + self_w + extra) / cap, 2),
+                "q": round(q_total + self_w + extra, 1),
                 "a": [w["start"]["x"], w["start"]["y"]],
                 "b": [w["end"]["x"], w["end"]["y"]],
                 "profile": profile,
+            }
+
+        gf_wall_q = {}
+        for w in lb_walls:
+            q, coverage, samples = line_load(gf, w, roofs, lb_walls)
+            gf_wall_q[w["name"]] = (w, q[b_name])
+            data["IfcWallStandardCase_" + w["name"].replace(" ", "_")] = \
+                wall_entry(w, q[b_name], samples[b_name])
+
+        # Garage storey (owner: "I want to see the garage"): each garage
+        # wall carries the aligned GF wall's roof load + that wall's own
+        # weight + a one-way strip of the GF slab (0.25m RC + 1.5 finishes
+        # dead, 2.0 live → ULS ≈ 13.5 kN/m²), spanning between garage walls.
+        doc_all = json.loads(BUILDING.read_text())
+        gar = next(s for s in doc_all["stories"] if s["elevation"] != 0)
+        gar_lb = [w for w in gar["walls"] if w.get("load_bearing")]
+        Q_SLAB = GAMMA_G * (0.25 * 25.0 + 1.5) + GAMMA_Q * 2.0
+        gf_slab_polys = [Polygon([(v["x"], v["y"]) for v in s["outline"]["vertices"]])
+                        for s in gf["slabs"] if len(s["outline"]["vertices"]) >= 3]
+        slab_areas = [{"name": "GF slab", "poly": p, "thickness": 0.25}
+                      for p in gf_slab_polys]
+
+        def aligned_gf_q(gw):
+            for name, (w, q) in gf_wall_q.items():
+                if (abs(w["start"]["x"] - gw["start"]["x"]) < 0.2
+                        and abs(w["start"]["y"] - gw["start"]["y"]) < 0.2
+                        and abs(w["end"]["x"] - gw["end"]["x"]) < 0.2
+                        and abs(w["end"]["y"] - gw["end"]["y"]) < 0.2) or (
+                        abs(w["start"]["x"] - gw["end"]["x"]) < 0.2
+                        and abs(w["start"]["y"] - gw["end"]["y"]) < 0.2
+                        and abs(w["end"]["x"] - gw["start"]["x"]) < 0.2
+                        and abs(w["end"]["y"] - gw["start"]["y"]) < 0.2):
+                    return q + GAMMA_G * 3.0 * w["thickness"] * 25.0
+            return 0.0
+
+        gar_wall_q = {}
+        for gw in gar_lb:
+            avgs, cov, samples = line_load(gar, gw, slab_areas, gar_lb)
+            # line_load scales by SCENARIOS; renormalize to the slab load
+            scale = Q_SLAB / (GAMMA_G * list(SCENARIOS.values())[1] + GAMMA_Q * SNOW)
+            q_slab_strip = avgs[b_name] * scale
+            slab_samples = [s * scale for s in samples[b_name]]
+            from_above = aligned_gf_q(gw)
+            gar_wall_q[gw["name"]] = q_slab_strip + from_above
+            data["IfcWallStandardCase_" + gw["name"].replace(" ", "_")] = \
+                wall_entry(gw, q_slab_strip, slab_samples, extra=from_above)
+
+        # Garage vehicle-door beam: checked against its wall's line load
+        gar_beams = gar.get("beams", [])
+        for gd in gar["doors"]:
+            gwall = next((w for w in gar_lb if w["global_id"] == gd["wall_id"]), None)
+            bm = next((x for x in gar_beams if gd["name"] in x["name"]), None)
+            if gwall is None or bm is None:
+                continue
+            span = gd["width"] + BEARING
+            q_tot = gar_wall_q.get(gwall["name"], 0.0)
+            m = q_tot * span ** 2 / 8
+            d_eff = max(bm["depth"] - 0.05, 0.01)
+            m_rd = 0.005 * bm["width"] * d_eff * 435000.0 * 0.9 * d_eff
+            data["IfcBeam_" + bm["name"].replace(" ", "_")] = {
+                "kind": "beam",
+                "u": round(m / m_rd, 2),
+                "q": round(q_tot, 1),
+                "M": round(m, 1),
+                "section": f"{bm['width']:.2f}x{bm['depth']:.2f}",
+                "over": gd["name"],
+                "a": [bm["start"]["x"], bm["start"]["y"]],
+                "b": [bm["end"]["x"], bm["end"]["y"]],
             }
         out_path.write_text(json.dumps(data, indent=1, sort_keys=True))
         print(f"\nwrote {out_path} ({len(data)} elements)")

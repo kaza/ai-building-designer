@@ -46,3 +46,14 @@
 - Result: all beams util 0.28-0.87 under scenario B (design target —
   finding #3: the modeled 0.45m roof is visual). Scenario A (fictional
   solid slab) still shows 1.06-1.25 — documented, not chased.
+
+## Attempt 07 — 2026-08-08 ~16:30 (true utilization + garage)
+- Owner: "show me what would fail, not a light show; % of load = color;
+  I want to see the garage." Emitter rewritten: walls now carry TRUE
+  axial utilization (capacity = t × Φ·f_d, f_d 3.0 MPa, Φ 0.6, self-
+  weight included); garage storey added — each garage wall gets the
+  aligned GF wall's load + GF slab one-way strip (ULS ≈ 13.5 kN/m²) +
+  self; garage door beam checked against its wall's line load.
+- Result: 22 elements. Walls all quiet (u 0.08-0.25). The story is the
+  beams: west band 0.87, hallway 0.86, Win7 0.85, Win4 0.73, garage
+  door 0.56, rest < 0.45. Nothing over capacity.

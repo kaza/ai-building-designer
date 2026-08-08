@@ -576,10 +576,16 @@ let loadsOn = false;
 const _savedMats = new Map();  // mesh.uuid -> original material
 
 function loadRampColor(u) {
-  // continuous FEM rainbow (bridge-game style): blue 0 -> cyan -> green
-  // -> yellow -> red 1.0+
+  // color = % of capacity used, nothing else (owner 2026-08-08: "show me
+  // what would fail, not a light show"). One continuous ramp, no bands:
+  // 0% calm gray -> amber -> 100%+ red.
   const t = Math.max(0, Math.min(1, u));
-  return new THREE.Color().setHSL((1 - t) * 2 / 3, 1.0, 0.5);
+  const c = new THREE.Color();
+  if (t < 0.6) c.lerpColors(new THREE.Color(0xdedede),
+                            new THREE.Color(0xf9a825), t / 0.6);
+  else c.lerpColors(new THREE.Color(0xf9a825),
+                    new THREE.Color(0xc62828), (t - 0.6) / 0.4);
+  return c;
 }
 
 // local intensity along the member: beams bend (parabola peaking at the
@@ -680,7 +686,7 @@ function toggleLoads() {
   });
   if (!loadsOn) _savedMats.clear();
   infoText = loadsOn
-    ? 'LOADS — blue cold → green → yellow → red overloaded\\naim + I for numbers · L to exit'
+    ? 'LOADS — color = % of capacity used (gray 0 → amber → red 100)\\naim + I for numbers · L to exit'
     : '';
   setHud();
 }
@@ -698,8 +704,10 @@ function showInfo() {
   if (loads) {
     infoText += loads.kind === 'beam'
       ? '\\nbeam ' + loads.section + ' over ' + loads.over +
-        '\\nq ' + loads.q + ' kN/m · M ' + loads.M + ' kNm · util ' + loads.u
-      : '\\nbearing wall · q ' + loads.q + ' kN/m (ULS, realistic roof)';
+        '\\nq ' + loads.q + ' kN/m · M ' + loads.M + ' kNm · ' +
+        Math.round(loads.u * 100) + '% of capacity'
+      : '\\nbearing wall · q ' + loads.q + ' kN/m · ' +
+        Math.round(loads.u * 100) + '% of capacity';
   }
   setHud();
 }
