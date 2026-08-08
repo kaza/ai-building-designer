@@ -256,7 +256,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
-       N — names on/off &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+       N — names on/off &nbsp;·&nbsp; L — loads view &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
@@ -264,6 +264,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="menu" hidden>
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
+    <button class="tbtn" id="m-loads">Loads: off</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
   <button class="tbtn" id="btn-down">&#9660;</button>
@@ -514,6 +515,11 @@ const TAGS = __TAGS__;
 
 // storey bands (sorted by elevation) — live "where am I" readout
 const STOREYS = __STOREYS__;
+// Per-element structural loads (experiment load_takedown.py --emit-json;
+// scenario B "realistic roof"). Beams: u = true utilization M_ed/M_rd.
+// Bearing walls: u = relative ULS line-load shade (q in kN/m is the number
+// that matters). Empty object when the emitter has not been run.
+const LOADS = __LOADS__;
 
 function storeyAt(h) {
   // exact band first — padded bands overlap at slab level and would
@@ -565,6 +571,66 @@ function displayName(label) {
   return tag ? tag + ' — ' + pretty : (label.startsWith('F_') ? label.slice(2) : pretty);
 }
 
+// --- Loads view (L / menu): heat-color the structure by utilization ------
+let loadsOn = false;
+const _savedMats = new Map();  // mesh.uuid -> original material
+
+function loadRampColor(u) {
+  // green (<=0.5) -> yellow (0.8) -> red (>=1.0)
+  const c = new THREE.Color();
+  if (u <= 0.5) c.set(0x2e7d32);
+  else if (u <= 0.8) c.lerpColors(new THREE.Color(0x2e7d32),
+                                  new THREE.Color(0xf9a825), (u - 0.5) / 0.3);
+  else c.lerpColors(new THREE.Color(0xf9a825),
+                    new THREE.Color(0xc62828), Math.min(1, (u - 0.8) / 0.2));
+  return c;
+}
+
+function loadDataFor(node) {
+  for (let n = node; n; n = n.parent) {
+    const base = (n.name || '').split('.')[0];
+    if (LOADS[base]) return LOADS[base];
+  }
+  return null;
+}
+
+function toggleLoads() {
+  loadsOn = !loadsOn;
+  if (!modelRoot) return;
+  if (loadsOn && !Object.keys(LOADS).length) {
+    loadsOn = false;
+    infoText = 'no loads data embedded (run the takedown with --emit-json, rebuild)';
+    setHud();
+    return;
+  }
+  modelRoot.traverse((n) => {
+    if (!n.isMesh) return;
+    if (loadsOn) {
+      _savedMats.set(n.uuid, n.material);
+      const data = loadDataFor(n);
+      if (data) {
+        n.material = new THREE.MeshStandardMaterial({
+          color: loadRampColor(data.u), roughness: 0.8,
+        });
+      } else {
+        const ghost = n.material.clone();
+        ghost.transparent = true;
+        ghost.opacity = 0.10;
+        ghost.depthWrite = false;
+        n.material = ghost;
+      }
+    } else if (_savedMats.has(n.uuid)) {
+      n.material.dispose();
+      n.material = _savedMats.get(n.uuid);
+    }
+  });
+  if (!loadsOn) _savedMats.clear();
+  infoText = loadsOn
+    ? 'LOADS — green ok · yellow busy · red overloaded\\naim + I for numbers · L to exit'
+    : '';
+  setHud();
+}
+
 function showInfo() {
   const hit = centerHit();
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
@@ -574,6 +640,13 @@ function showInfo() {
     'W ' + size.x.toFixed(2) + ' × D ' + size.z.toFixed(2) +
     ' × H ' + size.y.toFixed(2) + ' m\\n' +
     'distance ' + hit.distance.toFixed(2) + ' m';
+  const loads = loadDataFor(node);
+  if (loads) {
+    infoText += loads.kind === 'beam'
+      ? '\\nbeam ' + loads.section + ' over ' + loads.over +
+        '\\nq ' + loads.q + ' kN/m · M ' + loads.M + ' kNm · util ' + loads.u
+      : '\\nbearing wall · q ' + loads.q + ' kN/m (ULS, realistic roof)';
+  }
   setHud();
 }
 
@@ -711,6 +784,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyR' && !e.repeat) toggleRoof();
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
+  if (e.code === 'KeyL' && !e.repeat) toggleLoads();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
     if (!labelsOn) clearFeedbackLabels();
@@ -797,6 +871,10 @@ if (isTouch) {
   document.getElementById('m-roof').addEventListener('click', (e) => {
     toggleRoof();
     e.target.textContent = 'Roof: ' + (roofVisible ? 'on' : 'off');
+  });
+  document.getElementById('m-loads').addEventListener('click', (e) => {
+    toggleLoads();
+    e.target.textContent = 'Loads: ' + (loadsOn ? 'on' : 'off');
   });
   document.getElementById('m-names').addEventListener('click', (e) => {
     labelsOn = !labelsOn;
@@ -1113,6 +1191,7 @@ document.getElementById('fbundo').addEventListener('click', () => {
 // headless verification, same #debug gating as ?roof / ?measure.
 if (location.hash.startsWith('#debug') && ready) {
   const seams = new URLSearchParams(location.search);
+  if (seams.get('loads') === '1') toggleLoads();  // test seam
   if (isTouch && seams.get('start') === '1') {  // test seam: skip the tap
     touchWalking = true;
     overlay.classList.add('hidden');
@@ -1182,10 +1261,13 @@ renderer.setAnimationLoop(() => {
 def main():
     validate_glb(GLB.read_bytes())
     tags = element_tags()
+    loads_file = OUT_DIR / "loads.json"
+    loads = loads_file.read_text() if loads_file.exists() else "{}"
     html = (TEMPLATE
             .replace("__THREE_VERSION__", THREE_VERSION)
             .replace("__TAGS__", json.dumps(tags, sort_keys=True))
-            .replace("__STOREYS__", json.dumps(storey_bands())))
+            .replace("__STOREYS__", json.dumps(storey_bands()))
+            .replace("__LOADS__", loads))
     HTML.write_text(html, encoding="utf-8")
     print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; "
           f"{len(tags)} element tags; loads ./villa.glb at runtime)")

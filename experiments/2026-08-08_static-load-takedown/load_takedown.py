@@ -6,6 +6,7 @@ assumptions. Experiment code — allowed to hack, promoted only via spec.
 """
 import json
 import math
+import sys
 from pathlib import Path
 
 from shapely.geometry import LineString, Point, Polygon
@@ -168,6 +169,39 @@ def main():
               f"{a[0]:6.1f} {bsc[0]:6.1f} {a[1]:6.1f} {bsc[1]:6.1f} "
               f"{a[2]:7.2f} {bsc[2]:7.2f}")
         results.append((o["name"], bm["name"], rows))
+
+    # --emit-json: write per-element load data for the walkthrough's Loads
+    # view (owner 2026-08-08). Beams carry true utilization (scenario B, the
+    # design target); bearing walls carry their ULS line load, with a
+    # relative 0..0.9 shade so one color ramp serves both.
+    if "--emit-json" in sys.argv:
+        out_path = Path(sys.argv[sys.argv.index("--emit-json") + 1])
+        data = {}
+        b_name = list(SCENARIOS)[1]  # realistic build-up
+        for oname, bname, rows in results:
+            bm = next(x for x in beams if x["name"] == bname)
+            key = "IfcBeam_" + bname.replace(" ", "_")
+            data[key] = {
+                "kind": "beam",
+                "u": round(rows[b_name][2], 2),
+                "q": round(rows[b_name][0], 1),
+                "M": round(rows[b_name][1], 1),
+                "section": f"{bm['width']:.2f}x{bm['depth']:.2f}",
+                "over": oname,
+            }
+        wall_q = {}
+        for w in lb_walls:
+            q, coverage = line_load(gf, w, roofs, lb_walls)
+            wall_q[w["name"]] = q[b_name]
+        qmax = max(wall_q.values()) or 1.0
+        for name, q in wall_q.items():
+            data["IfcWallStandardCase_" + name.replace(" ", "_")] = {
+                "kind": "wall",
+                "u": round(0.9 * q / qmax, 2),
+                "q": round(q, 1),
+            }
+        out_path.write_text(json.dumps(data, indent=1, sort_keys=True))
+        print(f"\nwrote {out_path} ({len(data)} elements)")
 
     print("\nutil = M_ed / M_rd of the PLACED beam (RC, rho 0.5%, fyd 435)."
           "\nScenario A = roof as modeled (0.45m solid RC), B = realistic"
