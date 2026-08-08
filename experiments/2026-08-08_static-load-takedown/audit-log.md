@@ -15,3 +15,11 @@
   half-spans to a wall (real one-way slabs load one pair of walls);
   simply-supported M=qL²/8 (continuity would reduce ~30%). Neither
   conservatism is anywhere near the 6–144× margins → verdict robust.
+
+## Attempt 03 — 2026-08-08 ~12:45 (post-Win8 removal)
+- Input: building.json @ 564a51c (Win8 removed → 11 openings).
+- Command: same → logs/attempt-03-post-win8.txt
+- Result: Win8's 79x row is gone (wall solid). All other verdicts
+  unchanged — removal of one opening does not relieve its neighbors
+  (tributary loads are per-wall-strip, not redistributed). Worst
+  remains Hallway Window: 144x plain / 20x with 2Ø12 over 5.55 m.
