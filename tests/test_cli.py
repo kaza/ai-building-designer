@@ -67,16 +67,17 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        # 10 findings waived: villa-vs-block noise incl. garage-storey core
-        # rules (E011/E012/E013), the wide garage vehicle door (W060), and
-        # the REAL Roof West deck cantilever (E065) pending the owner's
-        # columns-vs-shorter-roof decision.
-        # Retired waivers: Room 2 terrace door (photo-#31 slider relayout)
-        # and the two E050 cantilevered south segments — E050 understands
-        # partial basements since 2026-08-08 (walls on grade are exempt).
-        assert v["waived_count"] == 10
+        # 17 findings waived: villa-vs-block noise incl. garage-storey core
+        # rules (E011/E012/E013), the wide garage vehicle door (W060), the
+        # REAL Roof West deck cantilever (E065) pending the owner's
+        # columns-vs-shorter-roof decision, and 7x E062 — the ring beams
+        # were removed deliberately (owner 2026-08-08 evening) so the FEM
+        # X-ray shows where Verstärkung belongs; final reinforcement
+        # decision pending.
+        assert v["waived_count"] == 17
         assert {w["rule"] for w in v["waived"]} == {
             "W001", "W040", "W060", "E041b", "E011", "E012", "E013", "E065",
+            "E062",
         }
         assert all(w["reason"] for w in v["waived"])
         assert v["stale_waivers"] == []

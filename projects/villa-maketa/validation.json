@@ -41,6 +41,41 @@
     {
       "rule": "E065",
       "reason": "Roof West's deck strip cantilevers 4.3m with no western support \u2014 REAL finding (the floating deck roof, load-takedown experiment). Fix is an owner design decision pending: columns at the deck edge vs shortening the roof to the glass line (asked 2026-08-08)."
+    },
+    {
+      "rule": "E062",
+      "match": "Garage Vehicle Door",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Kitchen Window",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Living Band Window",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Living Glass W2",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Living Sliding Window",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Hallway Window",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E062",
+      "match": "Living Band Window N",
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     }
   ]
 }

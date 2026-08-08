@@ -322,23 +322,13 @@ assert story is not None
 story.apartments.append(apartment)
 
 # --- Ring beams over every wide opening on a bearing wall (E062) ---
-# The load-takedown experiment (2026-08-08): 0.20m wall bands over these
-# spans fail 6-144x; the roof was structurally resting on glass. Upstand
-# ring-beam segments (depth = span/10 heuristic, hidden in the wall band
-# + roof-edge zone) carry it instead. Phase B sizes them for real loads.
-# Depths sized by load-takedown attempt 05/06 (scenario B "realistic
-# roof" is the design target — the modeled 0.45m solid slab is visual,
-# experiment finding #3). rho 0.5% RC assumption; util <= ~0.9 each.
-for _opening, _depth in (
-    ("Kitchen Window", None),          # heuristic 0.35 passes (util 0.28)
-    ("Living Band Window", 0.50),      # west clerestory (Win3): Phase B single-direction load path raised q
-    ("Living Glass W2", None),         # west clerestory (Win2), util 0.42
-    ("Living Sliding Window", 0.45),   # Win4 — was 1.28 at 0.35
-    ("Living Band Window N", 0.45),    # Win7 — was 1.50 at 0.35
-    ("Hallway Window", 0.70),          # Win6, 5.3m: Phase B load path, util ~0.7
-):
-    b.add_beam_over(GF, _opening, depth=_depth)
-b.add_beam_over(GAR, "Garage Vehicle Door")
+# Ring beams REMOVED deliberately (owner 2026-08-08 evening): "remove
+# them, let's see how it looks without them, then we can check where and
+# how we need to make Verstärkung." The FEM X-ray on the beam-less model
+# shows where reinforcement actually belongs; E062 findings are waived
+# with this reason (validation.json). History: the load-takedown
+# experiment proved the 0.20m bands fail 6-144x unreinforced; the beam
+# sizes that worked are in git history (commit dd9ee6a and earlier).
 
 garage_story = b.get_story(GAR)
 assert garage_story is not None
