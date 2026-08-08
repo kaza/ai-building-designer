@@ -47,6 +47,16 @@ like to see this when I click L."
   load balance) on screen.
 - Design values, not peaks: plate moments are 1 m strip-averaged, wall
   base stress 0.5 m averaged; raw peaks stay in the JSON for audit.
+- Wall/beam fragments are colored by the GOVERNING stress component:
+  vertical compression against the axial capacity (Φ·f_d), or tensile
+  stress (horizontal or vertical) against `DesignBasis.fctd` — concrete
+  cracks at a fraction of its crushing strength, and the naked band over
+  an opening fails in horizontal tension at its belly, not in
+  compression (owner 2026-08-08: the beam-less model looked calm because
+  only vertical stress was painted). The tooltip names the component and
+  its magnitude in MPa. Per-element wall `u` is max(axial, tension)
+  design value; `u_axial`/`u_tension` are reported separately. In-plane
+  shear is documented out of scope.
 
 ## Components
 
@@ -90,6 +100,7 @@ like to see this when I click L."
 | 2026-08-08 | SUPERSEDED same evening: L is a single toggle `off ↔ fem` — the strip paint mode is gone (`?loads=1` and `?xray=1` both open the X-ray; strip engine keeps validators + aim+I numbers) | owner: "we have two different L, we don't need that, only the second one is needed" |
 | 2026-08-08 | Field payload is a versioned envelope (schema, coord system, building digest, assumptions, balance, flat quantized arrays) | Codex #13 + Gemini payload review |
 | 2026-08-08 | villa publish gains optional FEM artifacts (both-or-neither, digest-checked against building.json); xray-only publishing for walkthrough-less projects is future work; PyNiteFEA pinned to 3.0.x | Codex #14/#16, CodeRabbit review |
+| 2026-08-08 | Tension-aware wall coloring: per-fragment governing component (vert compression vs Φ·f_d; horiz/vert tension vs fctd 1.0 MPa), component + MPa in tooltips; envelope gains parallel `g`/`s` arrays (additive, schema 1) | owner: beams looked useless in the beam-less X-ray because bands fail in bending tension, which wasn't painted |
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |
 
 ## Acceptance

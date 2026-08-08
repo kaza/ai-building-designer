@@ -161,9 +161,15 @@ addEventListener('mousemove', ev => {
     const kind = Object.keys(meshes).find(k => meshes[k] === hits[0].object);
     const q = lookup[kind][Math.floor(hits[0].faceIndex / 2)];
     const el = env.elems[elem[q]];
+    const comps = ['vertical compression', 'horizontal tension',
+                   'vertical tension', 'bending'];
+    const g = (env.quads.g || [])[q];
+    const s = (env.quads.s || [])[q];
     tip.textContent =
-      `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}% ` +
-      `(element max ${(el.u * 100).toFixed(0)}%)`;
+      `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%` +
+      (g === undefined ? '' :
+        ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
+      ` (element max ${(el.u * 100).toFixed(0)}%)`;
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';

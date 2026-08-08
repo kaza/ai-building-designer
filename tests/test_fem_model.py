@@ -177,3 +177,21 @@ class TestCodexReviewRules:
                    name="Far Wall", is_external=True, load_bearing=True)
         with pytest.raises(FemPreflightError, match="Far Wall"):
             compute_fem(b, mesh=0.4)
+
+    def test_naked_band_governs_in_tension(self):
+        # a wide opening with NO beam: the band above must show tensile
+        # governance and exceed its axial-only reading (fem-xray.md,
+        # tension-aware coloring decision 2026-08-08)
+        b = _box()
+        b.add_window("GF", "South", position=1.0, width=3.0, height=0.75,
+                     sill_height=2.05, name="Band")
+        res = compute_fem(b, mesh=0.3)
+        south = res.find("South")
+        assert south["u_tension"] > south["u_axial"]
+        assert south["u"] == pytest.approx(
+            max(south["u_tension"], south["u_axial"]))
+        tension_quads = [q for q in res.field["quads"]
+                         if q["e"] == next(g for g, e in res.elements.items()
+                                           if e["name"] == "South")
+                         and q["g"] == 1 and q["u"] > 0.1]
+        assert tension_quads, "no horizontal-tension fragments in the band"

@@ -474,6 +474,8 @@ def compute_fem(building: Building, mesh: float = 0.25,
 
     elements: dict[str, dict] = {}
     quad_u: dict[str, float] = {}
+    quad_g: dict[str, int] = {}    # 0 vert compression, 1 horiz tension,
+    quad_s: dict[str, float] = {}  # 2 vert tension, 3 plate bending
     wall_cap = db.wall_phi * db.wall_fd
     panel_by_gid = {p[0]: p for p in panels}
 
@@ -504,19 +506,37 @@ def compute_fem(building: Building, mesh: float = 0.25,
             w = wall_meta[gid]
             bz = min(centers(q)[2] for q in quads)
             stations = []
+            tension_rows = defaultdict(list)   # z row -> (along, sx_tension, width)
             for q in quads:
                 xc, yc, zc = centers(q)
-                if abs(zc - bz) > 0.05:
-                    continue
                 nds = (q.i_node, q.j_node, q.m_node, q.n_node)
                 width = (max(n.X for n in nds) - min(n.X for n in nds)
                          + max(n.Y for n in nds) - min(n.Y for n in nds))
-                sig = float(q.membrane(0, -0.9, combo_name="ULS")[1][0])
-                stations.append((xc if w["horiz"] else yc, sig, width))
+                if abs(zc - bz) <= 0.05:
+                    sig = float(q.membrane(0, -0.9, combo_name="ULS")[1][0])
+                    stations.append((xc if w["horiz"] else yc, sig, width))
+                sx = float(q.membrane(0, 0, combo_name="ULS")[0][0])
+                tension_rows[round(zc, 3)].append(
+                    (xc if w["horiz"] else yc, max(0.0, sx), width))
+            # per-quad governing: vertical compression vs axial cap,
+            # horizontal/vertical TENSION vs fctd (concrete cracks long
+            # before it crushes — the naked-band failure mode)
             for q in quads:
                 s_ = q.membrane(0, 0, combo_name="ULS")
-                quad_u[q.name] = abs(float(s_[1][0])) / wall_cap
+                sx, sy = float(s_[0][0]), float(s_[1][0])
+                candidates = (
+                    (max(0.0, -sy) / wall_cap, 0, abs(sy)),   # vert compression
+                    (max(0.0, sx) / db.fctd, 1, sx),          # horiz tension
+                    (max(0.0, sy) / db.fctd, 2, sy),          # vert tension
+                )
+                u_, g_, s_val = max(candidates)
+                quad_u[q.name] = u_
+                quad_g[q.name] = g_
+                quad_s[q.name] = s_val
             avg = _band_max(stations, 0.5)
+            u_tension = max(
+                (_band_max(row, 0.5) / db.fctd
+                 for row in tension_rows.values()), default=0.0)
             lo = min(w["a"][0 if w["horiz"] else 1],
                      w["b"][0 if w["horiz"] else 1])
             length = (abs(w["b"][0] - w["a"][0])
@@ -527,9 +547,11 @@ def compute_fem(building: Building, mesh: float = 0.25,
                 profile.append(round(abs(_wavg(stations, cmid,
                                                length / 8 + 0.1))
                                      / wall_cap, 3))
+            u_axial = avg / wall_cap
             elements[gid] = dict(
                 kind="wall", name=w["name"], story=w["story"],
-                sigma=avg, u=avg / wall_cap, profile=profile,
+                sigma=avg, u=max(u_axial, u_tension), u_axial=u_axial,
+                u_tension=u_tension, profile=profile,
                 q=round(avg * w["t"], 1), a=list(w["a"]), b=list(w["b"]))
         else:
             _gid, pkind, pname, ps, _z, t, _ppoly, _q = panel_by_gid[gid]
@@ -562,6 +584,7 @@ def compute_fem(building: Building, mesh: float = 0.25,
         nds = (q.i_node, q.j_node, q.m_node, q.n_node)
         quads_out.append(dict(
             e=gid, k=kind, u=round(quad_u.get(qname, 0.0), 3),
+            g=quad_g.get(qname, 3), s=round(quad_s.get(qname, 0.0)),
             c=[[round(n.X, 3), round(n.Y, 3), round(n.Z, 3)] for n in nds]))
 
     assumptions = [
@@ -570,6 +593,9 @@ def compute_fem(building: Building, mesh: float = 0.25,
         f"{db.gamma_g}G+{db.gamma_q}Q, snow {db.snow})",
         "design values: 1 m strip-averaged plate moments, 0.5 m averaged "
         "wall base stress (tributary-weighted)",
+        f"wall coloring: governing of vertical compression (cap "
+        f"{db.wall_phi * db.wall_fd:.0f}) and tension (fctd {db.fctd:.0f} "
+        "kN/m2) — concrete cracks long before it crushes",
     ]
     return FemResult(
         elements=elements,

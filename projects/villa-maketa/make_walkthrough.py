@@ -752,6 +752,9 @@ function cycleStructural() {
   setStructuralMode(structuralMode === 'fem' ? 'off' : 'fem');
 }
 
+const FEM_COMPONENT = ['vertical compression', 'horizontal tension',
+  'vertical tension', 'bending'];
+
 function femHit() {
   const ray = new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -766,9 +769,14 @@ function femInfo() {
   const hit = femHit();
   if (!hit) { infoText = 'no fragment hit'; setHud(); return; }
   const { q, el } = hit;
+  const g = (femEnv.quads.g || [])[q];
+  const s = (femEnv.quads.s || [])[q];
+  const comp = g === undefined ? '' :
+    '\\ngoverned by ' + FEM_COMPONENT[g] +
+    (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
-    'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity\\n' +
-    'element max ' + Math.round(el.u * 100) + '%';
+    'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
+    comp + '\\nelement max ' + Math.round(el.u * 100) + '%';
   setHud();
 }
 
@@ -1365,9 +1373,13 @@ function updateAim(now) {
   if (!measureMode && !fbMode) {
     if (structuralMode === 'fem') {
       const hit = femHit();
-      if (hit) next = hit.el.name + ' — tile ' +
-        Math.round(femEnv.quads.u[hit.q] * 100) + '% · element max ' +
-        Math.round(hit.el.u * 100) + '%';
+      if (hit) {
+        const g = (femEnv.quads.g || [])[hit.q];
+        next = hit.el.name + ' — tile ' +
+          Math.round(femEnv.quads.u[hit.q] * 100) + '%' +
+          (g === undefined ? '' : ' · ' + FEM_COMPONENT[g]) +
+          ' · element max ' + Math.round(hit.el.u * 100) + '%';
+      }
     } else {
       const hit = centerHit();
       if (hit) next = displayName(semanticNode(hit.object).label);

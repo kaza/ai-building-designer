@@ -40,6 +40,9 @@ class DesignBasis:
     cap_thickness: float = 0.25       # m — modeled slabs above this are visual
     wall_fd: float = 3000.0           # kN/m2 design compressive strength
     wall_phi: float = 0.6             # slenderness reduction
+    fctd: float = 1000.0              # kN/m2 design tensile strength —
+                                      # C25/30 conservative-plain, the same
+                                      # ruler the load-takedown bands used
     rho: float = 0.005                # RC bending reinforcement assumption
     fyd: float = 435000.0             # kN/m2 B500 design yield
     span_over_depth_limit: float = 30.0    # deflection proxy, supported spans

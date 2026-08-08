@@ -36,9 +36,13 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     pos: list[float] = []
     e_idx: list[int] = []
     u_arr: list[float] = []
+    g_arr: list[int] = []      # governing component: 0 vert compression,
+    s_arr: list[float] = []    # 1 horiz tension, 2 vert tension, 3 bending
     for q in res.field["quads"]:
         e_idx.append(index[q["e"]])
         u_arr.append(q["u"])
+        g_arr.append(q.get("g", 3))
+        s_arr.append(q.get("s", 0))
         for corner in q["c"]:
             pos.extend(corner)
     envelope = dict(
@@ -46,7 +50,8 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
         digest=digest, balance=round(res.balance, 4),
         assumptions=res.assumptions, unresolved=res.unresolved,
         elems=elems,
-        quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, pos=pos))
+        quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
+                   pos=pos))
     (out_dir / "fem-field.json").write_text(
         json.dumps(envelope, separators=(",", ":")))
 
