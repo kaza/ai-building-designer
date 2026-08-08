@@ -200,9 +200,9 @@ b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
 # the band glass touches the sliding window's glass — no yellow strip.
 b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
              sill_height=2.05, name="Living Band Window N", pane_side="inner")
-# Feedback #024 (second stretch): Room 2's part of the east clerestory band.
-b.add_window(GF, "East Wall", position=8.0, width=3.85, height=0.75,
-             sill_height=2.05, name="Room 2 Band Window E", pane_side="inner")
+# Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
+# order ("remove win8 and make it wall") — the load-takedown experiment
+# showed its 3.85m band was one of the worst structural offenders (79x).
 
 # --- Slab (full L footprint) ---
 b.add_slab(

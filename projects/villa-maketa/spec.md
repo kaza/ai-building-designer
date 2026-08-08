@@ -85,6 +85,7 @@ Kitchen↔Living is open plan — no wall between them.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-08-08 | Win8 (Room 2 east clerestory, was feedback #024) removed — solid wall again | owner order after the load-takedown experiment flagged its 3.85m band at 79x plain utilization (experiments/2026-08-08_static-load-takedown) |
 | 2026-08-08 | Toilets height-scaled (cloud feedback #4, from the owner's phone): `scale_by: height`, h 0.60, slots resized to the Kenney asset's honest footprint (0.42x0.63) | footprint-only scaling made them squat — same class as the #027 kitchen modules |
 | 2026-08-07 | Deck Screen Return N (feedback #032): solid stone return wall (0,14)→(0.5,14), h 1.25 (= balustrade height), t 0.12 — the screen line ended at the deck NW corner while the deck edge ran 0.5m further to the pool's west corner, leaving an unguarded drop | owner circled the corner: "there should be a wall here, the height is the same as the glass fence" |
 | 2026-08-07 | Room 2 north face rebuilt to maquette photo #31: centered 2-pane glass slider (fixed Win5 1.1 + sliding glass D7 1.1, both head 2.80, exact adjacency at position 1.75) with 0.65m wall stubs BOTH sides; old edge-to-edge Win5 1.85 + swing door 1.4 replaced in place (tags stable); stale W060 waiver dropped; plan reviewed by Gemini | owner: "glass doors, but a bit of walls on both sides" |
