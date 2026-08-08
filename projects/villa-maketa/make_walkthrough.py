@@ -256,7 +256,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
-       N — names on/off &nbsp;·&nbsp; L — loads view &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
@@ -264,7 +264,7 @@ TEMPLATE = """<!DOCTYPE html>
   <div id="menu" hidden>
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
-    <button class="tbtn" id="m-loads">Loads: off</button>
+    <button class="tbtn" id="m-loads">X-ray: off</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
   <button class="tbtn" id="btn-down">&#9660;</button>
@@ -597,69 +597,6 @@ function loadRampColor(u) {
   return c;
 }
 
-// local intensity along the member: beams bend (parabola peaking at the
-// utilization mid-span, cool at the supports); walls follow the emitted
-// 8-bucket load profile.
-function localU(data, t) {
-  if (data.kind === 'beam') return data.u * 4 * t * (1 - t);
-  if (data.profile && data.profile.length) {
-    const f = t * (data.profile.length - 1);
-    const i = Math.floor(f);
-    const j = Math.min(i + 1, data.profile.length - 1);
-    return data.profile[i] + (data.profile[j] - data.profile[i]) * (f - i);
-  }
-  return data.u;
-}
-
-const _v3 = new THREE.Vector3();
-const _gradientCache = new Map();  // element key -> CanvasTexture
-
-function gradientTexture(key, data) {
-  // 1D gradient of localU along the member. UV-mapped faces interpolate
-  // the texture BETWEEN vertices — a box beam with corner-only vertices
-  // still shows its bending parabola (vertex colors could not).
-  if (_gradientCache.has(key)) return _gradientCache.get(key);
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 1;
-  const ctx = canvas.getContext('2d');
-  for (let x = 0; x < 256; x++) {
-    ctx.fillStyle = '#' + loadRampColor(localU(data, x / 255)).getHexString();
-    ctx.fillRect(x, 0, 1, 1);
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  _gradientCache.set(key, tex);
-  return tex;
-}
-
-function paintByLoad(mesh, data, key) {
-  // param each vertex along the element axis (model x/y -> three x/-z)
-  // into UV.x; the gradient texture does the rest. Geometry cloned once —
-  // GLB shares geometries between meshes; don't tint a sibling.
-  mesh.geometry = mesh.geometry.clone();
-  const pos = mesh.geometry.getAttribute('position');
-  const uvs = new Float32Array(pos.count * 2);
-  const ax = data.a[0], az = -data.a[1];
-  const dx = data.b[0] - data.a[0], dz = -data.b[1] + data.a[1];
-  const len2 = dx * dx + dz * dz || 1;
-  mesh.updateWorldMatrix(true, false);
-  for (let i = 0; i < pos.count; i++) {
-    _v3.fromBufferAttribute(pos, i);
-    mesh.localToWorld(_v3);
-    const t = Math.max(0, Math.min(1,
-      ((_v3.x - ax) * dx + (_v3.z - az) * dz) / len2));
-    uvs[i * 2] = t;
-    uvs[i * 2 + 1] = 0.5;
-  }
-  mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  mesh.material = new THREE.MeshBasicMaterial({
-    map: gradientTexture(key, data),
-    // beams' undersides are coplanar with window-frame tops — win the
-    // z-fight or the loads color speckles over the frames
-    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
-  });
-}
-
 function loadDataFor(node) {
   for (let n = node; n; n = n.parent) {
     const base = (n.name || '').split('.')[0];
@@ -669,9 +606,6 @@ function loadDataFor(node) {
 }
 
 function _restoreMats() {
-  // restore geometry too: paintByLoad clones the geometry and overwrites
-  // its UVs — giving the original textured material the mangled clone
-  // corrupts every textured mesh after one L-cycle (review 2026-08-08)
   modelRoot.traverse((n) => {
     if (n.isMesh && _savedMats.has(n.uuid)) {
       const saved = _savedMats.get(n.uuid);
@@ -692,24 +626,9 @@ function _ghost(n) {
   n.material = ghost;
 }
 
-function _applyStrip() {
-  modelRoot.traverse((n) => {
-    if (!n.isMesh) return;
-    _savedMats.set(n.uuid, { material: n.material, geometry: n.geometry });
-    const data = loadDataFor(n);
-    if (data && data.a) {
-      paintByLoad(n, data, (n.name || '').split('.')[0]);
-    } else if (data) {
-      n.material = new THREE.MeshBasicMaterial({ color: loadRampColor(data.u) });
-    } else {
-      _ghost(n);
-    }
-  });
-}
-
 function _buildFemGroup(env) {
   // building coords are z-up; the GLB scene is (x, y-up, z) = (x, z, -y) —
-  // same mapping paintByLoad uses. Sanity-check against the model bbox so a
+  // same (x, z, -y) mapping the element painter used. Sanity-check against the model bbox so a
   // transform regression shows up as a console warning, not silent nonsense.
   const { n, elem, u, pos } = env.quads;
   const byKind = {};
@@ -766,16 +685,14 @@ function _enterFem() {
   });
   femGroup.visible = true;
   _updateLoadsBtn();
-  infoText = 'FEM X-RAY — plate model, per-fragment % of capacity (red = over 100%)\\nload balance ' +
+  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)\\nload balance ' +
     femEnv.balance + ' · aim + I for a fragment · L to exit';
   setHud();
 }
 
 function setStructuralMode(mode) {
   if (!modelRoot || mode === structuralMode) return;
-  if (mode === 'strip' && !Object.keys(LOADS).length) mode = 'fem';
   // teardown
-  if (structuralMode === 'strip') _restoreMats();
   if (structuralMode === 'fem') {
     if (femGroup) femGroup.visible = false;
     _restoreMats();
@@ -783,11 +700,7 @@ function setStructuralMode(mode) {
   structuralMode = 'off';
   infoText = '';
   // setup
-  if (mode === 'strip') {
-    _applyStrip();
-    structuralMode = 'strip';
-    infoText = 'ELEMENT LOADS (strip method) — color = % of capacity: gray → yellow → orange · RED only if OVER 100%\\naim + I for numbers · L for FEM x-ray';
-  } else if (mode === 'fem') {
+  if (mode === 'fem') {
     structuralMode = 'fem';
     if (femGroup) {
       _enterFem();
@@ -821,12 +734,14 @@ function setStructuralMode(mode) {
 
 function _updateLoadsBtn() {
   const btn = document.getElementById('m-loads');
-  if (btn) btn.textContent = 'Loads: ' +
-    ({ off: 'off', strip: 'strip', fem: 'FEM x-ray' })[structuralMode];
+  if (btn) btn.textContent = 'X-ray: ' + (structuralMode === 'fem' ? 'on' : 'off');
 }
 
 function cycleStructural() {
-  setStructuralMode({ off: 'strip', strip: 'fem', fem: 'off' }[structuralMode]);
+  // owner 2026-08-08: one L, one view — the FEM x-ray. (The strip engine
+  // still runs the validators and the aim+I numbers; it just has no
+  // paint mode of its own anymore.)
+  setStructuralMode(structuralMode === 'fem' ? 'off' : 'fem');
 }
 
 function femInfo() {
@@ -1405,8 +1320,8 @@ document.getElementById('fbundo').addEventListener('click', () => {
 // headless verification, same #debug gating as ?roof / ?measure.
 if (location.hash.startsWith('#debug') && ready) {
   const seams = new URLSearchParams(location.search);
-  if (seams.get('loads') === '1') setStructuralMode('strip');  // test seam
-  if (seams.get('xray') === '1') setStructuralMode('fem');    // test seam
+  if (seams.get('loads') === '1' || seams.get('xray') === '1')
+    setStructuralMode('fem');  // test seam — one structural view since 2026-08-08
   if (isTouch && seams.get('start') === '1') {  // test seam: skip the tap
     touchWalking = true;
     overlay.classList.add('hidden');

@@ -6,9 +6,11 @@ Every project gets a second, higher-fidelity structural view: a plate
 finite-element model (PyNiteFEA, MIT) built from `building.json` at
 build time, whose per-fragment utilization is browsable
 
-- inside the walkthrough: the L key cycles `off → element loads →
-  FEM X-ray` (fragments drawn in place of the element-colored meshes,
-  same ghosted building context, same color ramp), and
+- inside the walkthrough: the L key toggles the FEM X-ray (fragments
+  over the ghosted building, same color ramp) — owner 2026-08-08
+  evening: "we have two different L, we don't need that" — the strip
+  engine keeps the validators and the aim+I numbers but has no paint
+  mode, and
 - as a standalone `xray.html` (orbit camera, hover tooltip = element +
   exact % of capacity, per-kind visibility toggles) published next to
   the walkthrough.
@@ -85,6 +87,7 @@ like to see this when I click L."
 | 2026-08-08 | Typed preflight (`FemPreflightError`) before meshing + quad-count estimate with configurable ceiling | Codex #7/#8: `assert` vanishes under `-O`; apartment grids can explode |
 | 2026-08-08 | Released walkthrough/xray HTML pins exact `fem-field-<sha>.json` (and exact GLB name); webapp serves exact-name assets | Codex #9: pointer-resolved assets can mix two releases |
 | 2026-08-08 | Walkthrough uses one enum state machine `setStructuralMode(off\|strip\|fem)`; `?loads=1` maps to `strip`, new `?xray=1` to `fem`; FEM mode raycasts fragments only; field fetch has its own progress + stale-completion guard | Codex #10–12 |
+| 2026-08-08 | SUPERSEDED same evening: L is a single toggle `off ↔ fem` — the strip paint mode is gone (`?loads=1` and `?xray=1` both open the X-ray; strip engine keeps validators + aim+I numbers) | owner: "we have two different L, we don't need that, only the second one is needed" |
 | 2026-08-08 | Field payload is a versioned envelope (schema, coord system, building digest, assumptions, balance, flat quantized arrays) | Codex #13 + Gemini payload review |
 | 2026-08-08 | villa publish gains optional FEM artifacts (both-or-neither, digest-checked against building.json); xray-only publishing for walkthrough-less projects is future work; PyNiteFEA pinned to 3.0.x | Codex #14/#16, CodeRabbit review |
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |

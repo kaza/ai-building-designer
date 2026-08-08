@@ -35,7 +35,7 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 
 ## Decision log
 
-| 2026-08-08 | L cycles `off → strip loads → FEM x-ray` via one enum state machine (`setStructuralMode`); `?loads=1` maps to strip, `?xray=1` to fem | owner wants the FEM view behind L, not always-on; two engines never blend — FEM mode raycasts fragments only ([fem-xray.md](fem-xray.md)) |
+| 2026-08-08 | L toggles `off ↔ FEM x-ray` (`setStructuralMode`); `?loads=1` and `?xray=1` both map to fem; FEM mode raycasts fragments only | owner first asked for a 3-state cycle, then cut the strip paint mode the same evening ("only the second one is needed") — strip engine keeps validators + aim+I numbers ([fem-xray.md](fem-xray.md)) |
 | 2026-08-08 | Building(z-up) → GLB scene transform is `(x, z, −y)`; fragments sanity-check their bbox against the model and console-warn on regression | same mapping paintByLoad already used; plan review demanded a runtime check over blind hardcoding |
 | Date | Decision | Why | Who |
 |------|----------|-----|-----|
