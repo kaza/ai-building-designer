@@ -42,7 +42,7 @@ class TestViewHash:
         assert "Math.abs(v) > 5000" in template   # finite but absurd
 
     def test_xray_token_round_trips(self, template):
-        assert "parts[5] === 'xray'" in template
+        assert "flags.has('xray')" in template   # flag-set grammar (2026-08-09)
         assert "structuralMode === 'fem' ? ',xray' : ''" in template
 
     def test_copy_link_bound_to_key_and_menu(self, template):
@@ -92,3 +92,36 @@ class TestXrayReadability:
         # sized on the design value, peak shown as a detailing flag
         assert "femCell('peak'" in template
         assert "worst fragment" in template
+
+
+class TestGhostMode:
+    """Ghost (G) vs FEM X-ray: one mode owns the materials at a time
+    (specs/browser-walkthrough.md 2026-08-09)."""
+
+    def test_flag_set_parser_ignores_unknown_flags(self, template):
+        # the remainder after 5 numerics is a SET — an unknown flag must
+        # not throw the camera away (old parser returned null)
+        assert "const flags = new Set(parts.slice(5));" in template
+        assert "flags.has('xray')" in template
+        assert "flags.has('ghost')" in template
+        assert "parts.length !== 5 && !xray" not in template   # old grammar gone
+
+    def test_ghost_unwound_before_fem_fetch(self, template):
+        # synchronous handoff: _unapplyGhost precedes the teardown and the
+        # fetch inside setStructuralMode
+        i_set = template.index("function setStructuralMode(mode) {")
+        i_unw = template.index("if (mode === 'fem') _unapplyGhost();")
+        i_fetch = template.index("fetch(FEM_FIELD_URL)")
+        assert i_set < i_unw < i_fetch
+
+    def test_ghost_returns_after_fem_exit_and_failure(self, template):
+        assert template.count("if (ghostWanted) _applyGhost();") == 2
+
+    def test_bindings_and_hash(self, template):
+        assert "if (e.code === 'KeyG' && !e.repeat) toggleGhost();" in template
+        assert "id=\"m-ghost\"" in template
+        assert "(ghostWanted ? ',ghost' : '')" in template
+        assert "if (INITIAL_VIEW.ghost) toggleGhost();" in template
+
+    def test_only_architecture_is_ghosted(self, template):
+        assert "GHOST_KINDS = ['IfcWallStandardCase', 'IfcWall', 'IfcSlab', 'IfcRoof']" in template

@@ -108,7 +108,10 @@ class TestPageData:
         assert "<h1>Casa Test</h1>" in html
         assert "fetch('casa.glb')" in html
         assert "camera.position.set(1.0, 1.7, 2.5);" in html
-        assert "__" not in html.replace("__proto__", "")   # nothing left
+        # no unsubstituted __PLACEHOLDER__ left (JS identifiers like
+        # __proto__ / window.__ab are legitimate double underscores)
+        import re as _re
+        assert not _re.search(r"__[A-Z][A-Z_]*__", html)
 
 
 class TestVillaParity:

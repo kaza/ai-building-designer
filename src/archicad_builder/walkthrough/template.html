@@ -143,7 +143,7 @@
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
-       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; K — copy view link &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; G — ghost walls &nbsp;·&nbsp; K — copy view link &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
@@ -152,6 +152,7 @@
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
     <button class="tbtn" id="m-loads">X-ray: off</button>
+    <button class="tbtn" id="m-ghost">Ghost: off</button>
     <button class="tbtn" id="m-link">Copy view link</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
@@ -208,8 +209,7 @@ const DEBUG_MODE = location.hash.startsWith('#debug');
 const INITIAL_VIEW = (() => {
   if (DEBUG_MODE || !location.hash.startsWith('#v=')) return null;
   const parts = location.hash.slice(3).split(',');
-  const xray = parts.length === 6 && parts[5] === 'xray';
-  if (parts.length !== 5 && !xray) return null;
+  if (parts.length < 5) return null;
   // Number('') is 0, so blank components must be rejected explicitly —
   // '#v=,,,,' would otherwise teleport to the origin (Codex review).
   if (parts.slice(0, 5).some((s) => s.trim() === '')) return null;
@@ -219,13 +219,19 @@ const INITIAL_VIEW = (() => {
   // so a truncated/mangled 1e9 would show an empty screen AND be written
   // straight back into the hash (CodeRabbit).
   if (nums.slice(0, 3).some((v) => Math.abs(v) > 5000)) return null;
-  return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4], xray };
+  // everything past the numbers is a FLAG SET; unknown flags are ignored
+  // so the camera survives links from newer builds (Codex review — the
+  // old positional parse threw the whole view away)
+  const flags = new Set(parts.slice(5));
+  return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4],
+           xray: flags.has('xray'), ghost: flags.has('ghost') };
 })();
 let viewHashOn = false;   // flips on once the initial view (if any) applied
 let _lastViewHash = '';
 function writeViewHash() {
   if (!viewHashOn || DEBUG_MODE) return;
-  const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '');
+  const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '')
+    + (ghostWanted ? ',ghost' : '');
   if (spec === _lastViewHash) return;  // change detector: Safari caps
   try {                                // replaceState at 100 calls / 30 s
     history.replaceState(history.state, '', '#v=' + spec);
@@ -572,6 +578,56 @@ function _ghost(n) {
   n.material = ghost;
 }
 
+// ── Ghost mode (G): see walls through walls ────────────────────────────
+// Ghost and FEM X-ray both restyle materials, so exactly ONE owns the
+// model at a time: entering FEM unwinds Ghost synchronously BEFORE its
+// fetch (the FEM snapshot must never capture ghost clones as
+// "originals" — Codex review 2026-08-09), and leaving FEM re-applies it
+// if still wanted. Architecture goes translucent; furniture, doors and
+// windows stay solid so the space still reads.
+let ghostWanted = false;
+let ghostApplied = false;
+const _ghostSaved = new Map();
+const GHOST_KINDS = ['IfcWallStandardCase', 'IfcWall', 'IfcSlab', 'IfcRoof'];
+function _isGhostable(n) {
+  for (let o = n; o; o = o.parent) {
+    const base = (o.name || '').split('.')[0];
+    if (GHOST_KINDS.some((k) => base.startsWith(k + '_'))) return true;
+  }
+  return false;
+}
+function _applyGhost() {
+  if (ghostApplied || !modelRoot) return;
+  modelRoot.traverse((n) => {
+    if (!n.isMesh || !_isGhostable(n)) return;
+    _ghostSaved.set(n.uuid, n.material);
+    const g = n.material.clone();
+    g.transparent = true;
+    g.opacity = 0.12;
+    g.depthWrite = false;
+    n.material = g;
+  });
+  ghostApplied = true;
+}
+function _unapplyGhost() {
+  if (!ghostApplied) return;
+  modelRoot.traverse((n) => {
+    if (n.isMesh && _ghostSaved.has(n.uuid)) {
+      n.material.dispose();
+      n.material = _ghostSaved.get(n.uuid);
+    }
+  });
+  _ghostSaved.clear();
+  ghostApplied = false;
+}
+function toggleGhost() {
+  ghostWanted = !ghostWanted;
+  if (structuralMode === 'off') (ghostWanted ? _applyGhost : _unapplyGhost)();
+  const btn = document.getElementById('m-ghost');
+  if (btn) btn.textContent = 'Ghost: ' + (ghostWanted ? 'on' : 'off');
+  writeViewHash();
+}
+
 function _buildFemGroup(env) {
   // building coords are z-up; the GLB scene is (x, y-up, z) = (x, z, -y) —
   // same (x, z, -y) mapping the element painter used. Sanity-check against the model bbox so a
@@ -639,10 +695,14 @@ function _enterFem() {
 
 function setStructuralMode(mode) {
   if (!modelRoot || mode === structuralMode) return;
+  // FEM's material snapshot must see the TRUE materials — unwind Ghost
+  // synchronously before anything else (its wanted-bit survives)
+  if (mode === 'fem') _unapplyGhost();
   // teardown
   if (structuralMode === 'fem') {
     if (femGroup) femGroup.visible = false;
     _restoreMats();
+    if (ghostWanted) _applyGhost();     // leaving FEM: ghost returns
   }
   document.body.classList.remove('xray');
   structuralMode = 'off';
@@ -670,6 +730,7 @@ function setStructuralMode(mode) {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;
           structuralMode = 'off';
           _restoreMats();
+          if (ghostWanted) _applyGhost();   // failed FEM: ghost returns
           infoText = 'FEM field unavailable (' + err.message + ') — L for element loads';
           setHud();
         });
@@ -908,6 +969,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
   if (e.code === 'KeyL' && !e.repeat) cycleStructural();
+  if (e.code === 'KeyG' && !e.repeat) toggleGhost();
   if (e.code === 'KeyK' && !e.repeat) copyViewLink();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
@@ -998,6 +1060,9 @@ if (isTouch) {
   });
   document.getElementById('m-loads').addEventListener('click', () => {
     cycleStructural();
+  });
+  document.getElementById('m-ghost').addEventListener('click', () => {
+    toggleGhost();
   });
   document.getElementById('m-link').addEventListener('click', () => {
     copyViewLink();
@@ -1324,6 +1389,7 @@ if (INITIAL_VIEW && ready) {
                       INITIAL_VIEW.pos[2]);
   camera.rotation.set(INITIAL_VIEW.pitch * Math.PI / 180,
                       INITIAL_VIEW.yaw * Math.PI / 180, 0, 'YXZ');
+  if (INITIAL_VIEW.ghost) toggleGhost();
   if (INITIAL_VIEW.xray) setStructuralMode('fem');
 }
 viewHashOn = ready;   // a failed load must not overwrite a pasted link
@@ -1338,6 +1404,26 @@ if (location.hash.startsWith('#debug') && ready) {
     reticle.style.display = 'block';
     if (seams.get('menu') === '1') document.getElementById('menu').hidden = false;
   }
+  // headless test seam: module-scope state is invisible to CDP's
+  // Runtime.evaluate, so #debug exposes exactly what the harness needs
+  window.__ab = {
+    toggleGhost, setStructuralMode,
+    state: () => ({ mode: structuralMode, ghostWanted, ghostApplied }),
+    ghostProbe: () => {
+      let wall = null, other = null;
+      modelRoot.traverse((n) => {
+        if (!n.isMesh) return;
+        if (_isGhostable(n)) { wall = wall || n; }
+        else if (n.name && !n.name.startsWith('Ifc')) { other = other || n; }
+      });
+      return {
+        wall: wall && { t: wall.material.transparent,
+                        dw: wall.material.depthWrite,
+                        op: Math.round(wall.material.opacity * 100) / 100 },
+        other: other && { t: other.material.transparent },
+      };
+    },
+  };
   const fbSeam = new URLSearchParams(location.search).get('feedback');
   if (fbSeam === '1' || fbSeam === 'submit') enterFeedback();
   if (fbSeam === 'submit') {
