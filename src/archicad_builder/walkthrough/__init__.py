@@ -14,6 +14,7 @@ which also receives F-key feedback.
 from __future__ import annotations
 
 import json
+import re
 import struct
 from importlib import resources
 from pathlib import Path
@@ -140,15 +141,19 @@ def render_page(doc: dict, *, model: str, title: str,
     """The final HTML from the building document + project taste."""
     template = (resources.files("archicad_builder.walkthrough")
                 / "template.html").read_text()
-    return (template
-            .replace("__THREE_VERSION__", THREE_VERSION)
-            .replace("__TITLE__", title)
-            .replace("__MODEL__", model)
-            .replace("__START__", ", ".join(str(c) for c in start))
-            .replace("__TAGS__", json.dumps(element_tags(doc),
-                                            sort_keys=True))
-            .replace("__STOREYS__", json.dumps(storey_bands(doc)))
-            .replace("__LOADS__", loads_json))
+    values = {
+        "__THREE_VERSION__": THREE_VERSION,
+        "__TITLE__": title,
+        "__MODEL__": model,
+        "__START__": ", ".join(str(c) for c in start),
+        "__TAGS__": json.dumps(element_tags(doc), sort_keys=True),
+        "__STOREYS__": json.dumps(storey_bands(doc)),
+        "__LOADS__": loads_json,
+    }
+    # single pass, not chained .replace(): a title containing the literal
+    # string "__MODEL__" must not be substituted again (Gemini 2026-08-09)
+    return re.sub("|".join(map(re.escape, values)),
+                  lambda m: values[m.group(0)], template)
 
 
 def build_page(project_dir: Path, model: str) -> Path:

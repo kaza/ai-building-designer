@@ -156,7 +156,13 @@ def fetch_kenney(assets_dir: Path, spec: KenneyKitAsset, *,
                 member = f"Models/GLTF format/{model}.glb"
                 dest_dir = assets_dir / f"kenney_{model}"
                 dest_dir.mkdir(parents=True, exist_ok=True)
-                (dest_dir / f"{model}.glb").write_bytes(zf.read(member))
+                dest = dest_dir / f"{model}.glb"
+                # atomic like the other fetchers: an interrupted extraction
+                # must not leave a truncated file that the existence-based
+                # cache check then trusts forever (Gemini 2026-08-09)
+                part = dest.with_suffix(".glb.part")
+                part.write_bytes(zf.read(member))
+                part.rename(dest)
                 print(f"kenney_{model}: extracted")
     else:
         print("kenney models: cached")

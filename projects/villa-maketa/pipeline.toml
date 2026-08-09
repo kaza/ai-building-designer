@@ -78,6 +78,8 @@ inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json", "
 outputs = ["output/villa.blend"]
 # the renders exist only in the `all` profile, so they are optional here
 optional_outputs = ["output/perspective.png", "output/top_down.png"]
+# declared so an operator-exported AB_FULL_RENDER is covered by the digest
+env = ["AB_FULL_RENDER"]
 env_by_profile = { all = { AB_FULL_RENDER = "1" } }
 
 [[step]]

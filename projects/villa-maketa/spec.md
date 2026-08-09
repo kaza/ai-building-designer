@@ -274,7 +274,7 @@ run is ~13 min (Blender ~1 min, FEM ~8 min); a no-op re-run is ~2 s.
 
 The `blend` step is CHEAP by default (owner 2026-08-06: the walkthrough is
 the product, regenerated every run; the ~4 min Cycles PNGs are opt-in): it
-saves villa.blend and stops. `VILLA_FULL_RENDER=1` also renders
+saves villa.blend and stops. `AB_FULL_RENDER=1` (renamed from `VILLA_FULL_RENDER` when the engine moved to the framework, ADR-006) also renders
 perspective.png + top_down.png — the step declares that variable, so
 flipping it re-runs the render instead of silently reusing the cheap one.
 

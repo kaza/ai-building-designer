@@ -885,7 +885,7 @@ for _i, _g in enumerate(RENDER.get("ground", [])):
     _gobj = bpy.context.active_object
     _gobj.scale = tuple(_g["size"])
     _gobj.data.materials.append(MATS["ground"])
-    _gobj.name = _g.get("name", f"Ground{_i}")
+    _gobj.name = _g.get("name") or f"Ground{_i}"
 
 # Cylindrical shells (render decor): a spiral-stair tower straddling a
 # facade gets a hollow tube minus its in-house half, so the steps inside
@@ -900,7 +900,7 @@ for _si, _sh in enumerate(RENDER.get("shell", [])):
         radius=_sh["radius"], depth=_depth, vertices=48,
         location=(_cx, _cy, _zc))
     _tower = bpy.context.active_object
-    _tower.name = _sh.get("name", f"Shell{_si}")
+    _tower.name = _sh.get("name") or f"Shell{_si}"
     _tower.data.materials.append(MATS["wall"])
     bpy.ops.mesh.primitive_cylinder_add(
         radius=_sh["inner_radius"], depth=_depth + 0.25, vertices=48,
@@ -910,10 +910,14 @@ for _si, _sh in enumerate(RENDER.get("shell", [])):
     _tower_inner.hide_render = True
     _cuts = [_tower_inner]
     if "cut_y_above" in _sh:
+        # cutter sized from the shell itself — hardcoded villa dimensions
+        # would silently truncate a bigger tower (CodeRabbit 2026-08-09)
+        _cd = 2 * _sh["radius"] + 0.5
         bpy.ops.mesh.primitive_cube_add(
-            size=1, location=(_cx, _sh["cut_y_above"] + 2.0, 0.0))
+            size=1,
+            location=(_cx, _sh["cut_y_above"] + _cd / 2, _zc))
         _tower_back = bpy.context.active_object
-        _tower_back.scale = (4.0, 4.0, 8.0)
+        _tower_back.scale = (_cd, _cd, _depth + 0.5)
         _tower_back.name = f"{_tower.name}CutterBack"
         _tower_back.hide_render = True
         _cuts.append(_tower_back)
@@ -1003,6 +1007,8 @@ for _o in scene.objects:
         _o.hide_render = True
 
 scene.camera = cam_top
+scene.view_settings.exposure = _top_cfg.get(
+    "exposure", RENDER.get("exposure", -0.6))
 scene.render.resolution_x = _top_cfg.get("resolution", (1100, 2000))[0]
 scene.render.resolution_y = _top_cfg.get("resolution", (1100, 2000))[1]
 scene.render.filepath = str(OUT_TOP)

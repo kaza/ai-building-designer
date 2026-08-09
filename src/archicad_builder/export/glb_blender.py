@@ -28,6 +28,9 @@ from archicad_builder.export.glb_logic import (  # noqa: E402
     should_prune,
 )
 
+if not bpy.data.filepath:
+    sys.exit("usage: blender -b <project>/output/<model>.blend "
+             "-P glb_blender.py — no .blend is loaded")
 BLEND = Path(bpy.data.filepath)                  # projects/<p>/output/<m>.blend
 PROJECT_DIR = BLEND.parent.parent
 OUT = BLEND.parent / (BLEND.stem + ".glb")

@@ -832,6 +832,7 @@ def walkthrough_cmd(project: str = typer.Argument(..., help="Project directory n
     """Build output/walkthrough.html (validates the GLB first)."""
     import tomllib as _tomllib
 
+    from archicad_builder.project_config import ConfigError
     from archicad_builder.walkthrough import GlbError, build_page
     project_dir = PROJECTS_DIR / project
     pipe = _tomllib.loads((project_dir / "pipeline.toml").read_text())
@@ -841,7 +842,7 @@ def walkthrough_cmd(project: str = typer.Argument(..., help="Project directory n
         raise typer.Exit(1)
     try:
         build_page(project_dir, model)
-    except GlbError as exc:
+    except (GlbError, ConfigError) as exc:
         typer.echo(f"walkthrough: {exc}", err=True)
         raise typer.Exit(1) from exc
 
@@ -850,11 +851,13 @@ def walkthrough_cmd(project: str = typer.Argument(..., help="Project directory n
 def fetch_assets_cmd(project: str = typer.Argument(..., help="Project directory name")):
     """Download the project's pinned furniture assets (project.toml)."""
     from archicad_builder.assets import AssetError, fetch_all
-    from archicad_builder.project_config import ProjectConfig
+    from archicad_builder.project_config import ConfigError, ProjectConfig
     project_dir = PROJECTS_DIR / project
     try:
         fetch_all(project_dir, ProjectConfig.load(project_dir))
-    except AssetError as exc:
+    except (AssetError, ConfigError) as exc:
+        # assets runs BEFORE the validate gate, so a broken project.toml
+        # surfaces here first — cleanly, not as a pydantic traceback
         typer.echo(f"fetch-assets: {exc}", err=True)
         raise typer.Exit(1) from exc
 
