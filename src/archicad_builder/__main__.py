@@ -839,11 +839,11 @@ def import_ifc_cmd(
     """Create a new project from a foreign IFC (specs/ifc-import.md).
     GUIDs are kept verbatim; unmapped entities are reported, never
     silently dropped; the original file is kept as import-source.ifc."""
-    from archicad_builder.importers.ifc import ImportError_, import_project
+    from archicad_builder.importers.ifc import IfcImportError, import_project
     try:
         result = import_project(Path(file), PROJECTS_DIR / project,
                                 strict=strict)
-    except ImportError_ as exc:
+    except IfcImportError as exc:
         typer.echo(f"import-ifc: {exc}", err=True)
         raise typer.Exit(1) from exc
     _output({"ok": True, "project": project,
@@ -859,10 +859,10 @@ def update_ifc_cmd(
 ):
     """Patch the partner's original IFC with OUR elements — their geometry
     is untouched, never regenerated from our model (specs/ifc-import.md)."""
-    from archicad_builder.importers.ifc import ImportError_, update_ifc
+    from archicad_builder.importers.ifc import IfcImportError, update_ifc
     try:
         out = update_ifc(PROJECTS_DIR / project)
-    except ImportError_ as exc:
+    except IfcImportError as exc:
         typer.echo(f"update-ifc: {exc}", err=True)
         raise typer.Exit(1) from exc
     _output({"ok": True, "written": str(out)})

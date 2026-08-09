@@ -159,7 +159,10 @@ def render_page(doc: dict, *, model: str, title: str,
         "__TAGS__": json.dumps(element_tags(doc),
                                sort_keys=True).replace("</", "<\\/"),
         "__STOREYS__": json.dumps(storey_bands(doc)).replace("</", "<\\/"),
-        "__LOADS__": loads_json.replace("</", "<\\/"),
+        # parse + re-serialize: raw text here would be arbitrary JS, not
+        # data ("{};globalThis.PWNED=1;//" — Codex 2026-08-09)
+        "__LOADS__": json.dumps(
+            json.loads(loads_json)).replace("</", "<\\/"),
     }
     # single pass, not chained .replace(): a title containing the literal
     # string "__MODEL__" must not be substituted again (Gemini 2026-08-09)

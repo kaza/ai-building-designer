@@ -134,7 +134,6 @@ class TestEscaping:
         html = render_page(doc, model="m", title="A & B <C>",
                            start=(0, 1.7, 0),
                            loads_json='{"x": "</script>"}')
-        assert "</script><b>" not in html.replace("</script>\n", "", 1) or True
         # the JSON payloads must not contain a raw closing tag
         import re as _re
         payloads = _re.findall(r"const (?:TAGS|STOREYS|LOADS) = (.*?);\n",

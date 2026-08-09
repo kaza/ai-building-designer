@@ -230,6 +230,12 @@ def verify_assets(project_dir: Path) -> list[str]:
     problems: list[str] = []
     for entry in json.loads(manifest.read_text()):
         root = project_dir / "assets" / entry["id"]
+        if not entry.get("files"):
+            # a pre-hash manifest verifies NOTHING — that must not read
+            # as "everything checked out" (CodeRabbit 2026-08-09)
+            problems.append(f"{entry['id']}: manifest has no file hashes "
+                            "— re-run fetch-assets")
+            continue
         for rel, want in entry.get("files", {}).items():
             p = root / rel
             if not p.is_file():

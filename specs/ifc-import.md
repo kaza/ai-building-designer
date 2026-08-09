@@ -17,13 +17,16 @@ reference against. With stable ids (ADR-005) the missing half is import.
 Creates a NEW project from a foreign IFC (`importers/ifc.py::import_ifc`):
 
 - **GUIDs are preserved verbatim** for project, storeys, walls, slabs, roofs,
-  doors, windows and spaces. A partner's GlobalId is how they reference the
-  element; it must survive the round trip unchanged.
-- Scope v1 — geometry we can honestly recover: wall axis + thickness + height
-  (from `IfcWallStandardCase`/`IfcWall` with extruded bodies), openings via
-  `IfcRelVoidsElement`/`IfcRelFillsElement` → host wall + position along its
-  axis, slabs/roofs from extruded profile footprints, spaces from boundary
-  polygons.
+  doors, windows and spaces — the ENTITY's GlobalId, which wins over any stale
+  copy inside a pset. A partner's GlobalId is how they reference the element.
+- Scope, delivery A: our own exports import **losslessly** via their
+  `AB_Parametric` psets (each entity carries its exact model JSON; the IFC
+  geometry stays real BIM for CAD viewers). Foreign entities WITHOUT the pset
+  — i.e. everything in a native ArchiCAD/Revit export — are `unmapped`:
+  reported per entity, never guessed. Their geometry is not lost to the
+  collaboration, because updates patch their original file. Recovering
+  foreign geometry into our model (wall axes from extruded bodies, openings
+  from void relations) is delivery B, to be built against real partner files.
 - **Nothing is silently dropped.** Every entity that cannot be represented is
   recorded in `ImportResult.unmapped` (type + GlobalId + name) and printed;
   `--strict` exits non-zero — and refuses to write anything at all.
@@ -45,6 +48,22 @@ Re-serialization shifts bytes (entity numbering); attributes and GlobalIds
 survive exactly. Semantically lossless is the contract; byte-stability is not.
 
 ## Boundaries & edge cases
+- **Pset staleness**: import trusts `AB_Parametric` verbatim. If a partner
+  moves OUR wall in CAD, the IFC geometry changes but the pset does not — the
+  import reconstructs the pset version. Doors/windows get a drift warning
+  (their `OverallWidth`/`OverallHeight` attributes are compared); walls/slabs
+  do not — reconciling foreign geometry edits is delivery B.
+- **Apartment grouping does not survive** the round trip: IFC has no
+  apartment entity, so apartment spaces come back as storey-level spaces and
+  the `Apartment` objects (with their ids) are gone.
+- `update-ifc` refuses locally-EDITED imported elements (replacing foreign
+  geometry is delivery B) and reports — but does not propagate — local
+  deletions of imported elements. Locally-added spaces/virtual elements are
+  refused loudly, never silently skipped.
+- Our patched elements use absolute world placement; a foreign file whose
+  site/storey placements carry transforms would show them misaligned. Fine
+  for re-imports of our own exports; real foreign files need checking against
+  delivery B.
 - **No merge into an existing project (delivery B).** Merge-by-GUID without a
   base revision is a destructive two-way overwrite: it cannot distinguish
   "partner deleted X" from "we added X while they edited", and any partial or

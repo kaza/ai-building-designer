@@ -557,11 +557,14 @@ function loadDataFor(node) {
   return null;
 }
 
+function _disposeMat(m) {
+  (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose());
+}
 function _restoreMats() {
   modelRoot.traverse((n) => {
     if (n.isMesh && _savedMats.has(n.uuid)) {
       const saved = _savedMats.get(n.uuid);
-      n.material.dispose();
+      _disposeMat(n.material);
       if (n.geometry !== saved.geometry) n.geometry.dispose();
       n.material = saved.material;
       n.geometry = saved.geometry;
@@ -571,11 +574,15 @@ function _restoreMats() {
 }
 
 function _ghost(n) {
-  const ghost = n.material.clone();
-  ghost.transparent = true;
-  ghost.opacity = 0.10;
-  ghost.depthWrite = false;
-  n.material = ghost;
+  const mk = (m) => {
+    const ghost = m.clone();
+    ghost.transparent = true;
+    ghost.opacity = 0.10;
+    ghost.depthWrite = false;
+    return ghost;
+  };
+  n.material = Array.isArray(n.material) ? n.material.map(mk)
+                                         : mk(n.material);
 }
 
 // ── Ghost mode (G): see walls through walls ────────────────────────────
@@ -601,11 +608,17 @@ function _applyGhost() {
   modelRoot.traverse((n) => {
     if (!n.isMesh || !_isGhostable(n)) return;
     _ghostSaved.set(n.uuid, n.material);
-    const g = n.material.clone();
-    g.transparent = true;
-    g.opacity = 0.12;
-    g.depthWrite = false;
-    n.material = g;
+    // n.material can be an ARRAY (multi-material mesh) — .clone() on the
+    // array would throw and break the toggle (Gemini 2026-08-09)
+    const ghostOf = (m) => {
+      const g = m.clone();
+      g.transparent = true;
+      g.opacity = 0.12;
+      g.depthWrite = false;
+      return g;
+    };
+    n.material = Array.isArray(n.material)
+      ? n.material.map(ghostOf) : ghostOf(n.material);
   });
   ghostApplied = true;
 }
@@ -613,7 +626,7 @@ function _unapplyGhost() {
   if (!ghostApplied) return;
   modelRoot.traverse((n) => {
     if (n.isMesh && _ghostSaved.has(n.uuid)) {
-      n.material.dispose();
+      _disposeMat(n.material);   // array-safe (CodeRabbit 2026-08-09)
       n.material = _ghostSaved.get(n.uuid);
     }
   });
