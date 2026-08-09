@@ -138,6 +138,18 @@ def storey_bands(doc: dict) -> list:
     return sorted(bands, key=lambda b: b["elevation"])
 
 
+def bearing_walls(doc: dict) -> dict:
+    """Sanitized wall name -> True for every load-bearing wall, all
+    storeys. Structure view tints these so the bearing lines read at a
+    glance (owner 2026-08-10)."""
+    out: dict[str, bool] = {}
+    for story in doc.get("stories", []):
+        for wall in story.get("walls", []):
+            if wall.get("load_bearing") and wall.get("name"):
+                out[wall["name"].replace(" ", "_")] = True
+    return out
+
+
 def render_page(doc: dict, *, model: str, title: str,
                 start: tuple[float, float, float],
                 loads_json: str = "{}") -> str:
@@ -158,6 +170,8 @@ def render_page(doc: dict, *, model: str, title: str,
         "__START__": ", ".join(str(c) for c in start),
         "__TAGS__": json.dumps(element_tags(doc),
                                sort_keys=True).replace("</", "<\\/"),
+        "__BEARING__": json.dumps(bearing_walls(doc),
+                                  sort_keys=True).replace("</", "<\\/"),
         "__STOREYS__": json.dumps(storey_bands(doc)).replace("</", "<\\/"),
         # parse + re-serialize: raw text here would be arbitrary JS, not
         # data ("{};globalThis.PWNED=1;//" — Codex 2026-08-09)

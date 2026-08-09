@@ -94,34 +94,34 @@ class TestXrayReadability:
         assert "worst fragment" in template
 
 
-class TestGhostMode:
-    """Ghost (G) vs FEM X-ray: one mode owns the materials at a time
-    (specs/browser-walkthrough.md 2026-08-09)."""
+class TestStructureView:
+    """G cycles off -> structure -> structure+ghost; one mode owns the
+    materials at a time (specs/browser-walkthrough.md 2026-08-10)."""
 
     def test_flag_set_parser_ignores_unknown_flags(self, template):
-        # the remainder after 5 numerics is a SET — an unknown flag must
-        # not throw the camera away (old parser returned null)
         assert "const flags = new Set(parts.slice(5));" in template
         assert "flags.has('xray')" in template
-        assert "flags.has('ghost')" in template
-        assert "parts.length !== 5 && !xray" not in template   # old grammar gone
+        # old ,ghost links map onto the see-through state
+        assert "flags.has('ghost') ? 2 : (flags.has('struct') ? 1 : 0)" \
+            in template
+        assert "parts.length !== 5 && !xray" not in template
 
-    def test_ghost_unwound_before_fem_fetch(self, template):
-        # synchronous handoff: _unapplyGhost precedes the teardown and the
-        # fetch inside setStructuralMode
+    def test_struct_unwound_before_fem_fetch(self, template):
         i_set = template.index("function setStructuralMode(mode) {")
-        i_unw = template.index("if (mode === 'fem') _unapplyGhost();")
+        i_unw = template.index("if (mode === 'fem') _unapplyStruct();")
         i_fetch = template.index("fetch(FEM_FIELD_URL)")
         assert i_set < i_unw < i_fetch
 
-    def test_ghost_returns_after_fem_exit_and_failure(self, template):
-        assert template.count("if (ghostWanted) _applyGhost();") == 2
+    def test_struct_returns_after_fem_exit_and_failure(self, template):
+        assert template.count("_applyStruct(structWanted);") >= 2
 
-    def test_bindings_and_hash(self, template):
-        assert "if (e.code === 'KeyG' && !e.repeat) toggleGhost();" in template
-        assert "id=\"m-ghost\"" in template
-        assert "(ghostWanted ? ',ghost' : '')" in template
-        assert "if (INITIAL_VIEW.ghost) toggleGhost();" in template
+    def test_bindings_hash_and_bearing_payload(self, template):
+        assert "if (e.code === 'KeyG' && !e.repeat) cycleStruct();" in template
+        assert 'id="m-ghost"' in template
+        assert "const BEARING = __BEARING__;" in template
+        assert ",struct'" in template and ",ghost'" in template
 
-    def test_only_architecture_is_ghosted(self, template):
-        assert "GHOST_KINDS = ['IfcWallStandardCase', 'IfcWall', 'IfcSlab', 'IfcRoof']" in template
+    def test_furniture_hidden_and_bearing_tinted(self, template):
+        assert "n.visible = false;" in template
+        assert "BEARING_TINT" in template
+        assert "isWall && BEARING[clean]" in template

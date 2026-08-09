@@ -143,7 +143,7 @@
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
        Space / C — up / down &nbsp;·&nbsp; Esc — release<br>
        I — what am I looking at &nbsp;·&nbsp; M — measure &nbsp;·&nbsp; R — roof on/off<br>
-       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; G — ghost walls &nbsp;·&nbsp; K — copy view link &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
+       N — names on/off &nbsp;·&nbsp; L — structural x-ray &nbsp;·&nbsp; G — structure view &nbsp;·&nbsp; K — copy view link &nbsp;·&nbsp; P — photo &nbsp;·&nbsp; F — feedback (draw + comment)</div>
 </div>
 <div id="touchui">
   <button class="tbtn" id="btn-fb">&#9998; Feedback</button>
@@ -152,7 +152,7 @@
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
     <button class="tbtn" id="m-loads">X-ray: off</button>
-    <button class="tbtn" id="m-ghost">Ghost: off</button>
+    <button class="tbtn" id="m-ghost">Structure: off</button>
     <button class="tbtn" id="m-link">Copy view link</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
@@ -223,15 +223,18 @@ const INITIAL_VIEW = (() => {
   // so the camera survives links from newer builds (Codex review — the
   // old positional parse threw the whole view away)
   const flags = new Set(parts.slice(5));
+  // old ,ghost links map onto the see-through state of the new cycle
+  const struct = flags.has('ghost') ? 2 : (flags.has('struct') ? 1 : 0);
   return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4],
-           xray: flags.has('xray'), ghost: flags.has('ghost') };
+           xray: flags.has('xray'), struct };
 })();
 let viewHashOn = false;   // flips on once the initial view (if any) applied
 let _lastViewHash = '';
 function writeViewHash() {
   if (!viewHashOn || DEBUG_MODE) return;
   const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '')
-    + (ghostWanted ? ',ghost' : '');
+    + (structWanted >= 1 ? ',struct' : '')
+    + (structWanted === 2 ? ',ghost' : '');
   if (spec === _lastViewHash) return;  // change detector: Safari caps
   try {                                // replaceState at 100 calls / 30 s
     history.replaceState(history.state, '', '#v=' + spec);
@@ -464,6 +467,7 @@ function semanticNode(obj) {
 
 // element plan tags (W3, D5, Win4...) — same ids as the 2D floor plan
 const TAGS = __TAGS__;
+const BEARING = __BEARING__;
 
 // storey bands (sorted by elevation) — live "where am I" readout
 const STOREYS = __STOREYS__;
@@ -585,59 +589,91 @@ function _ghost(n) {
                                          : mk(n.material);
 }
 
-// ── Ghost mode (G): see walls through walls ────────────────────────────
-// Ghost and FEM X-ray both restyle materials, so exactly ONE owns the
-// model at a time: entering FEM unwinds Ghost synchronously BEFORE its
-// fetch (the FEM snapshot must never capture ghost clones as
-// "originals" — Codex review 2026-08-09), and leaving FEM re-applies it
-// if still wanted. Architecture goes translucent; furniture, doors and
-// windows stay solid so the space still reads.
-let ghostWanted = false;
-let ghostApplied = false;
-const _ghostSaved = new Map();
-const GHOST_KINDS = ['IfcWallStandardCase', 'IfcWall', 'IfcSlab', 'IfcRoof'];
-function _isGhostable(n) {
+// ── Structure view (G): the construction, not the furniture ──────────
+// Cycles off -> structure -> structure+ghost (owner 2026-08-10, the
+// ArchiCAD "Core of Load-Bearing Elements Only" idea):
+//   1 structure:       furniture/decor HIDDEN, walls solid, load-bearing
+//                      walls tinted so the bearing lines read at a glance
+//   2 structure+ghost: additionally non-bearing walls/slabs/roofs go
+//                      translucent — bearing walls seen THROUGH the rest
+// Structure and FEM X-ray both restyle materials, so exactly ONE owns the
+// model at a time: entering FEM unwinds this synchronously BEFORE its
+// fetch, and leaving FEM re-applies the wanted state.
+let structWanted = 0;
+let structApplied = 0;
+const _structSaved = new Map();   // uuid -> {material?, visible?}
+const BEARING_TINT = 0x9e2b25;    // brick red — reads as "carries load"
+function _ifcBase(n) {
   for (let o = n; o; o = o.parent) {
     const base = (o.name || '').split('.')[0];
-    if (GHOST_KINDS.some((k) => base.startsWith(k + '_'))) return true;
+    if (base.startsWith('Ifc')) return base;
   }
-  return false;
+  return null;
 }
-function _applyGhost() {
-  if (ghostApplied || !modelRoot) return;
-  modelRoot.traverse((n) => {
-    if (!n.isMesh || !_isGhostable(n)) return;
-    _ghostSaved.set(n.uuid, n.material);
-    // n.material can be an ARRAY (multi-material mesh) — .clone() on the
-    // array would throw and break the toggle (Gemini 2026-08-09)
-    const ghostOf = (m) => {
-      const g = m.clone();
-      g.transparent = true;
-      g.opacity = 0.12;
-      g.depthWrite = false;
-      return g;
-    };
-    n.material = Array.isArray(n.material)
-      ? n.material.map(ghostOf) : ghostOf(n.material);
-  });
-  ghostApplied = true;
+function _mkGhostM(m) {
+  const g = m.clone();
+  g.transparent = true;
+  g.opacity = 0.12;
+  g.depthWrite = false;
+  return g;
 }
-function _unapplyGhost() {
-  if (!ghostApplied) return;
+function _mkBearingM(m) {
+  const b = m.clone();
+  if (b.color) b.color.setHex(BEARING_TINT);
+  b.transparent = false;
+  b.opacity = 1;
+  return b;
+}
+function _mapMat(mat, fn) {
+  return Array.isArray(mat) ? mat.map(fn) : fn(mat);
+}
+function _applyStruct(mode) {
+  if (!modelRoot || structApplied === mode) return;
+  _unapplyStruct();
+  if (!mode) return;
   modelRoot.traverse((n) => {
-    if (n.isMesh && _ghostSaved.has(n.uuid)) {
-      _disposeMat(n.material);   // array-safe (CodeRabbit 2026-08-09)
-      n.material = _ghostSaved.get(n.uuid);
+    if (!n.isMesh) return;
+    const base = _ifcBase(n);
+    if (!base) {
+      // furniture, stair-tower decor, ground planes — construction noise
+      _structSaved.set(n.uuid, { visible: n.visible });
+      n.visible = false;
+      return;
+    }
+    const clean = base.replace(/^Ifc\w+?_/, '');
+    const isWall = base.startsWith('IfcWall');
+    const isStruct = isWall || base.startsWith('IfcSlab')
+      || base.startsWith('IfcRoof');
+    if (isWall && BEARING[clean]) {
+      _structSaved.set(n.uuid, { material: n.material });
+      n.material = _mapMat(n.material, _mkBearingM);
+    } else if (mode === 2 && isStruct) {
+      _structSaved.set(n.uuid, { material: n.material });
+      n.material = _mapMat(n.material, _mkGhostM);
     }
   });
-  _ghostSaved.clear();
-  ghostApplied = false;
+  structApplied = mode;
 }
-function toggleGhost() {
-  ghostWanted = !ghostWanted;
-  if (structuralMode === 'off') (ghostWanted ? _applyGhost : _unapplyGhost)();
+function _unapplyStruct() {
+  if (!structApplied) return;
+  modelRoot.traverse((n) => {
+    const saved = _structSaved.get(n.uuid);
+    if (!saved) return;
+    if ('visible' in saved) n.visible = saved.visible;
+    if ('material' in saved) {
+      _disposeMat(n.material);
+      n.material = saved.material;
+    }
+  });
+  _structSaved.clear();
+  structApplied = 0;
+}
+const STRUCT_LABEL = ['off', 'on', 'ghost'];
+function cycleStruct() {
+  structWanted = (structWanted + 1) % 3;
+  if (structuralMode === 'off') _applyStruct(structWanted);
   const btn = document.getElementById('m-ghost');
-  if (btn) btn.textContent = 'Ghost: ' + (ghostWanted ? 'on' : 'off');
+  if (btn) btn.textContent = 'Structure: ' + STRUCT_LABEL[structWanted];
   writeViewHash();
 }
 
@@ -708,14 +744,14 @@ function _enterFem() {
 
 function setStructuralMode(mode) {
   if (!modelRoot || mode === structuralMode) return;
-  // FEM's material snapshot must see the TRUE materials — unwind Ghost
-  // synchronously before anything else (its wanted-bit survives)
-  if (mode === 'fem') _unapplyGhost();
+  // FEM's material snapshot must see the TRUE materials — unwind the
+  // structure view synchronously first (its wanted-bit survives)
+  if (mode === 'fem') _unapplyStruct();
   // teardown
   if (structuralMode === 'fem') {
     if (femGroup) femGroup.visible = false;
     _restoreMats();
-    if (ghostWanted) _applyGhost();     // leaving FEM: ghost returns
+    _applyStruct(structWanted);         // leaving FEM: structure returns
   }
   document.body.classList.remove('xray');
   structuralMode = 'off';
@@ -743,7 +779,7 @@ function setStructuralMode(mode) {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;
           structuralMode = 'off';
           _restoreMats();
-          if (ghostWanted) _applyGhost();   // failed FEM: ghost returns
+          _applyStruct(structWanted);       // failed FEM: structure returns
           infoText = 'FEM field unavailable (' + err.message + ') — L for element loads';
           setHud();
         });
@@ -982,7 +1018,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
   if (e.code === 'KeyL' && !e.repeat) cycleStructural();
-  if (e.code === 'KeyG' && !e.repeat) toggleGhost();
+  if (e.code === 'KeyG' && !e.repeat) cycleStruct();
   if (e.code === 'KeyK' && !e.repeat) copyViewLink();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
@@ -1075,7 +1111,7 @@ if (isTouch) {
     cycleStructural();
   });
   document.getElementById('m-ghost').addEventListener('click', () => {
-    toggleGhost();
+    cycleStruct();
   });
   document.getElementById('m-link').addEventListener('click', () => {
     copyViewLink();
@@ -1402,7 +1438,12 @@ if (INITIAL_VIEW && ready) {
                       INITIAL_VIEW.pos[2]);
   camera.rotation.set(INITIAL_VIEW.pitch * Math.PI / 180,
                       INITIAL_VIEW.yaw * Math.PI / 180, 0, 'YXZ');
-  if (INITIAL_VIEW.ghost) toggleGhost();
+  if (INITIAL_VIEW.struct) {
+    structWanted = INITIAL_VIEW.struct;
+    _applyStruct(structWanted);
+    const gb = document.getElementById('m-ghost');
+    if (gb) gb.textContent = 'Structure: ' + STRUCT_LABEL[structWanted];
+  }
   if (INITIAL_VIEW.xray) setStructuralMode('fem');
 }
 viewHashOn = ready;   // a failed load must not overwrite a pasted link
@@ -1420,13 +1461,35 @@ if (location.hash.startsWith('#debug') && ready) {
   // headless test seam: module-scope state is invisible to CDP's
   // Runtime.evaluate, so #debug exposes exactly what the harness needs
   window.__ab = {
-    toggleGhost, setStructuralMode,
-    state: () => ({ mode: structuralMode, ghostWanted, ghostApplied }),
+    cycleStruct, setStructuralMode,
+    state: () => ({ mode: structuralMode, structWanted, structApplied }),
+    structProbe: () => {
+      let bearing = null, partition = null, furn = null,
+          hidden = 0, meshes = 0;
+      modelRoot.traverse((n) => {
+        if (!n.isMesh) return;
+        meshes++;
+        if (!n.visible) hidden++;
+        const base = _ifcBase(n);
+        if (!base) { furn = furn || n; return; }
+        const clean = base.replace(/^Ifc\w+?_/, '');
+        if (base.startsWith('IfcWall')) {
+          if (BEARING[clean]) bearing = bearing || n;
+          else partition = partition || n;
+        }
+      });
+      const mat = (n) => n && {
+        color: n.material.color ? n.material.color.getHexString() : null,
+        t: n.material.transparent, op: n.material.opacity };
+      return { meshes, hidden, bearing: mat(bearing),
+               partition: mat(partition),
+               furnVisible: furn ? furn.visible : null };
+    },
     ghostProbe: () => {
       let wall = null, other = null;
       modelRoot.traverse((n) => {
         if (!n.isMesh) return;
-        if (_isGhostable(n)) { wall = wall || n; }
+        if (_ifcBase(n) && _ifcBase(n).startsWith('IfcWall')) { wall = wall || n; }
         else if (n.name && !n.name.startsWith('Ifc')) { other = other || n; }
       });
       return {
