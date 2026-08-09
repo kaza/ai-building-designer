@@ -14,8 +14,10 @@
 model = "villa"          # artifact basename: villa.blend, villa.glb
 
 [[step]]
-name = "assets"          # CC0 furniture cache (gitignored)
-run = ["{python}", "fetch_assets.py"]
+name = "assets"          # CC0 furniture cache (gitignored); pins in project.toml
+run = ["{python}", "-m", "archicad_builder", "fetch-assets", "{project}"]
+framework = true   # imports archicad_builder
+inputs = ["project.toml"]
 outputs = ["assets/licenses.json"]   # written only after every asset arrived
 
 [[step]]

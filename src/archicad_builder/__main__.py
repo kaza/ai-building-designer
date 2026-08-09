@@ -818,6 +818,19 @@ def render_furnished_cmd(
     _output({"ok": True, "written": str(out), "items": len(items)})
 
 
+@app.command("fetch-assets")
+def fetch_assets_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Download the project's pinned furniture assets (project.toml)."""
+    from archicad_builder.assets import AssetError, fetch_all
+    from archicad_builder.project_config import ProjectConfig
+    project_dir = PROJECTS_DIR / project
+    try:
+        fetch_all(project_dir, ProjectConfig.load(project_dir))
+    except AssetError as exc:
+        typer.echo(f"fetch-assets: {exc}", err=True)
+        raise typer.Exit(1) from exc
+
+
 @app.command("serve")
 def serve_cmd(
     project: str = typer.Argument(..., help="Project directory name"),
