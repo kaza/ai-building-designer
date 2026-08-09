@@ -92,12 +92,26 @@ class Cameras(_Strict):
 class GroundBox(_Strict):
     location: Vec3
     size: Vec3
+    name: str = ""
+
+
+class Shell(_Strict):
+    """Hollow-cylinder render decor (e.g. a spiral-stair tower straddling
+    a facade): outer minus inner, optionally minus the half-space
+    y > cut_y_above (the part inside the house)."""
+    center: tuple[float, float]
+    radius: float
+    inner_radius: float
+    z_range: tuple[float, float]
+    cut_y_above: float | None = None
+    name: str = ""
 
 
 class Render(_Strict):
     sun: Sun = Sun()
     camera: Cameras = Cameras()
     ground: list[GroundBox] = []
+    shell: list[Shell] = []
     samples: int = 128
     exposure: float = -0.6           # scene default (blend save)
 

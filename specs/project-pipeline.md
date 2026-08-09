@@ -76,7 +76,7 @@ Cumulative, one axis: `all` ⊃ `fem` ⊃ `web`.
 
 A step declares the cheapest profile that includes it (`profile = "fem"`)
 and may declare extra environment for a profile (`env_by_profile = { all
-= { VILLA_FULL_RENDER = "1" } }`), which is how one Blender step produces
+= { AB_FULL_RENDER = "1" } }`), which is how one Blender step produces
 renders under `all` and only the scene otherwise.
 
 **A cheap build never quietly ships an expensive artifact.** If a step
@@ -89,13 +89,12 @@ where a routine cheap publish silently drops a feature from the live
 site.
 
 ## Boundaries
-- The pipeline **orchestrates** the existing project scripts; it does
-  not rewrite them. `make_walkthrough.py` (1585 lines) and
-  `render_blender.py` (973 lines) stay at the project layer until a
-  second project needs a walkthrough — that is when their generic parts
-  become visible, and generalising them before that is guesswork
-  (ADR-004, YAGNI). What the framework owns now is the ORDER, the
-  freshness rules and the failure modes, which is where the damage was.
+- The pipeline **orchestrates** steps; it does not implement them. The
+  engines themselves moved into the framework on 2026-08-09 (ADR-006),
+  with byte-for-byte parity checks guarding each move — superseding the
+  earlier decision to keep them at the project layer until a second
+  project existed. What the pipeline owns is the ORDER, the freshness
+  rules and the failure modes, which is where the damage was.
 - Not a build system. No parallelism, no partial-output recovery, no
   dependency graph — a declared linear order is what the domain has.
 - Blender is located via `$BLENDER`, else the standard macOS path; a

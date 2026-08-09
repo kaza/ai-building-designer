@@ -69,13 +69,16 @@ inputs = ["output/villa-maketa.ifc"]
 outputs = ["output/villa-maketa.obj"]
 
 [[step]]
-name = "blend"           # materials + furniture; PNGs only under VILLA_FULL_RENDER
-run = ["{blender}", "-b", "-P", "render_blender.py"]
-inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json"]
+name = "blend"           # materials + furniture; PNGs only under AB_FULL_RENDER
+run = ["{blender}", "-b", "-P", "{framework}/render3d/scene_blender.py", "--", "{model}"]
+framework = true   # scene builder lives in the package
+# building.json was always read by the scene builder but never declared —
+# a latent stale-input bug, fixed in the move (ADR-006)
+inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json", "building.json", "project.toml"]
 outputs = ["output/villa.blend"]
 # the renders exist only in the `all` profile, so they are optional here
 optional_outputs = ["output/perspective.png", "output/top_down.png"]
-env_by_profile = { all = { VILLA_FULL_RENDER = "1" } }
+env_by_profile = { all = { AB_FULL_RENDER = "1" } }
 
 [[step]]
 name = "glb"             # reads the .blend the previous step wrote

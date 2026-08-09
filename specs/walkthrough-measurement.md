@@ -11,7 +11,7 @@ shows object dimensions and point-to-point distances. Every BIM viewer ships
 this UX (ruler icon, click two points, label); users expect it.
 
 ## What it does (v1)
-Two tools inside `make_walkthrough.py`'s HTML template, no new files:
+Two tools inside the walkthrough HTML template (`src/archicad_builder/walkthrough/template.html`), no new files:
 
 1. **Object info (hover key)** — press **I** while pointer-locked: raycast
    from the crosshair; the hit object's card shows in a corner HUD:
@@ -85,4 +85,4 @@ UX feel. No pytest (same precedent as the rest of the walkthrough page).
 
 ## Related
 [browser-walkthrough.md](browser-walkthrough.md);
-projects/villa-maketa/make_walkthrough.py (implementation site).
+src/archicad_builder/walkthrough/ (implementation site since ADR-006).

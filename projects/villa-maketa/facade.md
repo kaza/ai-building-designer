@@ -38,14 +38,14 @@ look: owner's maquette photo, west facade, 2026-08-05 (pool left = north).
 - **Blue glazing tint**: Glass material tinted light blue + low roughness
   for the photo's mirrored-blue look.
 
-## Renderer finish lookup (render_blender.py)
+## Renderer finish lookup (archicad_builder/render3d/scene_blender.py)
 Name-join building.json → OBJ objects (`IfcWallStandardCase_<name>`,
 `IfcSlab_<name>`), checked BEFORE the type-default branches. Fail loud:
 unknown finish tag, empty tag, duplicate finished names, or a finished
 element that doesn't match exactly one imported object → RuntimeError.
 GlobalId-in-OBJ-names (Codex suggestion) rejected: it would break the
 walkthrough's name-based tag/display map.
-Colors: `srgb_hex_to_linear()` feeds Cycles sockets; export_glb.py PALETTE
+Colors: `srgb_hex_to_linear()` feeds Cycles sockets; the project.toml palette
 carries matching linear entries (StoneRubble/Accent/RoofBrown/Soffit).
 
 ## Decision log

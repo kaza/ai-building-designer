@@ -25,7 +25,7 @@ building.json  ──► Building (pydantic)  ──► validators ──► val
   or AI-authored)            │                                          emits `apply` actions
                              ├──► export/ifc.py       ──► .ifc  (ArchiCAD/Revit)
                              ├──► export/floorplan.py ──► .png  (2D plan)
-                             └──► project scripts     ──► .blend / .glb / walkthrough.html
+                             └──► render3d / export/glb / walkthrough ──► .blend / .glb / walkthrough.html
 ```
 
 Everything downstream of `building.json` is a **derived, regenerable artifact** and is
@@ -62,7 +62,9 @@ the only record — write the spec *in the same commit* as your next change to t
 
 ### Project layer
 
-`projects/<name>/` holds a building's `building.json`, its project-specific scripts, and a
+`projects/<name>/` holds a building's `building.json`, its `build.py` authoring script
+(the one deliberate exception, ADR-006), its config (`pipeline.toml`, `project.toml`,
+`furniture.json`, `validation.json`), and a
 project spec (`spec.md`) that is an **implementation record**, not a framework spec. Framework
 specs in `specs/` own the product intent; project specs record what was actually built for that
 one building and link up to the framework spec. See [ADR-004](decisions/004-framework-vs-project-spec-split.md).

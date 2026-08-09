@@ -98,7 +98,7 @@ like to see this when I click L."
   (per-quad: kind, element, u, corners) + `output/fem-loads.json`
   (per-element reference results + `_assumptions`; the walkthrough's
   element Loads view stays on the strip engine's loads.json).
-- Walkthrough (`make_walkthrough.py` projects): L cycles three states;
+- Walkthrough (`archicad_builder/walkthrough/`): L cycles three states;
   fragment geometry is fetched (SHA-named, immutable-cached, like the
   GLB) — not embedded — with the loading-bar pattern; building→GLB
   coordinate transform documented in the walkthrough spec.

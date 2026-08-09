@@ -1,4 +1,9 @@
-"""Blender headless: high-quality maquette-style renders of the villa.
+"""Blender headless: build the project scene; optional Cycles renders.
+
+Moved from projects/villa-maketa/render_blender.py (ADR-006). Runs INSIDE
+Blender with cwd = the project directory:
+
+    blender -b -P {framework}/render3d/scene_blender.py
 
 v2 ("make it great"): procedural materials (wood planks, tiles with grout,
 water, grass, plaster), Nishita sky lighting, window frames via wireframe
@@ -9,17 +14,34 @@ Outputs:
   output/perspective.png — 3D perspective from SE
   output/top_down.png    — orthographic top view (maquette look)
 
-Run: /Applications/Blender.app/Contents/MacOS/Blender -b -P render_blender.py
 """
 
 import json
 import math
+import os
+import sys
+import tomllib
 from pathlib import Path
 
 import bpy
 
-HERE = Path(__file__).parent
-OBJ = HERE / "output" / "villa-maketa.obj"
+# The pipeline runs every step with cwd = the project directory (ADR-006:
+# this file is framework code; everything project-specific comes from the
+# project's own files). Blender's Python has no pydantic — the strict
+# ProjectConfig gate ran in the validate step; here plain tomllib is fine.
+# Blender forwards everything after `--` to the script.
+HERE = Path.cwd()
+_extra = (sys.argv[sys.argv.index("--") + 1:]
+          if "--" in sys.argv else [])
+if not _extra:
+    raise SystemExit(
+        "usage: blender -b -P scene_blender.py -- <model-basename>")
+MODEL = _extra[0]
+CFG = (tomllib.loads((HERE / "project.toml").read_text())
+       if (HERE / "project.toml").is_file() else {})
+RENDER = CFG.get("render", {})
+CAM = RENDER.get("camera", {})
+OBJ = HERE / "output" / f"{HERE.name}.obj"
 BUILDING = HERE / "building.json"
 FURNITURE = HERE / "furniture.json"
 OUT_PERSP = HERE / "output" / "perspective.png"
@@ -832,9 +854,13 @@ sky.sky_type = ("MULTIPLE_SCATTERING"
                 if "MULTIPLE_SCATTERING" in
                 sky.bl_rna.properties["sky_type"].enum_items
                 else "HOSEK_WILKIE")
-for attr, val in (("sun_elevation", math.radians(45)),
-                  ("sun_rotation", math.radians(135)),
-                  ("sun_intensity", 0.5)):
+_sun_cfg = RENDER.get("sun", {})
+for attr, val in (
+        ("sun_elevation",
+         math.radians(_sun_cfg.get("sky_elevation_deg", 45))),
+        ("sun_rotation",
+         math.radians(_sun_cfg.get("sky_rotation_deg", 135))),
+        ("sun_intensity", _sun_cfg.get("sky_intensity", 0.5))):
     if hasattr(sky, attr):
         setattr(sky, attr, val)
 nt.links.new(sky.outputs["Color"], bg.inputs["Color"])
@@ -843,50 +869,58 @@ scene.world = world
 
 # Explicit sun for contrast and warm direct light (sky alone is too flat)
 sun_data = bpy.data.lights.new("Sun", type="SUN")
-sun_data.energy = 2.2
-sun_data.angle = 0.15
+sun_data.energy = _sun_cfg.get("energy", 2.2)
+sun_data.angle = math.radians(_sun_cfg.get("angle_deg", 8.6))
 sun_data.color = (1.0, 1.0, 1.0)
 sun = bpy.data.objects.new("Sun", sun_data)
-sun.rotation_euler = (math.radians(50), math.radians(-10), math.radians(105))
+sun.rotation_euler = tuple(
+    math.radians(a) for a in _sun_cfg.get("rotation_deg", (50, -10, 105)))
 scene.collection.objects.link(sun)
 
 # Sloped site (maquette photo): high ground in the north keeps deck+pool at
 # GF level; low ground south/west exposes the garage's stone band. Solid
 # boxes so the terrace step face is closed. Render-only site geometry.
-bpy.ops.mesh.primitive_cube_add(size=1, location=(4.75, 60 + 7.5, -0.29 - 1.5))
-_g_high = bpy.context.active_object
-_g_high.scale = (200, 120, 3.0)
-_g_high.data.materials.append(MATS["ground"])
-_g_high.name = "GroundHigh"
-bpy.ops.mesh.primitive_cube_add(size=1, location=(4.75, 7.5 - 60, -3.15 - 1.5))
-_g_low = bpy.context.active_object
-_g_low.scale = (200, 120, 3.0)
-_g_low.data.materials.append(MATS["ground"])
-_g_low.name = "GroundLow"
+for _i, _g in enumerate(RENDER.get("ground", [])):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=tuple(_g["location"]))
+    _gobj = bpy.context.active_object
+    _gobj.scale = tuple(_g["size"])
+    _gobj.data.materials.append(MATS["ground"])
+    _gobj.name = _g.get("name", f"Ground{_i}")
 
-# Stair tower (maquette photo #22): the spiral shaft straddles the south
-# facade; its protruding half gets a cylindrical shell — hollow tube minus
-# the in-house half, so the spiral steps inside stay intact. Render decor;
-# the building model carries the straddling staircase itself.
-bpy.ops.mesh.primitive_cylinder_add(radius=0.92, depth=6.15, vertices=48,
-                                    location=(6.85, 0.0, -0.075))
-_tower = bpy.context.active_object
-_tower.name = "StairTower"
-_tower.data.materials.append(MATS["wall"])
-bpy.ops.mesh.primitive_cylinder_add(radius=0.80, depth=6.4, vertices=48,
-                                    location=(6.85, 0.0, -0.075))
-_tower_inner = bpy.context.active_object
-_tower_inner.name = "StairTowerCutterInner"
-_tower_inner.hide_render = True
-bpy.ops.mesh.primitive_cube_add(size=1, location=(6.85, 2.0 + 0.12, 0.0))
-_tower_back = bpy.context.active_object
-_tower_back.scale = (4.0, 4.0, 8.0)   # everything y > 0.12 (inside the house)
-_tower_back.name = "StairTowerCutterBack"
-_tower_back.hide_render = True
-for _cut in (_tower_inner, _tower_back):
-    _m = _tower.modifiers.new("Cut", "BOOLEAN")
-    _m.operation = "DIFFERENCE"
-    _m.object = _cut
+# Cylindrical shells (render decor): a spiral-stair tower straddling a
+# facade gets a hollow tube minus its in-house half, so the steps inside
+# stay intact (spiral-stair-rendering.md). The mechanism is generic; the
+# villa's tower values live in project.toml [[render.shell]].
+for _si, _sh in enumerate(RENDER.get("shell", [])):
+    _cx, _cy = _sh["center"]
+    _z0, _z1 = _sh["z_range"]
+    _depth = _z1 - _z0
+    _zc = (_z0 + _z1) / 2
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=_sh["radius"], depth=_depth, vertices=48,
+        location=(_cx, _cy, _zc))
+    _tower = bpy.context.active_object
+    _tower.name = _sh.get("name", f"Shell{_si}")
+    _tower.data.materials.append(MATS["wall"])
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=_sh["inner_radius"], depth=_depth + 0.25, vertices=48,
+        location=(_cx, _cy, _zc))
+    _tower_inner = bpy.context.active_object
+    _tower_inner.name = f"{_tower.name}CutterInner"
+    _tower_inner.hide_render = True
+    _cuts = [_tower_inner]
+    if "cut_y_above" in _sh:
+        bpy.ops.mesh.primitive_cube_add(
+            size=1, location=(_cx, _sh["cut_y_above"] + 2.0, 0.0))
+        _tower_back = bpy.context.active_object
+        _tower_back.scale = (4.0, 4.0, 8.0)
+        _tower_back.name = f"{_tower.name}CutterBack"
+        _tower_back.hide_render = True
+        _cuts.append(_tower_back)
+    for _cut in _cuts:
+        _m = _tower.modifiers.new("Cut", "BOOLEAN")
+        _m.operation = "DIFFERENCE"
+        _m.object = _cut
 
 # Facade decor (render-only, matching the maquette's glued-on parts —
 # facade.md): white soffit boards under the brown roof (one Roof element
@@ -895,17 +929,19 @@ for _cut in (_tower_inner, _tower_back):
 
 # ── Cameras ──────────────────────────────────────────────────────────────────
 
+_persp_cfg = CAM.get("perspective", {})
+_top_cfg = CAM.get("top", {})
 target = bpy.data.objects.new("Target", None)
-target.location = (4.75, 8.5, 0.6)
+target.location = tuple(_persp_cfg.get("target", (4.75, 8.5, 0.6)))
 scene.collection.objects.link(target)
 
 persp_data = bpy.data.cameras.new("CamPersp")
-persp_data.lens = 38
+persp_data.lens = _persp_cfg.get("lens", 38)
 persp_data.dof.use_dof = True
 persp_data.dof.focus_object = target
-persp_data.dof.aperture_fstop = 5.6
+persp_data.dof.aperture_fstop = _persp_cfg.get("dof_fstop", 5.6)
 cam_persp = bpy.data.objects.new("CamPersp", persp_data)
-cam_persp.location = (14.0, 21.0, 8.5)
+cam_persp.location = tuple(_persp_cfg.get("location", (14.0, 21.0, 8.5)))
 scene.collection.objects.link(cam_persp)
 tc = cam_persp.constraints.new(type="TRACK_TO")
 tc.target = target
@@ -914,16 +950,16 @@ tc.up_axis = "UP_Y"
 
 top_data = bpy.data.cameras.new("CamTop")
 top_data.type = "ORTHO"
-top_data.ortho_scale = 19.5
+top_data.ortho_scale = _top_cfg.get("ortho_scale", 19.5)
 cam_top = bpy.data.objects.new("CamTop", top_data)
-cam_top.location = (4.75, 8.75, 30)
+cam_top.location = tuple(_top_cfg.get("location", (4.75, 8.75, 30)))
 cam_top.rotation_euler = (0, 0, 0)
 scene.collection.objects.link(cam_top)
 
 # ── Render ───────────────────────────────────────────────────────────────────
 
 scene.render.engine = "CYCLES"
-scene.cycles.samples = 128
+scene.cycles.samples = RENDER.get("samples", 128)
 scene.cycles.use_denoising = True
 scene.render.film_transparent = False
 
@@ -934,31 +970,32 @@ for vt in ("Khronos PBR Neutral", "Filmic", "Standard"):
         break
     except TypeError:
         continue
-scene.view_settings.exposure = -0.6
+scene.view_settings.exposure = RENDER.get("exposure", -0.6)
 print("View transform:", scene.view_settings.view_transform)
 
-import os
-
 # The walkthrough GLB is the product (owner 2026-08-06) — the two Cycles
-# renders (~4 min) are OPT-IN via VILLA_FULL_RENDER=1. Default: save the
+# renders (~4 min) are OPT-IN via AB_FULL_RENDER=1. Default: save the
 # .blend (feeds export_glb.py) and stop.
-if not os.environ.get("VILLA_FULL_RENDER"):
-    scene.view_settings.exposure = -0.6
-    bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
-    print("saved villa.blend; Cycles renders skipped (set VILLA_FULL_RENDER=1 for PNGs)")
+if not os.environ.get("AB_FULL_RENDER"):
+    scene.view_settings.exposure = RENDER.get("exposure", -0.6)
+    bpy.ops.wm.save_as_mainfile(
+        filepath=str(HERE / "output" / f"{MODEL}.blend"))
+    print(f"saved {MODEL}.blend; Cycles renders skipped "
+          "(set AB_FULL_RENDER=1 for PNGs)")
     raise SystemExit(0)
 
 scene.camera = cam_persp
-scene.view_settings.exposure = -0.85
-scene.render.resolution_x = 1600
-scene.render.resolution_y = 1200
+scene.view_settings.exposure = _persp_cfg.get("exposure", -0.85)
+scene.render.resolution_x = _persp_cfg.get("resolution", (1600, 1200))[0]
+scene.render.resolution_y = _persp_cfg.get("resolution", (1600, 1200))[1]
 scene.render.filepath = str(OUT_PERSP)
 bpy.ops.render.render(write_still=True)
 print(f"Rendered {OUT_PERSP}")
 
-scene.view_settings.exposure = -0.6
+scene.view_settings.exposure = RENDER.get("exposure", -0.6)
 # Save the full scene for interactive viewing (open in Blender, orbit away)
-bpy.ops.wm.save_as_mainfile(filepath=str(HERE / "output" / "villa.blend"))
+bpy.ops.wm.save_as_mainfile(
+    filepath=str(HERE / "output" / f"{MODEL}.blend"))
 
 # Top-down looks INTO the rooms — lift the maquette's lid: hide roof + soffit
 for _o in scene.objects:
@@ -966,8 +1003,8 @@ for _o in scene.objects:
         _o.hide_render = True
 
 scene.camera = cam_top
-scene.render.resolution_x = 1100
-scene.render.resolution_y = 2000
+scene.render.resolution_x = _top_cfg.get("resolution", (1100, 2000))[0]
+scene.render.resolution_y = _top_cfg.get("resolution", (1100, 2000))[1]
 scene.render.filepath = str(OUT_TOP)
 bpy.ops.render.render(write_still=True)
 print(f"Rendered {OUT_TOP}")

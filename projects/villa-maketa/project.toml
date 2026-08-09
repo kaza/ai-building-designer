@@ -47,12 +47,25 @@ exposure = -0.6
 # Terrain: the site drops at the garage front — high ground north of the
 # facade line, low ground south of it (render decor, not model geometry).
 [[render.ground]]
+name = "GroundHigh"
 location = [4.75, 67.5, -1.79]
 size = [200, 120, 3.0]
 
 [[render.ground]]
+name = "GroundLow"
 location = [4.75, -52.5, -4.65]
 size = [200, 120, 3.0]
+
+# Stair tower (maquette photo #22): the spiral shaft straddles the south
+# facade; the protruding half gets a cylindrical shell. cut_y_above trims
+# the in-house half so the spiral steps inside stay intact.
+[[render.shell]]
+name = "StairTower"
+center = [6.85, 0.0]
+radius = 0.92
+inner_radius = 0.80
+z_range = [-3.15, 3.0]
+cut_y_above = 0.12
 
 [walkthrough]
 start = [8.2, 1.7, 4.0]
