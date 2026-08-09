@@ -37,7 +37,10 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     e_idx: list[int] = []
     u_arr: list[float] = []
     g_arr: list[int] = []      # governing component: 0 vert compression,
-    s_arr: list[float] = []    # 1 horiz tension, 2 vert tension, 3 bending
+    s_arr: list[float] = []    # 1 horiz tension, 2 vert tension, 3 bending,
+    #                            4 diagonal tension (in-plane shear).
+    # s_arr carries a STRESS in kN/m2 for wall codes and 0 for plates, so a
+    # decoder can render MPa without unit metadata (Codex review).
     for q in res.field["quads"]:
         e_idx.append(index[q["e"]])
         u_arr.append(q["u"])
@@ -49,6 +52,7 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
         schema=1, coords=res.field["coords"], mesh=res.field["mesh"],
         digest=digest, balance=round(res.balance, 4),
         assumptions=res.assumptions, unresolved=res.unresolved,
+        not_modelled=res.not_modelled,
         elems=elems,
         quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
                    pos=pos))
@@ -63,4 +67,5 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
         loads[gid] = entry
     loads["_assumptions"] = res.assumptions + [f"balance {res.balance:.4f}"]
     loads["_unresolved"] = res.unresolved
+    loads["_not_modelled"] = res.not_modelled
     (out_dir / "fem-loads.json").write_text(json.dumps(loads, indent=1))

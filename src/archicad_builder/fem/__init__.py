@@ -18,6 +18,7 @@ tests/test_fem_benchmarks.py).
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from dataclasses import dataclass, field as dc_field
 
@@ -63,6 +64,7 @@ class FemResult:
     reactions: float
     unresolved: list[str] = dc_field(default_factory=list)
     assumptions: list[str] = dc_field(default_factory=list)
+    not_modelled: list[str] = dc_field(default_factory=list)
 
     @property
     def balance(self) -> float:
@@ -148,11 +150,71 @@ class _Mesher:
         return qname
 
 
+def _principal(sx: float, sy: float, txy: float) -> tuple[float, float, float]:
+    """Mohr's circle: (max principal, min principal, angle of max in deg).
+
+    Concrete cracks on the maximum PRINCIPAL tension, whichever way it
+    points — a panel in pure shear has sx = sy = 0 and cracks diagonally
+    at |txy|. Checking only the axis-aligned components (what this engine
+    did until 2026-08-08) reports that panel as calm.
+
+    Both principal values are eigenvalues of [[sx, txy], [txy, sy]], so
+    the MAGNITUDES survive a sign flip of txy (the only real ambiguity in
+    the wall path, where the local y direction follows the plate normal).
+    They do NOT survive a sign flip of one diagonal term, which is what
+    PyNite's source comment claims its local moments carry — that claim
+    is false and is pinned down by a symmetric-plate gate in
+    tests/test_fem_benchmarks.py. A swap of sx/sy also preserves the
+    magnitudes but would transpose the horizontal/vertical LABELS, so do
+    not lean on it (CodeRabbit review 2026-08-09).
+
+    The angle is measured from the local x axis and is degenerate when
+    the circle collapses (r = 0, equal principals); 0 is returned there.
+    Works for moments too — [[mx, mxy], [mxy, my]] has the same algebra.
+    """
+    c = (sx + sy) / 2.0
+    r = math.hypot((sx - sy) / 2.0, txy)
+    # RELATIVE degeneracy test: stresses here run to 1e4 kN/m2, so an
+    # absolute epsilon let a hydrostatic quad (no principal direction at
+    # all) be labelled "diagonal tension" off the last bits of the solve
+    # (CodeRabbit review 2026-08-09).
+    tiny = 1e-9 * max(abs(sx), abs(sy), abs(txy), 1.0)
+    theta = 0.0 if r <= tiny else math.degrees(
+        0.5 * math.atan2(2.0 * txy, sx - sy))
+    return c + r, c - r, theta
+
+
+def _tension_component(theta: float) -> int:
+    """Governing-component code for a principal tension at angle theta."""
+    a = abs(theta)
+    if a <= 22.5:
+        return 1        # horizontal tension (along the wall)
+    if a >= 67.5:
+        return 2        # vertical tension
+    return 4            # diagonal tension — in-plane shear cracking
+
+
 def _wavg(samples, center, band):
-    """Tributary-weighted average of (coord, value, weight) in a window."""
-    win = [(v, w) for c, v, w in samples if abs(c - center) <= band / 2]
-    tw = sum(w for _, w in win)
-    return sum(v * w for v, w in win) / tw if tw else 0.0
+    """Tributary-weighted average of (coord, value, weight) in a window.
+
+    Each cell contributes only the part of its tributary width that
+    actually OVERLAPS the window. Counting a cell's whole width whenever
+    its center fell inside made a nominal 1 m window physically 0.8-1.2 m
+    wide depending on where the mesh lines landed, and design values
+    drifted up to 29% between meshes — past the ~10% convergence this
+    engine promises (Codex review 2026-08-09).
+    """
+    lo, hi = center - band / 2, center + band / 2
+    num = den = 0.0
+    for c, v, w in samples:
+        if w <= 0:
+            continue
+        overlap = min(hi, c + w / 2) - max(lo, c - w / 2)
+        if overlap <= 0:
+            continue
+        num += v * overlap
+        den += overlap
+    return num / den if den else 0.0
 
 
 def _band_max(samples, band):
@@ -506,37 +568,56 @@ def compute_fem(building: Building, mesh: float = 0.25,
             w = wall_meta[gid]
             bz = min(centers(q)[2] for q in quads)
             stations = []
-            tension_rows = defaultdict(list)   # z row -> (along, sx_tension, width)
+            tension_rows = defaultdict(list)   # z row -> (along, s1_tension, width)
+            shear_rows = defaultdict(list)     # z row -> (along, |txy|, width)
             for q in quads:
                 xc, yc, zc = centers(q)
                 nds = (q.i_node, q.j_node, q.m_node, q.n_node)
                 width = (max(n.X for n in nds) - min(n.X for n in nds)
                          + max(n.Y for n in nds) - min(n.Y for n in nds))
+                along = xc if w["horiz"] else yc
                 if abs(zc - bz) <= 0.05:
                     sig = float(q.membrane(0, -0.9, combo_name="ULS")[1][0])
-                    stations.append((xc if w["horiz"] else yc, sig, width))
-                sx = float(q.membrane(0, 0, combo_name="ULS")[0][0])
-                tension_rows[round(zc, 3)].append(
-                    (xc if w["horiz"] else yc, max(0.0, sx), width))
-            # per-quad governing: vertical compression vs axial cap,
-            # horizontal/vertical TENSION vs fctd (concrete cracks long
-            # before it crushes — the naked-band failure mode)
-            for q in quads:
+                    stations.append((along, sig, width))
                 s_ = q.membrane(0, 0, combo_name="ULS")
                 sx, sy = float(s_[0][0]), float(s_[1][0])
-                candidates = (
-                    (max(0.0, -sy) / wall_cap, 0, abs(sy)),   # vert compression
-                    (max(0.0, sx) / db.fctd, 1, sx),          # horiz tension
-                    (max(0.0, sy) / db.fctd, 2, sy),          # vert tension
-                )
-                u_, g_, s_val = max(candidates)
-                quad_u[q.name] = u_
-                quad_g[q.name] = g_
-                quad_s[q.name] = s_val
+                txy = float(s_[2][0])
+                s1, _s2, theta = _principal(sx, sy, txy)
+                # design values average the per-quad PRINCIPAL tension, not
+                # the components: averaging sx/sy/txy first lets a rotating
+                # shear field cancel itself and report false calm, which is
+                # the exact failure this channel exists to catch (Codex plan
+                # review; Gemini argued the other way — correct for a section
+                # resultant, wrong for a crack screen).
+                tension_rows[round(zc, 3)].append(
+                    (along, max(0.0, s1), width))
+                shear_rows[round(zc, 3)].append((along, abs(txy), width))
+                # per-quad governing: vertical compression vs axial cap, or
+                # principal tension vs fctd (concrete cracks long before it
+                # crushes). Compression stays axis-aligned on purpose — the
+                # wall capacity carries a slenderness factor for VERTICAL
+                # load and means nothing applied to a diagonal strut.
+                u_c = max(0.0, -sy) / wall_cap
+                u_t = max(0.0, s1) / db.fctd
+                if u_t >= u_c:
+                    quad_u[q.name] = u_t
+                    quad_g[q.name] = _tension_component(theta)
+                    quad_s[q.name] = s1
+                else:
+                    quad_u[q.name] = u_c
+                    quad_g[q.name] = 0
+                    quad_s[q.name] = sy
             avg = _band_max(stations, 0.5)
             u_tension = max(
                 (_band_max(row, 0.5) / db.fctd
                  for row in tension_rows.values()), default=0.0)
+            # reported as a STRESS, not a utilization: |txy| over fctd would
+            # read alarmingly high on a wall in heavy compression whose
+            # cracks are held shut, while the principal tension — the thing
+            # that actually governs — is zero (Gemini review).
+            tau_max = max(
+                (_band_max(row, 0.5) for row in shear_rows.values()),
+                default=0.0)
             lo = min(w["a"][0 if w["horiz"] else 1],
                      w["b"][0 if w["horiz"] else 1])
             length = (abs(w["b"][0] - w["a"][0])
@@ -551,12 +632,13 @@ def compute_fem(building: Building, mesh: float = 0.25,
             elements[gid] = dict(
                 kind="wall", name=w["name"], story=w["story"],
                 sigma=avg, u=max(u_axial, u_tension), u_axial=u_axial,
-                u_tension=u_tension, profile=profile,
+                u_tension=u_tension, tau_max=tau_max, profile=profile,
                 q=round(avg * w["t"], 1), a=list(w["a"]), b=list(w["b"]))
         else:
             _gid, pkind, pname, ps, _z, t, _ppoly, _q = panel_by_gid[gid]
             cap = db.strip_moment_capacity(t)
             mx_by_x, my_by_y = defaultdict(list), defaultdict(list)
+            mp_by_x, mp_by_y = defaultdict(list), defaultdict(list)
             for q in quads:
                 xc, yc, _zc = centers(q)
                 nds = (q.i_node, q.j_node, q.m_node, q.n_node)
@@ -564,17 +646,47 @@ def compute_fem(building: Building, mesh: float = 0.25,
                 wy = max(n.Y for n in nds) - min(n.Y for n in nds)
                 mom = q.moment(0, 0, combo_name="ULS")
                 mx, my = float(mom[0][0]), float(mom[1][0])
-                quad_u[q.name] = max(abs(mx), abs(my)) / cap
+                mxy = float(mom[2][0])
+                # twist counts: a plate region in pure twist (mx = my = 0,
+                # mxy != 0) bends at 45 deg and used to paint 0%. The strip
+                # capacity is isotropic here, so the principal moment — not
+                # Wood-Armer, which sizes an orthogonal rebar grid — is the
+                # honest measure (both plan reviews agreed).
+                m1, m2, _th = _principal(mx, my, mxy)
+                m_princ = max(abs(m1), abs(m2))
+                quad_u[q.name] = m_princ / cap
                 mx_by_x[round(xc, 2)].append((yc, mx, wy))
                 my_by_y[round(yc, 2)].append((xc, my, wx))
+                mp_by_x[round(xc, 2)].append((yc, m_princ, wy))
+                mp_by_y[round(yc, 2)].append((xc, m_princ, wx))
             mxd = max((_band_max(s_, 1.0) for s_ in mx_by_x.values()),
                       default=0.0)
             myd = max((_band_max(s_, 1.0) for s_ in my_by_y.values()),
                       default=0.0)
+            # the element value must see what the fragments see: a
+            # twisting panel would otherwise paint hot while its number
+            # stayed at the strip value. Averaged along BOTH strip
+            # directions — a one-direction average can land below the
+            # other direction's design moment, which would let the element
+            # number under-report its own strips.
+            mpd = max((_band_max(s_, 1.0)
+                       for s_ in (*mp_by_x.values(), *mp_by_y.values())),
+                      default=0.0)
+            gov = max(mxd, myd, mpd)
             elements[gid] = dict(
                 kind=pkind, name=pname, story=ps.name,
-                mx_design=mxd, my_design=myd, cap=cap,
-                M=max(mxd, myd), u=max(mxd, myd) / cap)
+                mx_design=mxd, my_design=myd, m_principal_design=mpd,
+                cap=cap, M=gov, u=gov / cap)
+
+    # A fragment legitimately reads higher than its element: the element
+    # number is a window-averaged DESIGN value, the fragment is a raw
+    # local one that spikes at re-entrant corners and supports. Publishing
+    # the peak alongside it makes that difference auditable instead of
+    # looking like a contradiction (Codex review 2026-08-09).
+    for qname, (_kind, gid) in m.quad_meta.items():
+        if gid in elements:
+            elements[gid]["u_peak"] = max(elements[gid].get("u_peak", 0.0),
+                                          quad_u.get(qname, 0.0))
 
     reactions = sum(n.RxnFZ["ULS"] for n in m.model.nodes.values()
                     if n.support_DZ)
@@ -592,14 +704,39 @@ def compute_fem(building: Building, mesh: float = 0.25,
         "loads/capacities: shared DesignBasis (ULS "
         f"{db.gamma_g}G+{db.gamma_q}Q, snow {db.snow})",
         "design values: 1 m strip-averaged plate moments, 0.5 m averaged "
-        "wall base stress (tributary-weighted)",
+        "wall stress — overlap-weighted over the window, and the plate "
+        "value averages |principal moment|, so hogging never cancels "
+        "sagging inside a window (conservative)",
+        "element numbers are DESIGN values; a single fragment peaks "
+        "higher at corners and supports (u_peak), where the value is a "
+        "mesh-dependent singularity rather than something to build for",
         f"wall coloring: governing of vertical compression (cap "
-        f"{db.wall_phi * db.wall_fd:.0f}) and tension (fctd {db.fctd:.0f} "
-        "kN/m2) — concrete cracks long before it crushes",
+        f"{db.wall_phi * db.wall_fd:.0f}) and MAX PRINCIPAL tension (fctd "
+        f"{db.fctd:.0f} kN/m2) — cracking follows the principal direction, "
+        "so in-plane shear shows up as diagonal tension",
+        "plate coloring: max principal moment (twist included) against an "
+        "isotropic strip capacity — reinforcement is treated as "
+        "direction-independent, thickness capped at 0.25 m",
+    ]
+    # The honest answer to "what is missing" — printed on the X-ray page so
+    # nobody mistakes a calm color for a safe building (owner 2026-08-08).
+    not_modelled = [
+        "wind, seismic, lateral stability and diaphragm action",
+        "buckling, second-order effects and slender-wall behaviour",
+        "punching and one-way (transverse) shear, local bearing",
+        "foundations, soil bearing, settlement, uplift and sliding",
+        "SLS deflection, crack width, creep, shrinkage and temperature",
+        "reinforcement layout, anchorage and connection detailing",
+        "beam axial force, shear and torsion (bending only)",
+        "slab/roof in-plane (membrane) forces",
+        "out-of-plane wall bending: the model has no eccentric or lateral "
+        "wall load, so any moment there would be a support artefact",
+        "non-bearing walls: self-weight only, no stiffness or load path",
     ]
     return FemResult(
         elements=elements,
         field=dict(schema=1, coords="building-z-up", mesh=mesh,
                    quads=quads_out),
         intended=intended, attached=attached, reactions=abs(reactions),
-        unresolved=unresolved, assumptions=assumptions)
+        unresolved=unresolved, assumptions=assumptions,
+        not_modelled=not_modelled)

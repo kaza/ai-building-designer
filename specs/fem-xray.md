@@ -47,6 +47,11 @@ like to see this when I click L."
   load balance) on screen.
 - Design values, not peaks: plate moments are 1 m strip-averaged, wall
   base stress 0.5 m averaged; raw peaks stay in the JSON for audit.
+- Cracking is checked on the MAXIMUM PRINCIPAL stress, not on the
+  axis-aligned components, so in-plane shear cannot hide: a panel with
+  `sx = sy = 0` and `txy ≠ 0` cracks diagonally at `|txy|` and is
+  reported as such. The same algebra covers plate twist (`mxy`), which
+  is why a slab corner in pure twist no longer reads 0%.
 - Wall/beam fragments are colored by the GOVERNING stress component:
   vertical compression against the axial capacity (Φ·f_d), or tensile
   stress (horizontal or vertical) against `DesignBasis.fctd` — concrete
@@ -55,8 +60,30 @@ like to see this when I click L."
   compression (owner 2026-08-08: the beam-less model looked calm because
   only vertical stress was painted). The tooltip names the component and
   its magnitude in MPa. Per-element wall `u` is max(axial, tension)
-  design value; `u_axial`/`u_tension` are reported separately. In-plane
-  shear is documented out of scope.
+  design value; `u_axial`/`u_tension` are reported separately, and
+  `tau_max` is a shear STRESS, not a ratio — `|τ|/fctd` would read
+  alarmingly high on a wall in heavy compression whose cracks are held
+  shut, while the principal tension that actually governs is zero.
+- An element number and the fragments drawn over it are different
+  quantities and the element one is legitimately smaller: the element
+  publishes a window-averaged DESIGN value, a fragment publishes a raw
+  local one that spikes at re-entrant corners and supports (villa: a
+  West Wall fragment reads 6.6 against an element value of 1.6). Both
+  are published — `u` and `u_peak` — and the UI never calls the smaller
+  one a maximum.
+- Convergence is measured, not assumed. Refining 0.40 → 0.25 m on a
+  pierced box moves `u_axial` +4.2%, the roof principal moment +8.0%,
+  `u_tension` +13.4% and `tau_max` −15.6%. Tension and shear near an
+  opening stay looser because the corner is a genuine singularity;
+  averaging windows are overlap-weighted so a cell counts only the part
+  that falls inside (centre-based windows drifted up to 29%).
+- What the model does NOT contain is published with the results
+  (`not_modelled`, printed on the X-ray page): wind/seismic and lateral
+  stability, buckling and second-order effects, punching and transverse
+  shear, foundations and soil, SLS deflection and crack width,
+  reinforcement detailing, beam shear/torsion/axial (bending only),
+  slab membrane forces, and non-bearing walls (self-weight only, no
+  stiffness). A calm color is not a safe building.
 
 ## Components
 
@@ -101,6 +128,10 @@ like to see this when I click L."
 | 2026-08-08 | Field payload is a versioned envelope (schema, coord system, building digest, assumptions, balance, flat quantized arrays) | Codex #13 + Gemini payload review |
 | 2026-08-08 | villa publish gains optional FEM artifacts (both-or-neither, digest-checked against building.json); xray-only publishing for walkthrough-less projects is future work; PyNiteFEA pinned to 3.0.x | Codex #14/#16, CodeRabbit review |
 | 2026-08-08 | Tension-aware wall coloring: per-fragment governing component (vert compression vs Φ·f_d; horiz/vert tension vs fctd 1.0 MPa), component + MPa in tooltips; envelope gains parallel `g`/`s` arrays (additive, schema 1) | owner: beams looked useless in the beam-less X-ray because bands fail in bending tension, which wasn't painted |
+| 2026-08-09 | In-plane shear + plate twist channel: cracking checked on max PRINCIPAL tension (component 4 = diagonal tension) and plates on max\|principal moment\|; vertical compression stays axis-aligned; wall out-of-plane bending DEFERRED (the model has no eccentric or lateral wall load, so its moments would be clamp artefacts); `not_modelled` published | owner #4: "I want all FEM elements visible, what's missing" — `Txy` and `Mxy` were discarded, so pure shear and pure twist painted 0%. Codex plan review supplied the blockers; the PyNite local-moment convention was pinned down empirically (its `local=False` path is broken in 3.0.0 and its own comment contradicts its code) |
+| 2026-08-09 | Element design values average the per-quad PRINCIPAL value over the fixed window, not the stress components | Codex: averaging `sx/sy/txy` first lets a rotating shear field cancel and report false calm — the exact failure this channel exists to catch. Gemini argued components-first, which is right for a section resultant and wrong for a crack screen |
+| 2026-08-09 | Plate element gains `m_principal_design`, averaged along BOTH strip directions, and it feeds element `u` | plan review blocker: a twisting panel would paint hot while the element number stayed at the strip value — fragments and element numbers must never contradict |
+| 2026-08-09 | The element number is labelled "element design value (0.5 m averaged)", never "element max" | Codex measured fragment peaks up to 4× the element value on the villa (West Wall fragment 6.6 vs element 1.6). Both numbers are correct — one is a design value, the other a mesh-dependent corner singularity — but calling the smaller one a maximum next to the larger one is a lie the owner would rightly catch |
 | 2026-08-08 | Standalone X-ray page carries its view in the URL hash `#v=px,py,pz,tx,ty,tz` (camera + orbit target, `controls.update()` after restore) with the same 1 s throttled `replaceState` writer and a copy-link button; the walkthrough's own hash scheme lives in [browser-walkthrough.md](browser-walkthrough.md) | owner: refresh keeps the view; a link sent to an engineer opens at the sender's exact view |
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |
 

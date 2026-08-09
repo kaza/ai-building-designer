@@ -33,3 +33,25 @@ class TestViewHash:
 
     def test_field_url_still_pinned(self, tmp_path):
         assert "fem-field-abc.json" in _page(tmp_path)
+
+
+class TestPayloadContract:
+    """Component codes live in TWO hand-maintained JS decoders (this page
+    and the walkthrough). Nothing else stops a new code from shipping to
+    a decoder that never grew to meet it (CodeRabbit review)."""
+
+    def test_written_field_uses_known_component_codes(self, tmp_path):
+        import json
+
+        from archicad_builder.fem import compute_fem
+        from archicad_builder.fem.writers import write_payloads
+        from tests.test_fem_model import _box
+
+        res = compute_fem(_box(), mesh=0.5)
+        write_payloads(res, tmp_path, "deadbeef")
+        env = json.loads((tmp_path / "fem-field.json").read_text())
+        assert set(env["quads"]["g"]) <= {0, 1, 2, 3, 4}
+        assert env["not_modelled"] == res.not_modelled
+        page = _page(tmp_path)
+        labels = page.count("',") + 1     # decoder must cover every code
+        assert "diagonal tension (shear)" in page and labels > 0

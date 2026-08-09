@@ -807,7 +807,7 @@ function cycleStructural() {
 }
 
 const FEM_COMPONENT = ['vertical compression', 'horizontal tension',
-  'vertical tension', 'bending'];
+  'vertical tension', 'bending', 'diagonal tension (shear)'];
 
 function femHit() {
   const ray = new THREE.Raycaster();
@@ -830,7 +830,8 @@ function femInfo() {
     (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
     'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
-    comp + '\\nelement max ' + Math.round(el.u * 100) + '%';
+    comp + '\\nelement design value ' + Math.round(el.u * 100) +
+    '% (window-averaged; fragments peak higher at corners)';
   setHud();
 }
 
@@ -1450,7 +1451,7 @@ function updateAim(now) {
         next = hit.el.name + ' — tile ' +
           Math.round(femEnv.quads.u[hit.q] * 100) + '%' +
           (g === undefined ? '' : ' · ' + FEM_COMPONENT[g]) +
-          ' · element max ' + Math.round(hit.el.u * 100) + '%';
+          ' · element ' + Math.round(hit.el.u * 100) + '%';
       }
     } else {
       const hit = centerHit();

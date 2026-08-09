@@ -88,7 +88,9 @@ document.getElementById('meta').innerHTML =
   '<b>assumptions</b><br>' + env.assumptions.join('<br>') +
   '<br>load balance ' + env.balance +
   (env.unresolved.length ? '<br><b>unresolved</b><br>'
-    + env.unresolved.join('<br>') : '');
+    + env.unresolved.join('<br>') : '') +
+  ((env.not_modelled || []).length
+    ? '<br><b>not modelled</b><br>' + env.not_modelled.join('<br>') : '');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa9c3e6);
@@ -209,14 +211,15 @@ addEventListener('mousemove', ev => {
     const q = lookup[kind][Math.floor(hits[0].faceIndex / 2)];
     const el = env.elems[elem[q]];
     const comps = ['vertical compression', 'horizontal tension',
-                   'vertical tension', 'bending'];
+                   'vertical tension', 'bending',
+                   'diagonal tension (shear)'];
     const g = (env.quads.g || [])[q];
     const s = (env.quads.s || [])[q];
     tip.textContent =
       `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%` +
       (g === undefined ? '' :
         ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
-      ` (element max ${(el.u * 100).toFixed(0)}%)`;
+      ` (element design value ${(el.u * 100).toFixed(0)}%)`;
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';
