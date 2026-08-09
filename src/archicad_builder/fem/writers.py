@@ -4,7 +4,8 @@ fem-field.json — versioned envelope with flat, quantized arrays so the
 browser can decode without a multi-second JSON.parse of nested objects
 (plan review: 2 MB nested JSON janks phones):
   { schema, coords, mesh, digest, balance, assumptions, unresolved,
-    elems: [{id, name, kind, story, u}...],
+    elems: [{id, name, kind, story, u, peak,
+             p: [every channel, preformatted]}...],
     quads: { n, elem: [i...], u: [..], pos: [12*n floats] } }
 
 fem-loads.json — per-element reference results for humans and agents
@@ -29,8 +30,12 @@ def building_digest(building_json: Path) -> str:
 
 
 def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
+    # u = design value (what the element is judged on), peak = worst single
+    # fragment. Standard practice is to size from a design section and read
+    # the peak only as a local-detailing hint, so both travel together.
     elems = [dict(id=gid, name=e["name"], kind=e["kind"], story=e["story"],
-                  u=round(e["u"], 3))
+                  u=round(e["u"], 3), peak=round(e.get("u_peak", 0.0), 3),
+                  p=e.get("parts", []))
              for gid, e in res.elements.items()]
     index = {e["id"]: i for i, e in enumerate(elems)}
     pos: list[float] = []

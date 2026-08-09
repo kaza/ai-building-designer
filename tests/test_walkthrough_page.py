@@ -65,3 +65,25 @@ class TestDebugSeamUntouched:
         # the P filename doubles as #debug= numbers — same cameraSpec source
         assert re.search(r"a\.download = 'villa-shot_' \+ cameraSpec\(\)",
                          template)
+
+
+class TestXrayReadability:
+    """Owner 2026-08-09: the pale HUD was unreadable against the ghosted
+    (near-white) X-ray model."""
+
+    def test_dark_hud_panel_in_xray_mode(self, template):
+        assert "body.xray #hud" in template
+        assert "body.xray #aim-chip" in template
+
+    def test_xray_class_toggles_with_the_mode(self, template):
+        assert "classList.add('xray')" in template
+        assert "classList.remove('xray')" in template
+
+    def test_all_channels_in_both_readouts(self, template):
+        assert template.count("el.p || []") >= 1
+        assert "hit.el.p" in template
+
+    def test_peak_travels_with_the_design_value(self, template):
+        # sized on the design value, peak shown as a detailing flag
+        assert "hit.el.peak" in template
+        assert "worst fragment" in template

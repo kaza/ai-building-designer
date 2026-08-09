@@ -30,7 +30,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
           color:#bbb; }
   #tip { position:fixed; pointer-events:none; background:rgba(20,22,30,.92);
          color:#fff; padding:4px 9px; border-radius:6px; display:none;
-         z-index:6; }
+         z-index:6; white-space:pre-line; }
   #legend { position:fixed; bottom:12px; left:50%;
             transform:translateX(-50%); background:rgba(20,22,30,.85);
             color:#eee; padding:8px 14px; border-radius:10px; z-index:5;
@@ -219,7 +219,9 @@ addEventListener('mousemove', ev => {
       `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%` +
       (g === undefined ? '' :
         ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
-      ` (element design value ${(el.u * 100).toFixed(0)}%)`;
+      ` (element design value ${(el.u * 100).toFixed(0)}%` +
+      (el.peak ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
+      ((el.p || []).length ? '\n' + el.p.join(' · ') : '');
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';

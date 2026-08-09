@@ -359,3 +359,26 @@ class TestDesignValueContract:
                 coarse.find("South")[key], rel=0.15), key
         assert fine.find("Roof")["m_principal_design"] == pytest.approx(
             coarse.find("Roof")["m_principal_design"], rel=0.15)
+
+
+class TestAllChannelsVisible:
+    """Owner 2026-08-09: pointing at a fragment should show every channel
+    we compute, not only the one that happens to govern."""
+
+    def test_wall_publishes_all_three_channels(self, box_result):
+        parts = box_result.find("South")["parts"]
+        assert len(parts) == 3
+        joined = " ".join(parts)
+        assert "compression" in joined and "tension" in joined
+        assert "MPa" in joined      # shear is a stress, not a ratio
+
+    def test_plate_publishes_all_three_channels(self, box_result):
+        parts = box_result.find("Roof")["parts"]
+        assert len(parts) == 3
+        assert any("principal" in p for p in parts)
+        assert all("%" in p for p in parts)
+
+    def test_parts_agree_with_the_numbers_they_summarise(self, box_result):
+        roof = box_result.find("Roof")
+        pct = round(roof["m_principal_design"] / roof["cap"] * 100)
+        assert f"{pct}%" in [p.split()[-1] for p in roof["parts"]][-1]

@@ -55,3 +55,46 @@ class TestPayloadContract:
         page = _page(tmp_path)
         labels = page.count("',") + 1     # decoder must cover every code
         assert "diagonal tension (shear)" in page and labels > 0
+
+
+class TestChannelReadout:
+    def test_page_renders_every_channel(self, tmp_path):
+        page = _page(tmp_path)
+        assert "el.p" in page              # all channels, not just governing
+        assert "white-space:pre-line" in page   # the extra line must show
+
+    def test_written_elems_carry_channel_lists(self, tmp_path):
+        import json
+
+        from archicad_builder.fem import compute_fem
+        from archicad_builder.fem.writers import write_payloads
+        from tests.test_fem_model import _box
+
+        write_payloads(compute_fem(_box(), mesh=0.5), tmp_path, "deadbeef")
+        env = json.loads((tmp_path / "fem-field.json").read_text())
+        assert all(e["p"] for e in env["elems"])
+        assert all(len(e["p"]) == 3 for e in env["elems"]
+                   if e["kind"] in ("wall", "roof", "slab"))
+
+
+class TestDesignAndPeak:
+    """Common practice: size on a design section, read the peak as a
+    local-detailing flag. Both numbers must reach the viewer."""
+
+    def test_written_elems_carry_both_numbers(self, tmp_path):
+        import json
+
+        from archicad_builder.fem import compute_fem
+        from archicad_builder.fem.writers import write_payloads
+        from tests.test_fem_model import _box
+
+        res = compute_fem(_box(), mesh=0.5)
+        write_payloads(res, tmp_path, "deadbeef")
+        env = json.loads((tmp_path / "fem-field.json").read_text())
+        for e in env["elems"]:
+            assert e["peak"] >= e["u"] - 1e-3   # peak never below design
+        assert any(e["peak"] > e["u"] for e in env["elems"])
+
+    def test_page_shows_the_peak_beside_the_design_value(self, tmp_path):
+        page = _page(tmp_path)
+        assert "worst fragment" in page and "el.peak" in page

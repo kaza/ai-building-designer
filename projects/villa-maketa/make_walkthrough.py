@@ -181,6 +181,19 @@ TEMPLATE = """<!DOCTYPE html>
     text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: pre-line;
     pointer-events: none;
   }
+  /* X-ray ghosts the model to near-white, and pale text on it is
+     unreadable (owner 2026-08-09). Dark text on a light panel — a panel,
+     not just a color, because the same HUD also sits over red fragments
+     and the sky. */
+  body.xray #hud {
+    color: #10141b; text-shadow: none;
+    background: rgba(246,247,249,0.82); border-radius: 8px;
+    padding: 6px 9px; backdrop-filter: blur(2px);
+  }
+  body.xray #aim-chip {
+    background: rgba(246,247,249,0.92); color: #10141b;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
   #labels { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
   #draw { position: absolute; inset: 0; z-index: 7; display: none; cursor: crosshair; touch-action: none; }
   #touchui { display: none; }
@@ -746,6 +759,7 @@ function _enterFem() {
     _ghost(n);
   });
   femGroup.visible = true;
+  document.body.classList.add('xray');   // dark-on-light HUD, see CSS
   _updateLoadsBtn();
   infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)\\nload balance ' +
     femEnv.balance + ' · aim + I for a fragment · L to exit';
@@ -759,6 +773,7 @@ function setStructuralMode(mode) {
     if (femGroup) femGroup.visible = false;
     _restoreMats();
   }
+  document.body.classList.remove('xray');
   structuralMode = 'off';
   infoText = '';
   // setup
@@ -830,8 +845,11 @@ function femInfo() {
     (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
     'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
-    comp + '\\nelement design value ' + Math.round(el.u * 100) +
-    '% (window-averaged; fragments peak higher at corners)';
+    comp + '\\nelement design value ' + Math.round(el.u * 100) + '%' +
+    (el.peak ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
+    '\\n(sized on the design value — standard practice; the peak sits at a' +
+    ' corner and flags local detailing, not the member size)' +
+    ((el.p || []).length ? '\\nall channels: ' + el.p.join(' · ') : '');
   setHud();
 }
 
@@ -1448,10 +1466,14 @@ function updateAim(now) {
       const hit = femHit();
       if (hit) {
         const g = (femEnv.quads.g || [])[hit.q];
+        // the tile % stays first (owner), then EVERY channel we compute —
+        // not just whichever one happens to govern this fragment
         next = hit.el.name + ' — tile ' +
           Math.round(femEnv.quads.u[hit.q] * 100) + '%' +
           (g === undefined ? '' : ' · ' + FEM_COMPONENT[g]) +
-          ' · element ' + Math.round(hit.el.u * 100) + '%';
+          ' · element ' + Math.round(hit.el.u * 100) + '%' +
+          (hit.el.peak ? ' (peak ' + Math.round(hit.el.peak * 100) + '%)' : '') +
+          ((hit.el.p || []).length ? '\\n' + hit.el.p.join(' · ') : '');
       }
     } else {
       const hit = centerHit();
