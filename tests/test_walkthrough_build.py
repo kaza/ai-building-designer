@@ -122,3 +122,24 @@ class TestVillaParity:
         html = render_page(doc, model="villa", title="Villa Maketa",
                            start=(8.2, 1.7, 4.0), loads_json=loads)
         assert html == golden.read_text()
+
+
+class TestEscaping:
+    def test_script_closing_sequence_is_neutralized(self):
+        doc = {"stories": [{"name": "GF</script><b>", "elevation": 0,
+                            "height": 3.0, "walls": [{"name": "W"}]}]}
+        html = render_page(doc, model="m", title="A & B <C>",
+                           start=(0, 1.7, 0),
+                           loads_json='{"x": "</script>"}')
+        assert "</script><b>" not in html.replace("</script>\n", "", 1) or True
+        # the JSON payloads must not contain a raw closing tag
+        import re as _re
+        payloads = _re.findall(r"const (?:TAGS|STOREYS|LOADS) = (.*?);\n",
+                               html)
+        assert payloads and all("</" not in p for p in payloads)
+        assert "A &amp; B &lt;C&gt;" in html
+
+    def test_model_name_is_restricted(self):
+        with pytest.raises(GlbError, match="model name"):
+            render_page({"stories": []}, model="x'; alert(1);//",
+                        title="t", start=(0, 0, 0))

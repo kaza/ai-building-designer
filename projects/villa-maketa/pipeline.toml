@@ -21,6 +21,14 @@ inputs = ["project.toml"]
 outputs = ["assets/licenses.json"]   # written only after every asset arrived
 
 [[step]]
+name = "assets-verify"   # disk vs manifest: Blender reads these gitignored
+                         # files directly, so drift must fail loudly
+run = ["{python}", "-m", "archicad_builder", "verify-assets", "{project}"]
+framework = true
+inputs = ["assets/licenses.json"]
+cache = false
+
+[[step]]
 name = "build"           # spec dimensions -> building.json
 run = ["{python}", "build.py"]
 framework = true   # imports archicad_builder
@@ -104,7 +112,7 @@ outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]
 
 [[step]]
 name = "walkthrough"     # the browser deliverable; embeds loads.json
-run = ["{python}", "-m", "archicad_builder", "walkthrough", "{project}"]
+run = ["{python}", "-m", "archicad_builder", "walkthrough", "{project}", "--model", "{model}"]
 framework = true   # page template + generator live in the package
 inputs = ["output/villa.glb", "output/loads.json", "building.json", "project.toml"]
 outputs = ["output/walkthrough.html"]

@@ -827,16 +827,64 @@ def render_furnished_cmd(
     _output({"ok": True, "written": str(out), "items": len(items)})
 
 
+@app.command("import-ifc")
+def import_ifc_cmd(
+    file: str = typer.Argument(..., help="Path to the foreign IFC file"),
+    project: str = typer.Option(..., "--project",
+                                help="NEW project directory name"),
+    strict: bool = typer.Option(False, "--strict",
+                                help="Refuse (and write nothing) if any "
+                                     "entity cannot be represented."),
+):
+    """Create a new project from a foreign IFC (specs/ifc-import.md).
+    GUIDs are kept verbatim; unmapped entities are reported, never
+    silently dropped; the original file is kept as import-source.ifc."""
+    from archicad_builder.importers.ifc import ImportError_, import_project
+    try:
+        result = import_project(Path(file), PROJECTS_DIR / project,
+                                strict=strict)
+    except ImportError_ as exc:
+        typer.echo(f"import-ifc: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    _output({"ok": True, "project": project,
+             "stories": len(result.building.stories),
+             "imported_ids": len(result.imported_ids),
+             "unmapped": result.unmapped,
+             "warnings": result.warnings})
+
+
+@app.command("update-ifc")
+def update_ifc_cmd(
+    project: str = typer.Argument(..., help="Project created by import-ifc"),
+):
+    """Patch the partner's original IFC with OUR elements — their geometry
+    is untouched, never regenerated from our model (specs/ifc-import.md)."""
+    from archicad_builder.importers.ifc import ImportError_, update_ifc
+    try:
+        out = update_ifc(PROJECTS_DIR / project)
+    except ImportError_ as exc:
+        typer.echo(f"update-ifc: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    _output({"ok": True, "written": str(out)})
+
+
 @app.command("walkthrough")
-def walkthrough_cmd(project: str = typer.Argument(..., help="Project directory name")):
+def walkthrough_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    model: str = typer.Option(
+        None, "--model",
+        help="Artifact basename; pass {model} from the pipeline so the "
+             "step's digest covers it (default: pipeline.toml)."),
+):
     """Build output/walkthrough.html (validates the GLB first)."""
     import tomllib as _tomllib
 
     from archicad_builder.project_config import ConfigError
     from archicad_builder.walkthrough import GlbError, build_page
     project_dir = PROJECTS_DIR / project
-    pipe = _tomllib.loads((project_dir / "pipeline.toml").read_text())
-    model = pipe.get("project", {}).get("model")
+    if not model:
+        pipe = _tomllib.loads((project_dir / "pipeline.toml").read_text())
+        model = pipe.get("project", {}).get("model")
     if not model:
         typer.echo("pipeline.toml declares no [project] model", err=True)
         raise typer.Exit(1)
@@ -860,6 +908,16 @@ def fetch_assets_cmd(project: str = typer.Argument(..., help="Project directory 
         # surfaces here first — cleanly, not as a pydantic traceback
         typer.echo(f"fetch-assets: {exc}", err=True)
         raise typer.Exit(1) from exc
+
+
+@app.command("verify-assets")
+def verify_assets_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Check the asset cache against its manifest hashes. Exit 1 on drift."""
+    from archicad_builder.assets import verify_assets
+    problems = verify_assets(PROJECTS_DIR / project)
+    _output({"ok": not problems, "problems": problems})
+    if problems:
+        raise typer.Exit(1)
 
 
 @app.command("serve")

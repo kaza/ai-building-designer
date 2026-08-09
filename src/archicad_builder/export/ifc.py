@@ -306,6 +306,32 @@ class IFCExporter:
         file_name.author = ("ArchiCAD Builder",)
         file_name.organization = ("",)
 
+    def _attach_parametric(self, entity, payload: dict) -> None:
+        """AB_Parametric pset: the element's exact model JSON riding along.
+
+        The IFC geometry stays real BIM (ArchiCAD reads walls, openings,
+        psets); this property is what makes the round trip LOSSLESS for our
+        own files — import_ifc reads it back verbatim instead of
+        reverse-engineering corner-extended solids (specs/ifc-import.md).
+        """
+        import json as _json
+        prop = self.file.createIfcPropertySingleValue(
+            Name="json",
+            NominalValue=self.file.create_entity(
+                "IfcText", _json.dumps(payload, sort_keys=True)),
+        )
+        pset = self.file.createIfcPropertySet(
+            GlobalId=derived_ifc_id("pset", entity.GlobalId, "AB_Parametric"),
+            Name="AB_Parametric",
+            HasProperties=[prop],
+        )
+        self.file.createIfcRelDefinesByProperties(
+            GlobalId=derived_ifc_id("rel-defines", entity.GlobalId,
+                                    "AB_Parametric"),
+            RelatedObjects=[entity],
+            RelatingPropertyDefinition=pset,
+        )
+
     def export(self, output_path: str | Path) -> Path:
         """Export the building to an IFC file. Returns the output path."""
         output_path = Path(output_path)
@@ -315,6 +341,10 @@ class IFCExporter:
 
         # IFC hierarchy: Project → Site → Building → Stories
         ifc_project = self._create_project()
+        self._attach_parametric(
+            ifc_project,
+            self.building.model_dump(mode="json", exclude_none=True,
+                                     exclude={"stories": True}))
         ifc_site = self._create_site(ifc_project)
         ifc_building = self._create_building(ifc_site)
 
@@ -439,6 +469,14 @@ class IFCExporter:
             CompositionType="ELEMENT",
             Elevation=story.elevation,
         )
+        self._attach_parametric(
+            ifc_storey,
+            story.model_dump(
+                mode="json", exclude_none=True,
+                exclude={k: True for k in
+                         ("walls", "slabs", "doors", "windows", "roofs",
+                          "staircases", "beams", "virtual_elements",
+                          "spaces", "apartments")}))
         self.file.createIfcRelAggregates(
             GlobalId=derived_ifc_id("rel-aggregates", ifc_building.GlobalId,
                                     story.global_id),
@@ -453,30 +491,43 @@ class IFCExporter:
         for wall in story.walls:
             ifc_wall = self._create_wall(wall, story)
             wall_map[wall.global_id] = ifc_wall
+            self._attach_parametric(ifc_wall, wall.model_dump(
+                mode="json", exclude_none=True))
             products.append(ifc_wall)
 
         # Export virtual elements (IfcVirtualElement — room boundaries)
         for ve in story.virtual_elements:
             ifc_ve = self._create_virtual_element(ve, story.elevation)
+            self._attach_parametric(ifc_ve, ve.model_dump(
+                mode="json", exclude_none=True))
             products.append(ifc_ve)
 
         # Export slabs
         for slab in story.slabs:
             ifc_slab = self._create_slab(slab, story.elevation)
+            self._attach_parametric(ifc_slab, slab.model_dump(
+                mode="json", exclude_none=True))
             products.append(ifc_slab)
 
         # Export staircases
         for staircase in story.staircases:
             ifc_stair = self._create_staircase(staircase, story.elevation)
+            self._attach_parametric(ifc_stair, staircase.model_dump(
+                mode="json", exclude_none=True))
             products.append(ifc_stair)
 
         # Export beams (ring beams / lintels)
         for beam in story.beams:
-            products.append(self._create_beam(beam, story.elevation))
+            ifc_beam = self._create_beam(beam, story.elevation)
+            self._attach_parametric(ifc_beam, beam.model_dump(
+                mode="json", exclude_none=True))
+            products.append(ifc_beam)
 
         # Export roofs
         for roof in story.roofs:
             ifc_roof = self._create_roof(roof, story.elevation + story.height)
+            self._attach_parametric(ifc_roof, roof.model_dump(
+                mode="json", exclude_none=True))
             products.append(ifc_roof)
 
         # Export doors (with wall openings)
@@ -486,6 +537,8 @@ class IFCExporter:
             wall = story.get_wall(door.wall_id)
             if wall:
                 ifc_door = self._create_door(door, wall, story)
+                self._attach_parametric(ifc_door, door.model_dump(
+                    mode="json", exclude_none=True))
                 ifc_wall_host = wall_map.get(door.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening(
@@ -543,6 +596,8 @@ class IFCExporter:
             wall = story.get_wall(window.wall_id)
             if wall:
                 ifc_window = self._create_window(window, wall, story)
+                self._attach_parametric(ifc_window, window.model_dump(
+                    mode="json", exclude_none=True))
                 ifc_wall_host = wall_map.get(window.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening_for_window(
@@ -608,6 +663,8 @@ class IFCExporter:
             ifc_spaces = []
             for space in all_spaces:
                 ifc_space = self._create_space(space, story.elevation)
+                self._attach_parametric(ifc_space, space.model_dump(
+                    mode="json", exclude_none=True))
                 ifc_spaces.append(ifc_space)
             self.file.createIfcRelAggregates(
                 GlobalId=derived_ifc_id("rel-aggregates-spaces",

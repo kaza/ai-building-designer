@@ -176,21 +176,41 @@ def fetch_kenney(assets_dir: Path, spec: KenneyKitAsset, *,
     } for m in spec.models]
 
 
+def _dir_hashes(root: Path) -> dict[str, str]:
+    return {str(f.relative_to(root)): hashlib.sha256(
+                f.read_bytes()).hexdigest()
+            for f in sorted(root.rglob("*"))
+            if f.is_file() and f.name != ".complete"}
+
+
 def fetch_all(project_dir: Path, cfg: ProjectConfig, *,
               fetch: Fetch = _http_fetch,
               get_json: GetJson = _http_get_json) -> Path:
     """Fetch every pinned asset; write assets/licenses.json LAST (an
-    interrupted run never leaves a complete-looking manifest)."""
+    interrupted run never leaves a complete-looking manifest).
+
+    The manifest records a sha256 for EVERY file each asset placed —
+    Blender consumes those gitignored files directly, and the pipeline
+    hashes only the manifest, so without per-file hashes a corrupted or
+    stale asset would feed the blend silently (Codex review 2026-08-09).
+    `verify_assets` checks disk against the manifest on every build."""
     assets_dir = project_dir / "assets"
     licenses: list[dict] = []
     for spec in cfg.assets:
         if isinstance(spec, PolyhavenAsset):
-            licenses.append(fetch_polyhaven(
-                assets_dir, spec, fetch=fetch, get_json=get_json))
+            entry = fetch_polyhaven(
+                assets_dir, spec, fetch=fetch, get_json=get_json)
+            entry["files"] = _dir_hashes(assets_dir / spec.id)
+            licenses.append(entry)
         elif isinstance(spec, ObjaverseAsset):
-            licenses.append(fetch_objaverse(assets_dir, spec, fetch=fetch))
+            entry = fetch_objaverse(assets_dir, spec, fetch=fetch)
+            entry["files"] = _dir_hashes(assets_dir / spec.id)
+            licenses.append(entry)
         else:
-            licenses.extend(fetch_kenney(assets_dir, spec, fetch=fetch))
+            entries = fetch_kenney(assets_dir, spec, fetch=fetch)
+            for model, entry in zip(spec.models, entries):
+                entry["files"] = _dir_hashes(assets_dir / f"kenney_{model}")
+            licenses.extend(entries)
     assets_dir.mkdir(exist_ok=True)
     target = assets_dir / "licenses.json"
     tmp = target.with_suffix(".json.tmp")
@@ -198,3 +218,23 @@ def fetch_all(project_dir: Path, cfg: ProjectConfig, *,
     tmp.replace(target)      # atomic — no broken JSON on interruption
     print(f"wrote {target} ({len(licenses)} assets)")
     return target
+
+
+def verify_assets(project_dir: Path) -> list[str]:
+    """Disk vs manifest: every file licenses.json promises must exist and
+    hash to its recorded value. Cheap (no network) — meant to run on every
+    build so out-of-band corruption or deletion fails loudly."""
+    manifest = project_dir / "assets" / "licenses.json"
+    if not manifest.is_file():
+        return [f"no manifest at {manifest} — run fetch-assets first"]
+    problems: list[str] = []
+    for entry in json.loads(manifest.read_text()):
+        root = project_dir / "assets" / entry["id"]
+        for rel, want in entry.get("files", {}).items():
+            p = root / rel
+            if not p.is_file():
+                problems.append(f"{entry['id']}/{rel}: missing")
+            elif hashlib.sha256(p.read_bytes()).hexdigest() != want:
+                problems.append(f"{entry['id']}/{rel}: content changed "
+                                "since fetch")
+    return problems

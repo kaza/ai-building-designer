@@ -75,6 +75,9 @@ def validate_glb(data: bytes) -> dict:
         name
         for n in doc.get("nodes", [])
         if (name := n.get("name", "")).startswith("StairwellCutter")
+        # config shells name their boolean helpers <shell>CutterInner/Back
+        # (render3d) — those must never ship either (Codex 2026-08-09)
+        or name.split(".")[0].endswith(("CutterInner", "CutterBack"))
         or name.split(".")[0] in HELPER_NAMES
     ]
     if leftovers:
@@ -141,14 +144,22 @@ def render_page(doc: dict, *, model: str, title: str,
     """The final HTML from the building document + project taste."""
     template = (resources.files("archicad_builder.walkthrough")
                 / "template.html").read_text()
+    # contextual hardening (Codex 2026-08-09): "</" inside embedded JSON
+    # would close the <script>; "<\/" is identical JSON. The model name
+    # lands in single-quoted JS strings AND the fetch() URL — restrict it
+    # instead of escaping it.
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", model):
+        raise GlbError(f"model name {model!r} must be [A-Za-z0-9_-]")
     values = {
         "__THREE_VERSION__": THREE_VERSION,
-        "__TITLE__": title,
+        "__TITLE__": (title.replace("&", "&amp;").replace("<", "&lt;")
+                      .replace(">", "&gt;")),
         "__MODEL__": model,
         "__START__": ", ".join(str(c) for c in start),
-        "__TAGS__": json.dumps(element_tags(doc), sort_keys=True),
-        "__STOREYS__": json.dumps(storey_bands(doc)),
-        "__LOADS__": loads_json,
+        "__TAGS__": json.dumps(element_tags(doc),
+                               sort_keys=True).replace("</", "<\\/"),
+        "__STOREYS__": json.dumps(storey_bands(doc)).replace("</", "<\\/"),
+        "__LOADS__": loads_json.replace("</", "<\\/"),
     }
     # single pass, not chained .replace(): a title containing the literal
     # string "__MODEL__" must not be substituted again (Gemini 2026-08-09)

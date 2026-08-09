@@ -127,3 +127,31 @@ author = "a"
             fetch_all(tmp_path, cfg, fetch=lambda url: b"WRONG",
                       get_json=lambda url: {})
         assert not (tmp_path / "assets" / "licenses.json").exists()
+
+
+class TestVerify:
+    def test_manifest_hashes_catch_drift(self, tmp_path):
+        from archicad_builder.assets import fetch_all, verify_assets
+        data = b"GLB-CONTENT"
+        import hashlib as h
+        (tmp_path / "project.toml").write_text(f'''
+[[asset]]
+source = "objaverse"
+id = "sofa"
+uid = "u1"
+path = "p"
+sha256 = "{h.sha256(data).hexdigest()}"
+name = "n"
+author = "a"
+''')
+        cfg = ProjectConfig.load(tmp_path)
+        fetch_all(tmp_path, cfg, fetch=lambda url: data,
+                  get_json=lambda url: {})
+        assert verify_assets(tmp_path) == []
+        # out-of-band corruption -> loud
+        (tmp_path / "assets" / "sofa" / "u1.glb").write_bytes(b"CORRUPT")
+        problems = verify_assets(tmp_path)
+        assert problems and "content changed" in problems[0]
+        # deletion -> loud
+        (tmp_path / "assets" / "sofa" / "u1.glb").unlink()
+        assert "missing" in verify_assets(tmp_path)[0]
