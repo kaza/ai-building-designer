@@ -6,6 +6,8 @@ Focuses on correct geometry and proper IFC hierarchy.
 
 from __future__ import annotations
 
+import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 import ifcopenshell
@@ -22,14 +24,14 @@ from archicad_builder.models.elements import (
     Wall,
     Window,
 )
-from archicad_builder.models.ifc_id import generate_ifc_id
+from archicad_builder.models.ifc_id import derived_ifc_id
 from archicad_builder.models.spaces import Space
 from archicad_builder.queries.connectivity import _point_in_polygon
 
-
-def _new_guid() -> str:
-    """Generate a new IFC GlobalId for IFC-only entities (relationships, openings)."""
-    return generate_ifc_id()
+# Header timestamp when SOURCE_DATE_EPOCH is unset. Frozen so an unchanged
+# building exports an unchanged file (specs/ifc-identity.md) — the wall
+# clock in here was 100% of the reason two exports never matched.
+PINNED_TIME = "2026-01-01T00:00:00"
 
 
 def _wall_direction(wall: Wall) -> tuple[float, float]:
@@ -284,10 +286,23 @@ class IFCExporter:
         self._body_context: ifcopenshell.entity_instance | None = None
 
     def _setup_header(self) -> None:
-        """Set IFC file header metadata."""
-        header = self.file.wrapped_data.header()
-        file_name = header.file_name_py()
+        """Pin the IFC file header so exports are deterministic.
+
+        NB: `wrapped_data.header().file_name_py()` returns a DETACHED copy —
+        the old code wrote to it and the file shipped blanks plus a wall
+        clock (found in pre-code review 2026-08-09). Write through
+        `self.file.header.file_name`, which is live."""
+        epoch = os.environ.get("SOURCE_DATE_EPOCH")
+        try:
+            stamp = (datetime.fromtimestamp(int(epoch), UTC)
+                     .strftime("%Y-%m-%dT%H:%M:%S") if epoch else PINNED_TIME)
+        except ValueError as exc:
+            raise ValueError(
+                f"SOURCE_DATE_EPOCH must be an integer epoch, got {epoch!r}"
+            ) from exc
+        file_name = self.file.header.file_name
         file_name.name = f"{self.building.name}.ifc"
+        file_name.time_stamp = stamp
         file_name.author = ("ArchiCAD Builder",)
         file_name.organization = ("",)
 
@@ -305,6 +320,19 @@ class IFCExporter:
 
         for story in self.building.stories:
             self._export_story(story, ifc_building)
+
+        # ArchiCAD silently DROPS entities with colliding GlobalIds — a bad
+        # derived-id seed would lose geometry with no error anywhere. Fail
+        # loudly instead (specs/ifc-identity.md).
+        ids: dict[str, list[str]] = {}
+        for entity in self.file.by_type("IfcRoot"):
+            ids.setdefault(entity.GlobalId, []).append(
+                f"{entity.is_a()} {entity.Name!r}")
+        collisions = {gid: who for gid, who in ids.items() if len(who) > 1}
+        if collisions:
+            detail = "; ".join(
+                f"{gid}: {' + '.join(who)}" for gid, who in collisions.items())
+            raise ValueError(f"duplicate GlobalIds in export — {detail}")
 
         self.file.write(str(output_path))
         return output_path
@@ -368,12 +396,13 @@ class IFCExporter:
     ) -> ifcopenshell.entity_instance:
         """Create IfcSite and attach to project."""
         site = self.file.createIfcSite(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("site", self.building.global_id),
             Name="Default Site",
             CompositionType="ELEMENT",
         )
         self.file.createIfcRelAggregates(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("rel-aggregates", project.GlobalId,
+                                    site.GlobalId),
             RelatingObject=project,
             RelatedObjects=[site],
         )
@@ -383,13 +412,16 @@ class IFCExporter:
         self, site: ifcopenshell.entity_instance
     ) -> ifcopenshell.entity_instance:
         """Create IfcBuilding and attach to site."""
+        # the model's global_id names the IfcProject; the IfcBuilding node
+        # gets a derived id of its own
         ifc_building = self.file.createIfcBuilding(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("building", self.building.global_id),
             Name=self.building.name,
             CompositionType="ELEMENT",
         )
         self.file.createIfcRelAggregates(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("rel-aggregates", site.GlobalId,
+                                    ifc_building.GlobalId),
             RelatingObject=site,
             RelatedObjects=[ifc_building],
         )
@@ -408,7 +440,8 @@ class IFCExporter:
             Elevation=story.elevation,
         )
         self.file.createIfcRelAggregates(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("rel-aggregates", ifc_building.GlobalId,
+                                    story.global_id),
             RelatingObject=ifc_building,
             RelatedObjects=[ifc_storey],
         )
@@ -455,14 +488,19 @@ class IFCExporter:
                 ifc_door = self._create_door(door, wall, story)
                 ifc_wall_host = wall_map.get(door.wall_id)
                 if ifc_wall_host:
-                    opening = self._create_opening(door, wall, story, is_door=True)
+                    opening = self._create_opening(
+                        door, wall, story, is_door=True,
+                        guid=derived_ifc_id("opening", wall.global_id,
+                                            door.global_id))
                     self.file.createIfcRelVoidsElement(
-                        GlobalId=_new_guid(),
+                        GlobalId=derived_ifc_id("rel-voids", wall.global_id,
+                                                opening.GlobalId),
                         RelatingBuildingElement=ifc_wall_host,
                         RelatedOpeningElement=opening,
                     )
                     self.file.createIfcRelFillsElement(
-                        GlobalId=_new_guid(),
+                        GlobalId=derived_ifc_id("rel-fills", opening.GlobalId,
+                                                door.global_id),
                         RelatingOpeningElement=opening,
                         RelatedBuildingElement=ifc_door,
                     )
@@ -470,7 +508,12 @@ class IFCExporter:
                     # partner wall crossing the joint (one void per opening).
                     if door.pane_side is not None:
                         _, _, partners = _corner_glazing(door, wall, story)
+                        # index per PARTNER, not list position: a new joint
+                        # must not shift existing twins' ids (CodeRabbit)
+                        twin_count: dict[str, int] = {}
                         for partner in partners:
+                            i = twin_count.get(partner.global_id, 0)
+                            twin_count[partner.global_id] = i + 1
                             ifc_partner = wall_map.get(partner.global_id)
                             if ifc_partner is None:
                                 raise ValueError(
@@ -481,9 +524,14 @@ class IFCExporter:
                             twin = self._create_opening(
                                 door, wall, story, is_door=True,
                                 name="Corner Glazing Opening",
+                                guid=derived_ifc_id(
+                                    "opening", partner.global_id,
+                                    door.global_id, index=i),
                             )
                             self.file.createIfcRelVoidsElement(
-                                GlobalId=_new_guid(),
+                                GlobalId=derived_ifc_id(
+                                    "rel-voids", partner.global_id,
+                                    twin.GlobalId),
                                 RelatingBuildingElement=ifc_partner,
                                 RelatedOpeningElement=twin,
                             )
@@ -498,15 +546,19 @@ class IFCExporter:
                 ifc_wall_host = wall_map.get(window.wall_id)
                 if ifc_wall_host:
                     opening = self._create_opening_for_window(
-                        window, wall, story
+                        window, wall, story,
+                        guid=derived_ifc_id("opening", wall.global_id,
+                                            window.global_id),
                     )
                     self.file.createIfcRelVoidsElement(
-                        GlobalId=_new_guid(),
+                        GlobalId=derived_ifc_id("rel-voids", wall.global_id,
+                                                opening.GlobalId),
                         RelatingBuildingElement=ifc_wall_host,
                         RelatedOpeningElement=opening,
                     )
                     self.file.createIfcRelFillsElement(
-                        GlobalId=_new_guid(),
+                        GlobalId=derived_ifc_id("rel-fills", opening.GlobalId,
+                                                window.global_id),
                         RelatingOpeningElement=opening,
                         RelatedBuildingElement=ifc_window,
                     )
@@ -514,7 +566,12 @@ class IFCExporter:
                     # joint — cut it too, or the glass hits a hidden post.
                     # (IFC allows one void per opening, hence a twin.)
                     _, _, partners = _corner_glazing(window, wall, story)
+                    # index per PARTNER, not list position (CodeRabbit) —
+                    # see the door twin loop above
+                    twin_count = {}
                     for partner in partners:
+                        i = twin_count.get(partner.global_id, 0)
+                        twin_count[partner.global_id] = i + 1
                         ifc_partner = wall_map.get(partner.global_id)
                         if ifc_partner is None:
                             raise ValueError(
@@ -522,10 +579,14 @@ class IFCExporter:
                                 f"of window '{window.name}' was not exported"
                             )
                         twin = self._create_opening_for_window(
-                            window, wall, story, name="Corner Glazing Opening"
+                            window, wall, story, name="Corner Glazing Opening",
+                            guid=derived_ifc_id("opening", partner.global_id,
+                                                window.global_id, index=i),
                         )
                         self.file.createIfcRelVoidsElement(
-                            GlobalId=_new_guid(),
+                            GlobalId=derived_ifc_id(
+                                "rel-voids", partner.global_id,
+                                twin.GlobalId),
                             RelatingBuildingElement=ifc_partner,
                             RelatedOpeningElement=twin,
                         )
@@ -534,7 +595,7 @@ class IFCExporter:
         # Contain all products in the storey
         if products:
             self.file.createIfcRelContainedInSpatialStructure(
-                GlobalId=_new_guid(),
+                GlobalId=derived_ifc_id("rel-contained", story.global_id),
                 RelatingStructure=ifc_storey,
                 RelatedElements=products,
             )
@@ -549,7 +610,8 @@ class IFCExporter:
                 ifc_space = self._create_space(space, story.elevation)
                 ifc_spaces.append(ifc_space)
             self.file.createIfcRelAggregates(
-                GlobalId=_new_guid(),
+                GlobalId=derived_ifc_id("rel-aggregates-spaces",
+                                        story.global_id),
                 RelatingObject=ifc_storey,
                 RelatedObjects=ifc_spaces,
             )
@@ -631,12 +693,14 @@ class IFCExporter:
             ),
         ]
         pset = self.file.createIfcPropertySet(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("pset", wall.global_id,
+                                    "Pset_WallCommon"),
             Name="Pset_WallCommon",
             HasProperties=props,
         )
         self.file.createIfcRelDefinesByProperties(
-            GlobalId=_new_guid(),
+            GlobalId=derived_ifc_id("rel-defines", wall.global_id,
+                                    "Pset_WallCommon"),
             RelatedObjects=[ifc_wall],
             RelatingPropertyDefinition=pset,
         )
@@ -952,12 +1016,14 @@ class IFCExporter:
                 ),
             ]
             pset = self.file.createIfcPropertySet(
-                GlobalId=_new_guid(),
+                GlobalId=derived_ifc_id("pset", space.global_id,
+                                        "Pset_SpaceCommon"),
                 Name="Pset_SpaceCommon",
                 HasProperties=props,
             )
             self.file.createIfcRelDefinesByProperties(
-                GlobalId=_new_guid(),
+                GlobalId=derived_ifc_id("rel-defines", space.global_id,
+                                        "Pset_SpaceCommon"),
                 RelatedObjects=[ifc_space],
                 RelatingPropertyDefinition=pset,
             )
@@ -1204,7 +1270,8 @@ class IFCExporter:
                     Items=[solid],
                 )
                 handles.append(self.file.createIfcDiscreteAccessory(
-                    GlobalId=_new_guid(),
+                    GlobalId=derived_ifc_id("handle", door.global_id,
+                                            index=len(handles)),
                     Name=f"{door.name or 'Door'} Handle {len(handles)}",
                     ObjectPlacement=placement,
                     Representation=self.file.createIfcProductDefinitionShape(
@@ -1220,8 +1287,14 @@ class IFCExporter:
         story: Story,
         is_door: bool = True,
         name: str | None = None,
+        *,
+        guid: str,
     ) -> ifcopenshell.entity_instance:
         """Create an IfcOpeningElement for a door in a wall.
+
+        The GlobalId comes from the caller — identity depends on which wall
+        is being voided (main vs corner-glazing twin), which only the caller
+        knows (specs/ifc-identity.md).
 
         Glass doors (pane_side set) flush with a joined wall end get the
         corner-glazing extension, like windows."""
@@ -1279,7 +1352,7 @@ class IFCExporter:
         )
 
         opening = self.file.createIfcOpeningElement(
-            GlobalId=_new_guid(),
+            GlobalId=guid,
             Name=name or ("Door Opening" if is_door else "Window Opening"),
             ObjectPlacement=placement,
             Representation=product_shape,
@@ -1292,6 +1365,8 @@ class IFCExporter:
         wall: Wall,
         story: Story,
         name: str = "Window Opening",
+        *,
+        guid: str,
     ) -> ifcopenshell.entity_instance:
         """Create an IfcOpeningElement for a window in a wall.
 
@@ -1349,7 +1424,7 @@ class IFCExporter:
         )
 
         opening = self.file.createIfcOpeningElement(
-            GlobalId=_new_guid(),
+            GlobalId=guid,
             Name=name,
             ObjectPlacement=placement,
             Representation=product_shape,

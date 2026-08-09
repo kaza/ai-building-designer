@@ -533,19 +533,28 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
                 results.append(StepRun(step.name, False, "unchanged"))
                 continue
 
-            # move existing outputs aside: a step that exits 0 without
-            # writing must not inherit the previous run's artifact
+            # COPY existing outputs aside (not rename): the previous output
+            # must stay visible to the step — build.py reconciles GlobalIds
+            # against its own previous building.json, and hiding the file
+            # made every pipeline `build` re-identify the model
+            # (specs/ifc-identity.md). The rename's old guarantee — a step
+            # that exits 0 without writing must not inherit the previous
+            # artifact — is kept via the mtime check after the run.
             backups = []
             for rel in step.all_outputs:
                 p = project_dir / rel
                 bak = p.with_suffix(p.suffix + ".prev")
-                # a SIGKILLed run can leave an orphan .prev with no output;
-                # recover it rather than stranding the artifact forever
-                if bak.is_file() and not p.is_file():
+                # every CONTROLLED exit removes .prev (success unlinks it,
+                # failure moves it back), so its existence here means the
+                # previous run was killed mid-step and p may be a partial
+                # write. Restore unconditionally — requiring `not p.is_file()`
+                # would keep the corrupt p AND copy it over the good backup
+                # (Gemini review 2026-08-09).
+                if bak.is_file():
                     bak.replace(p)
                 if p.is_file():
-                    p.replace(bak)
-                    backups.append((p, bak))
+                    shutil.copy2(p, bak)
+                    backups.append((p, bak, p.stat().st_mtime_ns))
             # Ctrl-C during the 8-minute FEM, or a missing executable,
             # must not leave the previous artifacts stranded as .prev
             # (Gemini review 2026-08-09) — hence BaseException.
@@ -565,13 +574,35 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
                     raise PipelineError(
                         f"step {step.name!r} did not produce "
                         + ", ".join(missing))
+                # a REQUIRED output whose mtime never moved was not written
+                # by this run — the step "succeeded" while silently keeping
+                # the stale artifact. Optional outputs are exempt (a web-
+                # profile blend run legitimately leaves old renders alone).
+                required = {project_dir / rel for rel in step.outputs}
+                unwritten = [p.name for p, _bak, mtime in backups
+                             if p in required
+                             and p.stat().st_mtime_ns == mtime]
+                if unwritten:
+                    raise PipelineError(
+                        f"step {step.name!r} exited 0 but did not rewrite "
+                        + ", ".join(unwritten)
+                        + " — a step must write its declared outputs on "
+                          "every run")
+                # an OPTIONAL output the step did not rewrite was produced
+                # by a previous action, not this one — keeping it would
+                # record its old hash under the new digest and publish a
+                # stale artifact (Codex review 2026-08-09). Delete it, as
+                # the old rename-quarantine implicitly did.
+                for p, _bak, mtime in backups:
+                    if p not in required and p.stat().st_mtime_ns == mtime:
+                        p.unlink()
                 restore = False
             finally:
                 # a failure while restoring must not REPLACE the real error
                 # (it used to, and it stranded the lock too) — collect and
                 # attach instead
                 lost = []
-                for p, bak in backups:
+                for p, bak, _mtime in backups:
                     try:
                         bak.replace(p) if restore else bak.unlink(
                             missing_ok=True)
@@ -597,5 +628,12 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
         # ships no X-ray, and that must not look like a broken `fem` run
         state["profile"] = profile
         state["complete"] = (start == 0)   # a partial run is not a release
+        # prune records of steps no longer in the pipeline — a removed step
+        # must not haunt the state file forever (pre-code review 2026-08-09).
+        # ALL declared steps, not the profile-filtered list: a `web` run must
+        # not wipe the fem step's cache record (CodeRabbit 2026-08-09)
+        current = {s.name for s in all_steps}
+        state["steps"] = {name: rec for name, rec in
+                          state.get("steps", {}).items() if name in current}
         _write_state(project_dir, state)
     return results

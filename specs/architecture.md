@@ -43,7 +43,7 @@ the only record — write the spec *in the same commit* as your next change to t
 | `models/elements.py` | Walls, slabs, doors, windows, roofs | `unspecced` → `building-model.md` |
 | `models/geometry.py` | Geometric primitives (points, rects, polygons) shared by all elements | `unspecced` → `geometry-primitives.md` |
 | `models/spaces.py` | Rooms, apartments, spatial relationships | `unspecced` → `space-model.md` |
-| `models/ifc_id.py` | Stable IFC GlobalId generation — IDs must survive regeneration | `unspecced` → `ifc-identity.md` |
+| `models/ifc_id.py`, `models/reconcile.py` | Stable IFC GlobalId generation + rebuild reconciliation — IDs must survive regeneration | [ifc-identity.md](ifc-identity.md) |
 | `validators/structural.py`, `building.py`, `spaces.py`, `connectivity.py`, `phases.py` | 54 severity-tiered checks (E/W/O) over a loaded `Building` | `unspecced` → `validation-model.md` (severity contract in [ADR-002](decisions/002-validators-as-severity-tiered-lint.md)) |
 | `validators/codes.py` | Austrian OIB building-code compliance | `unspecced` → `austrian-building-code.md` |
 | `validators/reachability.py` | BFS over the connectivity graph — every room reachable from the entrance | `unspecced` → `validation-model.md` |

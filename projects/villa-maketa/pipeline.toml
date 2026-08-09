@@ -55,6 +55,9 @@ name = "ifc"
 run = ["{python}", "-m", "archicad_builder", "export", "{project}"]
 inputs = ["building.json"]
 outputs = ["output/villa-maketa.ifc"]
+# the export header honors SOURCE_DATE_EPOCH (specs/ifc-identity.md), so the
+# freshness digest must cover it
+env = ["SOURCE_DATE_EPOCH"]
 
 [[step]]
 name = "obj"             # tessellated mesh for Blender

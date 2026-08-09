@@ -338,6 +338,13 @@ garage_story.spaces.append(space(
 ))
 
 out = Path(__file__).parent / "building.json"
+# Identity: construction minted fresh GUIDs for everything above. Reconcile
+# against the committed file so an unchanged design is a byte-identical save
+# and only genuinely NEW elements keep their new ids (specs/ifc-identity.md).
+if out.is_file():
+    from archicad_builder.models.reconcile import reconcile_ids
+    report = reconcile_ids(b, Building.load(out))
+    print(report.summary())
 b.save(out)
 print(f"Saved {out}")
 print(f"Walls: {len(story.walls)}, doors: {len(story.doors)}, windows: {len(story.windows)}")

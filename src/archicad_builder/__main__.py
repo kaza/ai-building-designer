@@ -866,6 +866,94 @@ def pipeline_cmd(
                    f"{sum(not r.ran for r in results)} skipped")
 
 
+@app.command("ids")
+def ids_cmd(
+    project: str = typer.Argument(
+        ..., help="Project directory name (or a path to one)"),
+    strict: bool = typer.Option(False, "--strict",
+                                help="Exit non-zero on any finding."),
+    repair: bool = typer.Option(False, "--repair",
+                                help="Mint and persist missing ids."),
+):
+    """Audit element identity (specs/ifc-identity.md): every element must
+    carry a valid, unique GlobalId. Missing ids are minted only by --repair —
+    a read must never silently rewrite the source of truth."""
+    import json as _json
+
+    from archicad_builder.models.ifc_id import is_valid_ifc_id
+    from archicad_builder.models.reconcile import KINDS
+
+    project_dir = Path(project) if Path(project).is_dir() \
+        else PROJECTS_DIR / project
+    path = project_dir / "building.json"
+    if not path.is_file():
+        typer.echo(f"no building.json in {project_dir}", err=True)
+        raise typer.Exit(1)
+    def audit() -> tuple[list[str], int]:
+        """(findings, number of nodes audited) for the file as it is NOW."""
+        raw = _json.loads(path.read_text())
+        findings: list[str] = []
+        seen: dict[str, str] = {}
+        audited = 0
+
+        def check(owner: str, node: dict) -> None:
+            nonlocal audited
+            audited += 1
+            gid = node.get("global_id")
+            if gid is None:
+                findings.append(f"missing id: {owner}")
+                return
+            if not is_valid_ifc_id(gid):
+                findings.append(f"invalid id: {owner} has {gid!r}")
+                return
+            if gid in seen:
+                findings.append(f"duplicate id: {owner} and {seen[gid]} "
+                                f"share {gid}")
+                return
+            seen[gid] = owner
+
+        check("building", raw)
+        for story in raw.get("stories", []):
+            sname = story.get("name", "?")
+            check(f"story {sname!r}", story)
+            for kind in (*KINDS, "spaces", "apartments"):
+                for el in story.get(kind, []):
+                    check(f"{sname}/{kind}/{el.get('name', '?')}", el)
+            for apt in story.get("apartments", []):
+                for sp in apt.get("spaces", []):
+                    check(f"{sname}/apartments/{apt.get('name', '?')}"
+                          f"/spaces/{sp.get('name', '?')}", sp)
+        return findings, audited
+
+    findings, audited = audit()
+
+    if repair:
+        missing = [f for f in findings if f.startswith("missing id")]
+        others = [f for f in findings if not f.startswith("missing id")]
+        if others:
+            # duplicates/invalids need a human decision — minting over them
+            # would bury the problem
+            _output({"ok": False, "findings": findings,
+                     "error": "--repair only fixes MISSING ids; resolve "
+                              "duplicates/invalid ids first"})
+            raise typer.Exit(1)
+        if missing:
+            Building.load(path).save(path)   # pydantic mints on load
+        # re-audit what is actually ON DISK now — reporting ok from the
+        # pre-repair read would trust a state that no longer exists
+        # (Codex review 2026-08-09)
+        post, _ = audit()
+        _output({"ok": not post, "repaired": missing, "findings": post})
+        if post:
+            raise typer.Exit(1)
+        return
+
+    _output({"ok": not findings, "audited": audited,
+             "findings": findings})
+    if findings and strict:
+        raise typer.Exit(1)
+
+
 @app.command("publish")
 def publish_cmd(project: str = typer.Argument(..., help="Project directory name")):
     """Publish built artifacts to the cloud (specs/web-deployment.md)."""

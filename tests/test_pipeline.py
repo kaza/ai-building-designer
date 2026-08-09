@@ -463,3 +463,95 @@ class TestProfiles:
         ran = {r.name: r for r in run_pipeline(project, profile="all")}
         assert ran["a"].ran
         assert (project / "output" / "a.txt").read_text() == "rendered"
+
+
+class TestStatePruning:
+    def test_removed_step_record_is_pruned(self, project):
+        run_pipeline(project)
+        assert "b" in _state(project)["steps"]
+        # drop step b from the pipeline entirely
+        toml = (project / "pipeline.toml").read_text()
+        (project / "pipeline.toml").write_text(toml[:toml.index('[[step]]\nname = "b"')])
+        run_pipeline(project)
+        assert "b" not in _state(project)["steps"], \
+            "zombie record for a removed step"
+        assert "a" in _state(project)["steps"]
+
+
+class TestQuarantineVisibility:
+    """The step must SEE its previous outputs (build.py reconciles against
+    its own building.json) while a no-write success still fails loudly."""
+
+    def test_step_sees_its_previous_output(self, project):
+        (project / "make_a.py").write_text(
+            "from pathlib import Path\n"
+            "prev = Path('output/a.txt')\n"
+            "seen = prev.read_text() if prev.is_file() else 'NONE'\n"
+            "Path('output/a.txt').write_text('saw:' + seen)\n")
+        run_pipeline(project)
+        assert (project / "output" / "a.txt").read_text() == "saw:NONE"
+        (project / "seed.txt").write_text("changed")   # invalidate step a
+        run_pipeline(project)
+        assert (project / "output" / "a.txt").read_text() == "saw:saw:NONE"
+
+    def test_success_without_rewriting_is_an_error(self, project):
+        run_pipeline(project)
+        before = (project / "output" / "a.txt").read_text()
+        # step now exits 0 without touching its declared output
+        (project / "make_a.py").write_text("print('lazy')\n")
+        with pytest.raises(PipelineError, match="did not rewrite"):
+            run_pipeline(project, force=True)
+        # and the previous artifact survives, not stranded as .prev
+        assert (project / "output" / "a.txt").read_text() == before
+        assert not (project / "output" / "a.txt.prev").exists()
+
+    def test_orphan_prev_from_killed_run_is_restored(self, project):
+        """SIGKILL mid-step leaves BOTH a partial output and a good .prev.
+        The good backup must win — the old `not p.is_file()` guard kept the
+        corrupt file and then copied it over the backup (Gemini 2026-08-09)."""
+        (project / "make_a.py").write_text(
+            "from pathlib import Path\n"
+            "prev = Path('output/a.txt')\n"
+            "seen = prev.read_text() if prev.is_file() else 'NONE'\n"
+            "Path('output/a.txt').write_text('saw:' + seen)\n")
+        run_pipeline(project)
+        # simulate the kill: good backup + corrupt partial output
+        (project / "output" / "a.txt.prev").write_text("GOOD")
+        (project / "output" / "a.txt").write_text("CORRUPT-PARTIAL")
+        run_pipeline(project)          # output modified -> step reruns
+        assert (project / "output" / "a.txt").read_text() == "saw:GOOD"
+        assert not (project / "output" / "a.txt.prev").exists()
+
+    def test_profile_run_keeps_out_of_profile_records(self, project):
+        """`--profile web` must not prune the record of a fem-only step —
+        that would force a full FEM re-run for zero change (CodeRabbit)."""
+        toml = (project / "pipeline.toml").read_text()
+        (project / "pipeline.toml").write_text(
+            toml.replace('name = "b"', 'name = "b"\nprofile = "fem"'))
+        run_pipeline(project, profile="fem")
+        assert "b" in _state(project)["steps"]
+        run_pipeline(project, profile="web")
+        assert "b" in _state(project)["steps"], \
+            "web run wiped the fem step's cache record"
+
+    def test_stale_optional_output_is_deleted_not_reblessed(self, project):
+        """An optional output the step did not rewrite came from an older
+        action — keeping it would publish a stale artifact (Codex)."""
+        (project / "make_a.py").write_text(
+            "import os\nfrom pathlib import Path\n"
+            "Path('output/a.txt').write_text(Path('seed.txt').read_text())\n"
+            "if os.environ.get('EXTRA'):\n"
+            "    Path('output/opt.txt').write_text('render')\n")
+        toml = (project / "pipeline.toml").read_text()
+        (project / "pipeline.toml").write_text(toml.replace(
+            'inputs = ["seed.txt"]',
+            'inputs = ["seed.txt"]\n'
+            'optional_outputs = ["output/opt.txt"]\n'
+            'env_by_profile = { all = { EXTRA = "1" } }'))
+        run_pipeline(project, profile="all")
+        assert (project / "output" / "opt.txt").exists()
+        (project / "seed.txt").write_text("model changed")
+        run_pipeline(project, profile="web")   # cheap rerun, no render
+        assert not (project / "output" / "opt.txt").exists(), \
+            "stale optional output survived and would be published"
+        assert freshness_problems(project) == []
