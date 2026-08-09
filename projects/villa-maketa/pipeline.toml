@@ -5,10 +5,12 @@
 # inputs/outputs is what lets the runner prove a step can be skipped —
 # an undeclared input is a stale artifact waiting to happen.
 #
-# perspective.png / top_down.png are optional_outputs: they only exist when
-# VILLA_FULL_RENDER=1, but publishing globbed them anyway, so two-day-old
-# Cycles renders travelled beside a fresh model. Optional outputs are not
-# required to exist and ARE hashed when they do.
+# The Cycles renders used to be env-gated (VILLA_FULL_RENDER), so a plain
+# run produced a release without them — and publishing globbed whatever
+# stale copies were lying around, which is how two-day-old renders shipped
+# beside a fresh model. The step now SETS that variable itself: the renders
+# are ordinary declared outputs, produced once and then cached like
+# everything else.
 
 [project]
 model = "villa"          # artifact basename: villa.blend, villa.glb
@@ -66,9 +68,9 @@ outputs = ["output/villa-maketa.obj"]
 name = "blend"           # materials + furniture; PNGs only under VILLA_FULL_RENDER
 run = ["{blender}", "-b", "-P", "render_blender.py"]
 inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json"]
-outputs = ["output/villa.blend"]
-optional_outputs = ["output/perspective.png", "output/top_down.png"]
-env = ["VILLA_FULL_RENDER"]
+outputs = ["output/villa.blend", "output/perspective.png",
+           "output/top_down.png"]
+env_set = { VILLA_FULL_RENDER = "1" }   # always render; the cache pays once
 
 [[step]]
 name = "glb"             # reads the .blend the previous step wrote

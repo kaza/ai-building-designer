@@ -355,3 +355,47 @@ class TestOrdering:
         run_pipeline(project)
         assert (project / "output" / "a.txt").read_text() == good
         assert not list((project / "output").glob("*.prev"))
+
+
+class TestEnvAndRelease:
+    """Publishing must not require reproducing the shell the build ran in
+    — only that nothing has changed since (found while publishing the
+    villa's Cycles renders, 2026-08-09)."""
+
+    def _env_step(self, project):
+        (project / "pipeline.toml").write_text(
+            (project / "pipeline.toml").read_text().replace(
+                'inputs = ["seed.txt"]', 'inputs = ["seed.txt"]\nenv = ["TOY"]'))
+
+    def test_release_gate_uses_the_recorded_environment(self, project,
+                                                        monkeypatch):
+        self._env_step(project)
+        monkeypatch.setenv("TOY", "1")
+        run_pipeline(project)
+        monkeypatch.delenv("TOY")            # publish from a plain shell
+        assert freshness_problems(project) == []
+
+    def test_the_pipeline_still_reruns_when_the_env_changes(self, project,
+                                                            monkeypatch):
+        self._env_step(project)
+        monkeypatch.setenv("TOY", "1")
+        run_pipeline(project)
+        monkeypatch.setenv("TOY", "2")
+        assert {r.name: r for r in run_pipeline(project)}["a"].ran
+
+    def test_env_set_is_applied_and_hashed(self, project):
+        (project / "make_a.py").write_text(
+            "import os\nfrom pathlib import Path\n"
+            "Path('output/a.txt').write_text(os.environ.get('MODE', 'none'))\n")
+        (project / "pipeline.toml").write_text(
+            (project / "pipeline.toml").read_text().replace(
+                'inputs = ["seed.txt"]',
+                'inputs = ["seed.txt"]\nenv_set = { MODE = "full" }'))
+        run_pipeline(project)
+        assert (project / "output" / "a.txt").read_text() == "full"
+        # changing the declared value must invalidate the step
+        (project / "pipeline.toml").write_text(
+            (project / "pipeline.toml").read_text().replace(
+                'MODE = "full"', 'MODE = "cheap"'))
+        assert {r.name: r for r in run_pipeline(project)}["a"].ran
+        assert (project / "output" / "a.txt").read_text() == "cheap"

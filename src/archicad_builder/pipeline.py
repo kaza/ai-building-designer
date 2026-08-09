@@ -55,6 +55,10 @@ class Step:
     # (CodeRabbit review 2026-08-09).
     optional_outputs: list[str] = dc_field(default_factory=list)
     env: list[str] = dc_field(default_factory=list)
+    # environment the step is RUN with. Declaring it here beats relying on
+    # the operator's shell: the villa's Cycles renders were env-gated, so a
+    # plain run silently produced a release without them.
+    env_set: dict[str, str] = dc_field(default_factory=dict)
     cache: bool = True
     # does this step import archicad_builder? Hashing the framework for
     # steps that don't (Blender scripts run in Blender's own interpreter,
@@ -120,6 +124,7 @@ def load_pipeline(project_dir: Path) -> tuple[dict, list[Step]]:
             outputs=list(entry.get("outputs", [])),
             optional_outputs=list(entry.get("optional_outputs", [])),
             env=list(entry.get("env", [])),
+            env_set={k: str(v) for k, v in entry.get("env_set", {}).items()},
             cache=bool(entry.get("cache", True)),
             framework=entry.get("framework")))
     if not steps:
@@ -235,18 +240,25 @@ def _tool_versions(argv: list[str], cache: dict, *,
     return "|".join(parts)
 
 
+def _env_snapshot(step: Step) -> dict[str, str]:
+    # unset must differ from empty: exporting VILLA_FULL_RENDER= is not the
+    # same as not exporting it
+    return {name: ("\x00UNSET" if os.environ.get(name) is None
+                   else os.environ[name]) for name in step.env}
+
+
 def _action_digest(step: Step, project_dir: Path, argv: list[str],
-                   tools: str) -> str:
+                   tools: str, env_values: dict[str, str] | None = None) -> str:
     h = hashlib.sha256()
     h.update(f"schema={SCHEMA}\n".encode())
     h.update(("argv=" + "\x00".join(argv) + "\n").encode())
     h.update(f"cwd={project_dir.name}\n".encode())
     h.update(f"tools={tools}\n".encode())
+    values = _env_snapshot(step) if env_values is None else env_values
     for name in step.env:
-        # unset must differ from empty: exporting VILLA_FULL_RENDER= is not
-        # the same as not exporting it
-        raw = os.environ.get(name)
-        h.update(f"env:{name}={'\x00UNSET' if raw is None else raw}\n".encode())
+        h.update(f"env:{name}={values.get(name, '\x00UNSET')}\n".encode())
+    for name in sorted(step.env_set):
+        h.update(f"envset:{name}={step.env_set[name]}\n".encode())
     # the step's own script is an implicit input — editing make_walkthrough
     # must rebuild the walkthrough even though building.json is untouched
     for token in argv[1:]:
@@ -354,9 +366,11 @@ def freshness_problems(project_dir: Path) -> list[str]:
         try:
             argv, uses_blender = _resolve_argv(
                 step, project_dir, cfg.get("model", ""), project_dir.name)
+            recorded_env = state.get("steps", {}).get(step.name, {}).get("env")
             digest = _action_digest(
                 step, project_dir, argv,
-                _tool_versions(argv, tools_cache, uses_blender=uses_blender))
+                _tool_versions(argv, tools_cache, uses_blender=uses_blender),
+                env_values=recorded_env)
         except PipelineError as exc:
             problems.append(f"{step.name}: {exc}")
             continue
@@ -482,7 +496,10 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
             # (Gemini review 2026-08-09) — hence BaseException.
             restore = True
             try:
-                proc = subprocess.run(argv, cwd=project_dir)
+                proc = subprocess.run(
+                    argv, cwd=project_dir,
+                    env=({**os.environ, **step.env_set} if step.env_set
+                         else None))
                 if proc.returncode != 0:
                     raise PipelineError(
                         f"step {step.name!r} failed (exit {proc.returncode}): "
@@ -515,6 +532,7 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
             state.setdefault("steps", {})[step.name] = {
                 "action": after,
                 "outputs": _output_hashes(step, project_dir),
+                "env": _env_snapshot(step),
             }
             _write_state(project_dir, state)
             results.append(StepRun(step.name, True, why or "forced"))

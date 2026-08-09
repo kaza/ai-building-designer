@@ -162,6 +162,8 @@ output.
 | 2026-08-09 | `publish` re-derives every digest instead of trusting the `complete` flag | a partial run, a manual script invocation, or an interrupted build can leave a plausible-looking mixture that a clean git tree does not catch |
 | 2026-08-09 | `validate` gained `--strict`; the pipeline gate uses it | the command has always exited 0, so the "gate" step in the documented pipeline could never fail a build (Codex found this by reading the code) |
 | 2026-08-09 | No `--only` | it bypasses the release invariant for a debugging convenience |
+| 2026-08-09 | A step declares the environment it RUNS with (`env_set`), and the villa's Cycles renders are ordinary cached outputs instead of env-gated ones | the renders were produced only when the operator remembered `VILLA_FULL_RENDER=1`, so a plain run silently shipped a release without them, and publishing globbed whatever stale copies were lying around. The cache pays the ~4 min once |
+| 2026-08-09 | The release gate compares against the environment RECORDED for each step, not the current shell | publishing must not require reproducing the shell the build ran in; what matters is that nothing changed since, and the output hashes capture what was produced |
 
 ## Related
 [web-deployment.md](web-deployment.md) (Phase 1), the villa's worked
