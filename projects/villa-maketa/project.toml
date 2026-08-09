@@ -1,0 +1,145 @@
+# Villa Maketa — domain config (specs/project-config.md, ADR-006).
+# Values a second building would set differently; the machinery that
+# consumes them lives in src/archicad_builder/. pipeline.toml stays the
+# build graph; steps that read this file declare it in `inputs`.
+
+[project]
+title = "Villa Maketa"
+
+# Flat glTF stand-ins for the procedural Blender materials (midpoint of
+# each wood ramp / tile color; facade values photo-sampled, linear sRGB —
+# facade-finishes.md). A material missing here renders MAGENTA, loudly.
+[appearance.palette]
+Parquet       = [0.55, 0.40, 0.24, 1.0]
+DeckWood      = [0.32, 0.19, 0.10, 1.0]
+DoorWood      = [0.38, 0.24, 0.13, 1.0]
+FurnitureWood = [0.42, 0.28, 0.16, 1.0]
+StairWood     = [0.32, 0.19, 0.10, 1.0]
+Wardrobe      = [0.42, 0.31, 0.20, 1.0]
+Lawn          = [0.20, 0.42, 0.16, 1.0]
+FloorTiles    = [0.55, 0.72, 0.80, 1.0]
+FloorHall     = [0.78, 0.72, 0.60, 1.0]
+FloorKitchen  = [0.72, 0.66, 0.55, 1.0]
+StoneRubble   = [0.479, 0.423, 0.332, 1.0]
+Accent        = [0.905, 0.533, 0.072, 1.0]
+RoofBrown     = [0.156, 0.076, 0.033, 1.0]
+Soffit        = [0.92, 0.92, 0.90, 1.0]
+
+[render]
+samples = 128
+exposure = -0.6
+sun = { sky_elevation_deg = 45, sky_rotation_deg = 135, sky_intensity = 0.5, energy = 2.2, angle_deg = 8.6, rotation_deg = [50, -10, 105] }
+
+[render.camera.perspective]
+location = [14.0, 21.0, 8.5]
+target = [4.75, 8.5, 0.6]     # DoF focus + track-to
+lens = 38
+dof_fstop = 5.6
+resolution = [1600, 1200]
+exposure = -0.85
+
+[render.camera.top]
+location = [4.75, 8.75, 30]
+ortho_scale = 19.5
+resolution = [1100, 2000]
+exposure = -0.6
+
+# Terrain: the site drops at the garage front — high ground north of the
+# facade line, low ground south of it (render decor, not model geometry).
+[[render.ground]]
+location = [4.75, 67.5, -1.79]
+size = [200, 120, 3.0]
+
+[[render.ground]]
+location = [4.75, -52.5, -4.65]
+size = [200, 120, 3.0]
+
+[walkthrough]
+start = [8.2, 1.7, 4.0]
+
+# ── Pinned furniture (assets are gitignored; reproducibility comes from
+#    these pins). Poly Haven = CC0; Objaverse picks = CC-BY, authors MUST
+#    stay credited (licenses.json records provenance). ──────────────────
+
+[[asset]]
+source = "polyhaven"
+id = "mid_century_lounge_chair"
+
+[[asset]]
+source = "polyhaven"
+id = "modern_coffee_table_01"
+
+[[asset]]
+source = "polyhaven"
+id = "modern_wooden_cabinet"
+
+[[asset]]
+source = "polyhaven"
+id = "outdoor_table_chair_set_01"   # deck tables (feedback #026)
+
+[[asset]]
+source = "objaverse"
+id = "sectional_sofa"
+uid = "0eb6c94aa40c41b480cf35de229e8e88"
+path = "glbs/000-027/0eb6c94aa40c41b480cf35de229e8e88.glb"
+sha256 = "59a533d53544430fd81f3a4b055b430908faacc92dba2c6160270222ae1a9f0b"
+name = "Escuadra Victoria Izquierda II"
+author = "Pablo.Portela"
+
+[[asset]]
+source = "objaverse"
+id = "deck_sofa"
+uid = "fbadc209177641978444636641a6d515"
+path = "glbs/000-089/fbadc209177641978444636641a6d515.glb"
+sha256 = "bd83bd3efb4eade485114e22e34215403758dfb60ea9cdf3555bae1eab3a1cbf"
+name = "Feathers 5 Seat"
+author = "mohitoz"
+
+[[asset]]
+source = "objaverse"
+id = "dining_chair"
+uid = "a653e92fad4f4721ad92fbd8f386acfe"
+path = "glbs/000-153/a653e92fad4f4721ad92fbd8f386acfe.glb"
+sha256 = "167d3b7b56c893f528d9297a84a4067d506a36940a9aed2c5ef0b50bdc0ea574"
+name = "Silla"
+author = "gabymrtnz"
+
+[[asset]]
+source = "objaverse"
+id = "dining_table"
+uid = "f0e17c71b71b48d487b7b6a27ce78bb3"
+path = "glbs/000-017/f0e17c71b71b48d487b7b6a27ce78bb3.glb"
+sha256 = "3e7d4e51462e265d30654e9e89eb8b2605635ff806250cbb578e785b7fd95ddb"
+name = "653"
+author = "GulinAlex"
+
+[[asset]]
+source = "objaverse"
+id = "platform_bed"
+uid = "fc9cbf532b6045969b9f7eeac339afd2"
+path = "glbs/000-099/fc9cbf532b6045969b9f7eeac339afd2.glb"
+sha256 = "5d0682406b751601754be00da984acad525ca4234acdedf3bf6e61ce98438b40"
+name = "Stylized lowpoly bed"
+author = "tharadelamo"
+
+[[asset]]
+source = "objaverse"
+id = "office_desk"
+uid = "1837f10d9b064fd88a607a3d391a17af"
+path = "glbs/000-068/1837f10d9b064fd88a607a3d391a17af.glb"
+sha256 = "1e315596341cb0f33cd39c5ded2d9ca66940af01c52eac2c1ca603280e072aec"
+name = "Meja Komputer"
+author = "sutikno"
+
+# Kenney Furniture Kit (CC0, kenney.nl) — sanitary ware and kitchen
+# modules neither Poly Haven nor Objaverse carry (feedback #021/#022/#025)
+[[asset]]
+source = "kenney-kit"
+id = "kenney"
+url = "https://kenney.nl/media/pages/assets/furniture-kit/440e0608a4-1677580847/kenney_furniture-kit.zip"
+sha256 = "e67652d0932cee41683f74711c03d3e192a2af9979ef8e6b237711f5482d46b0"
+models = [
+    "toilet", "bathroomSinkSquare", "shower",
+    "kitchenSink", "kitchenStove", "kitchenFridgeLarge",
+    "loungeChairRelax",
+]
