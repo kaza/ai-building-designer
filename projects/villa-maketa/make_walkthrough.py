@@ -188,7 +188,10 @@ TEMPLATE = """<!DOCTYPE html>
   body.xray #hud {
     color: #10141b; text-shadow: none;
     background: rgba(246,247,249,0.82); border-radius: 8px;
-    padding: 6px 9px; backdrop-filter: blur(2px);
+    padding: 8px 11px; backdrop-filter: blur(2px);
+    /* left-aligned and wider: the readout is a small TABLE, and the
+       34ch right-aligned box wrapped it mid-phrase (owner 2026-08-09) */
+    text-align: left; max-width: 46ch;
   }
   body.xray #aim-chip {
     background: rgba(246,247,249,0.92); color: #10141b;
@@ -558,7 +561,10 @@ function setHud() {
   const mode = measureMode
     ? (pendingPoint ? 'MEASURE — click second point' : 'MEASURE — click first point')
     : '';
-  hud.textContent = [mode, aimText, infoText, positionLine()].filter(Boolean).join('\\n');
+  // second divider closes the element block before the where-am-I lines
+  const rule = (structuralMode === 'fem' && aimText) ? FEM_RULE : '';
+  hud.textContent = [mode, aimText, infoText, rule, positionLine()]
+    .filter(Boolean).join('\\n');
 }
 
 function centerHit() {
@@ -823,6 +829,31 @@ function cycleStructural() {
 
 const FEM_COMPONENT = ['vertical compression', 'horizontal tension',
   'vertical tension', 'bending', 'diagonal tension (shear)'];
+const FEM_RULE = '─'.repeat(32);
+
+// Two blocks with a divider (owner's pick 2026-08-09): what the crosshair
+// is on, then the element's numbers in aligned columns. Monospace does the
+// aligning, which is why the X-ray HUD is left-aligned.
+function femCell(label, value) {
+  return (label + ' ').padEnd(9) + String(value).padStart(7);
+}
+function femReadout(hit, g) {
+  const el = hit.el;
+  const pct = (v) => Math.round(v * 100) + '%';
+  const rows = [femCell('element', pct(el.u)) +
+                (el.peak ? '   ' + femCell('peak', pct(el.peak)) : '')];
+  // channels are [label, value] pairs; a field written before 2026-08-09
+  // carries preformatted strings, and indexing those gives single letters
+  const p = (el.p || []).map(
+    (c) => (typeof c === 'string' ? [c, ''] : c));
+  for (let i = 0; i < p.length; i += 2) {
+    rows.push(femCell(p[i][0], p[i][1]) +
+      (p[i + 1] ? '   ' + femCell(p[i + 1][0], p[i + 1][1]) : ''));
+  }
+  return el.name + '\\ntile ' + pct(femEnv.quads.u[hit.q]) +
+    (g === undefined ? '' : '  ·  ' + FEM_COMPONENT[g]) +
+    '\\n' + FEM_RULE + '\\n' + rows.join('\\n');
+}
 
 function femHit() {
   const ray = new THREE.Raycaster();
@@ -849,7 +880,9 @@ function femInfo() {
     (el.peak ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
     '\\n(sized on the design value — standard practice; the peak sits at a' +
     ' corner and flags local detailing, not the member size)' +
-    ((el.p || []).length ? '\\nall channels: ' + el.p.join(' · ') : '');
+    ((el.p || []).length
+      ? '\\nall channels: ' + el.p.map((c) => c[0] + ' ' + c[1]).join(' · ')
+      : '');
   setHud();
 }
 
@@ -1466,14 +1499,7 @@ function updateAim(now) {
       const hit = femHit();
       if (hit) {
         const g = (femEnv.quads.g || [])[hit.q];
-        // the tile % stays first (owner), then EVERY channel we compute —
-        // not just whichever one happens to govern this fragment
-        next = hit.el.name + ' — tile ' +
-          Math.round(femEnv.quads.u[hit.q] * 100) + '%' +
-          (g === undefined ? '' : ' · ' + FEM_COMPONENT[g]) +
-          ' · element ' + Math.round(hit.el.u * 100) + '%' +
-          (hit.el.peak ? ' (peak ' + Math.round(hit.el.peak * 100) + '%)' : '') +
-          ((hit.el.p || []).length ? '\\n' + hit.el.p.join(' · ') : '');
+        next = femReadout(hit, g);
       }
     } else {
       const hit = centerHit();

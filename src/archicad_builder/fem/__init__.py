@@ -566,7 +566,8 @@ def compute_fem(building: Building, mesh: float = 0.25,
                                  u=m_best / cap,
                                  # beams carry bending only here; shear,
                                  # torsion and axial are in not_modelled
-                                 parts=[f"bending {m_best / cap * 100:.0f}%"])
+                                 parts=[["bending",
+                                         f"{m_best / cap * 100:.0f}%"]])
         elif kind == "wall":
             w = wall_meta[gid]
             bz = min(centers(q)[2] for q in quads)
@@ -636,11 +637,13 @@ def compute_fem(building: Building, mesh: float = 0.25,
                 kind="wall", name=w["name"], story=w["story"],
                 sigma=avg, u=max(u_axial, u_tension), u_axial=u_axial,
                 u_tension=u_tension, tau_max=tau_max, profile=profile,
-                # every channel we compute, ready to display: the owner
-                # wants all three, not just whichever one governs
-                parts=[f"compression {u_axial * 100:.0f}%",
-                       f"tension {u_tension * 100:.0f}%",
-                       f"shear {tau_max / 1000:.2f} MPa"],
+                # every channel we compute, not just whichever one governs.
+                # (label, value) pairs, not sentences — the viewer lays
+                # them out in aligned columns and owns the layout; the
+                # engine owns the units.
+                parts=[["axial", f"{u_axial * 100:.0f}%"],
+                       ["tension", f"{u_tension * 100:.0f}%"],
+                       ["shear", f"{tau_max / 1000:.2f} MPa"]],
                 q=round(avg * w["t"], 1), a=list(w["a"]), b=list(w["b"]))
         else:
             _gid, pkind, pname, ps, _z, t, _ppoly, _q = panel_by_gid[gid]
@@ -685,9 +688,9 @@ def compute_fem(building: Building, mesh: float = 0.25,
                 kind=pkind, name=pname, story=ps.name,
                 mx_design=mxd, my_design=myd, m_principal_design=mpd,
                 cap=cap, M=gov, u=gov / cap,
-                parts=[f"Mx {mxd / cap * 100:.0f}%",
-                       f"My {myd / cap * 100:.0f}%",
-                       f"principal (incl. twist) {mpd / cap * 100:.0f}%"])
+                parts=[["Mx", f"{mxd / cap * 100:.0f}%"],
+                       ["My", f"{myd / cap * 100:.0f}%"],
+                       ["principal", f"{mpd / cap * 100:.0f}%"]])
 
     # A fragment legitimately reads higher than its element: the element
     # number is a window-averaged DESIGN value, the fragment is a raw

@@ -221,7 +221,8 @@ addEventListener('mousemove', ev => {
         ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
       ` (element design value ${(el.u * 100).toFixed(0)}%` +
       (el.peak ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
-      ((el.p || []).length ? '\n' + el.p.join(' · ') : '');
+      ((el.p || []).length
+        ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : '');
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';

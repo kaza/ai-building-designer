@@ -368,17 +368,16 @@ class TestAllChannelsVisible:
     def test_wall_publishes_all_three_channels(self, box_result):
         parts = box_result.find("South")["parts"]
         assert len(parts) == 3
-        joined = " ".join(parts)
-        assert "compression" in joined and "tension" in joined
-        assert "MPa" in joined      # shear is a stress, not a ratio
+        labels = [label for label, _ in parts]
+        assert labels == ["axial", "tension", "shear"]
+        assert "MPa" in dict(parts)["shear"]   # a stress, not a ratio
 
     def test_plate_publishes_all_three_channels(self, box_result):
         parts = box_result.find("Roof")["parts"]
-        assert len(parts) == 3
-        assert any("principal" in p for p in parts)
-        assert all("%" in p for p in parts)
+        assert [label for label, _ in parts] == ["Mx", "My", "principal"]
+        assert all(v.endswith("%") for _, v in parts)
 
     def test_parts_agree_with_the_numbers_they_summarise(self, box_result):
         roof = box_result.find("Roof")
         pct = round(roof["m_principal_design"] / roof["cap"] * 100)
-        assert f"{pct}%" in [p.split()[-1] for p in roof["parts"]][-1]
+        assert dict(roof["parts"])["principal"] == f"{pct}%"

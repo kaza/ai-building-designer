@@ -80,10 +80,15 @@ class TestXrayReadability:
         assert "classList.remove('xray')" in template
 
     def test_all_channels_in_both_readouts(self, template):
-        assert template.count("el.p || []") >= 1
-        assert "hit.el.p" in template
+        # the aim block (femReadout) and the I detail both read el.p
+        assert template.count("el.p || []") >= 2
+
+    def test_readout_is_two_blocks_with_a_divider(self, template):
+        assert "const FEM_RULE" in template
+        assert "function femReadout" in template
+        assert "text-align: left" in template   # monospace columns align
 
     def test_peak_travels_with_the_design_value(self, template):
         # sized on the design value, peak shown as a detailing flag
-        assert "hit.el.peak" in template
+        assert "femCell('peak'" in template
         assert "worst fragment" in template
