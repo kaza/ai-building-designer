@@ -101,3 +101,39 @@ class TestFurnitureSymbols:
                            "bounds": [i * 3, 0, i * 3 + size, size]})
         assert ax.patches, "nothing was drawn"
         plt.close(fig)
+
+
+class TestGlbLogic:
+    """Pure decisions of the GLB export (the bpy shim stays thin)."""
+
+    def test_palette_hit_and_magenta_fallback(self):
+        from archicad_builder.export.glb_logic import FALLBACK, flat_color
+        palette = {"Parquet": (0.55, 0.40, 0.24, 1.0)}
+        color, warn = flat_color("Parquet", palette)
+        assert color == (0.55, 0.40, 0.24, 1.0) and warn is None
+        color, warn = flat_color("Mystery", palette)
+        assert color == FALLBACK and "Mystery" in warn
+
+    def test_prune_decision_table(self):
+        from archicad_builder.export.glb_logic import should_prune
+        cases = [
+            (("CAMERA", False, "Cam", False), True),
+            (("LIGHT", False, "Sun", False), True),
+            (("EMPTY", False, "Loose", False), True),   # childless empty
+            (("EMPTY", True, "AssetRoot", False), False),  # instance root
+            (("MESH", False, "StairwellCutter1", False), True),
+            (("MESH", False, "Wall", True), True),      # hidden in render
+            (("MESH", False, "Wall", False), False),
+        ]
+        for args, expect in cases:
+            assert should_prune(*args) is expect, args
+
+    def test_read_palette_from_villa_config(self):
+        from pathlib import Path
+
+        from archicad_builder.export.glb_logic import read_palette
+        text = (Path(__file__).parent.parent / "projects" / "villa-maketa"
+                / "project.toml").read_text()
+        palette = read_palette(text)
+        assert palette["Accent"] == (0.905, 0.533, 0.072, 1.0)
+        assert len(palette) == 14

@@ -15,13 +15,13 @@ from pathlib import Path
 
 import pytest
 
-TEMPLATE_PY = (Path(__file__).resolve().parents[1]
-               / "projects" / "villa-maketa" / "make_walkthrough.py")
+TEMPLATE_HTML = (Path(__file__).resolve().parents[1] / "src"
+                 / "archicad_builder" / "walkthrough" / "template.html")
 
 
 @pytest.fixture(scope="module")
 def template() -> str:
-    return TEMPLATE_PY.read_text()
+    return TEMPLATE_HTML.read_text()
 
 
 class TestViewHash:
@@ -29,7 +29,7 @@ class TestViewHash:
         # the loader's top-level await must not race the writer
         assert "const INITIAL_VIEW = (() => {" in template
         assert template.index("const INITIAL_VIEW") < template.index(
-            "const resp = await fetch('villa.glb')")
+            "const resp = await fetch('__MODEL__.glb')")
 
     def test_writer_is_throttled_and_change_detected(self, template):
         assert "history.replaceState" in template
@@ -63,7 +63,7 @@ class TestDebugSeamUntouched:
 
     def test_screenshot_camera_contract_intact(self, template):
         # the P filename doubles as #debug= numbers — same cameraSpec source
-        assert re.search(r"a\.download = 'villa-shot_' \+ cameraSpec\(\)",
+        assert re.search(r"a\.download = '__MODEL__-shot_' \+ cameraSpec\(\)",
                          template)
 
 

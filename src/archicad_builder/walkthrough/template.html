@@ -1,144 +1,9 @@
-"""Build the walkthrough HTML that loads villa.glb as a separate file.
-
-    .venv/bin/python projects/villa-maketa/make_walkthrough.py
-
-Validates the GLB (magic, version, chunk lengths, no cameras/cutters left)
-and writes output/walkthrough.html, which fetches ./villa.glb at runtime.
-This is a WEB-SERVER deliverable (owner decision 2026-08-05 — the walkthrough
-becomes a hosted feature): browsers block fetch() from file://, so for local
-viewing serve the output directory — preferably with serve.py, which also
-receives F-key feedback submissions (POST /feedback):
-
-    .venv/bin/python projects/villa-maketa/serve.py     # port 8123
-    open http://localhost:8123/walkthrough.html
-
-The page detects file:// and says exactly that instead of failing silently.
-"""
-import json
-import struct
-import sys
-from pathlib import Path
-
-OUT_DIR = Path(__file__).parent / "output"
-GLB = OUT_DIR / "villa.glb"
-HTML = OUT_DIR / "walkthrough.html"
-BUILDING = Path(__file__).parent / "building.json"
-
-THREE_VERSION = "0.170.0"
-
-
-# Helpers export_glb.py must have pruned. Exact match on the Blender base
-# name (before any ".001" suffix) — a prefix test would flag e.g. "Sunshade".
-HELPER_NAMES = {"Sun", "CamPersp", "CamTop", "Target"}
-
-
-def validate_glb(data: bytes) -> dict:
-    if len(data) < 20:
-        sys.exit(f"ERROR: file too short to be a GLB ({len(data)} bytes)")
-    magic, version, length = struct.unpack_from("<4sII", data, 0)
-    if magic != b"glTF":
-        sys.exit(f"ERROR: not a GLB (magic={magic!r})")
-    if version != 2:
-        sys.exit(f"ERROR: unsupported glTF container version {version}")
-    if length != len(data):
-        sys.exit(f"ERROR: header length {length} != file length {len(data)}")
-    # Walk every chunk: 8-byte header + 4-byte-aligned payload, no trailing junk.
-    doc = None
-    offset = 12
-    while offset < length:
-        if offset + 8 > length:
-            sys.exit(f"ERROR: truncated chunk header at offset {offset}")
-        chunk_len, chunk_type = struct.unpack_from("<I4s", data, offset)
-        if chunk_len % 4 != 0:
-            sys.exit(f"ERROR: chunk {chunk_type!r} length {chunk_len} not 4-byte aligned")
-        if offset + 8 + chunk_len > length:
-            sys.exit(f"ERROR: chunk {chunk_type!r} overruns the file")
-        if offset == 12:
-            if chunk_type != b"JSON":
-                sys.exit(f"ERROR: first chunk is {chunk_type!r}, expected JSON")
-            doc = json.loads(data[offset + 8 : offset + 8 + chunk_len])
-        offset += 8 + chunk_len
-    if offset != length:
-        sys.exit(f"ERROR: {length - offset} trailing bytes after the last chunk")
-    if doc.get("asset", {}).get("version") != "2.0":
-        sys.exit(f"ERROR: unexpected glTF asset version {doc.get('asset')}")
-    if not doc.get("meshes"):
-        sys.exit("ERROR: GLB contains no meshes")
-    if not doc.get("materials"):
-        sys.exit("ERROR: GLB contains no materials")
-    if doc.get("cameras"):
-        sys.exit("ERROR: cameras leaked into the GLB — export_glb.py prune failed")
-    leftovers = [
-        name
-        for n in doc.get("nodes", [])
-        if (name := n.get("name", "")).startswith("StairwellCutter")
-        or name.split(".")[0] in HELPER_NAMES
-    ]
-    if leftovers:
-        sys.exit(f"ERROR: helper objects leaked into the GLB: {leftovers}")
-    print(
-        f"GLB ok: {len(data) / 1024:.0f} KB, "
-        f"{len(doc['meshes'])} meshes, {len(doc['materials'])} materials"
-    )
-    return doc
-
-
-def element_tags() -> dict:
-    """Sanitized element name -> plan tag (W3, D5, Win4, ST1).
-
-    Mirrors Story.ensure_tags() numbering (per story, in element order) so
-    the walkthrough info card and the 2D plan speak the same ids — that is
-    how the owner references elements. Tags repeat per story (the garage
-    has its own W1…), so non-ground stories get an initial prefix (G:W3) —
-    feedback #007 showed bare garage tags read as ground-floor elements.
-    """
-    doc = json.loads(BUILDING.read_text())
-    tags: dict[str, str] = {}
-    for story in doc.get("stories", []):
-        story_prefix = ("" if story.get("elevation", 0) == 0
-                        else f"{(story.get('name') or 'S')[0]}:")
-        for key, prefix in (("walls", "W"), ("doors", "D"),
-                            ("windows", "Win"), ("staircases", "ST")):
-            for i, el in enumerate(story.get(key, []), start=1):
-                tag = el.get("tag") or f"{prefix}{i}"
-                name = el.get("name", "")
-                if name:
-                    tags.setdefault(name.replace(" ", "_"), story_prefix + tag)
-    return tags
-
-
-def storey_bands() -> list:
-    """[{name, elevation, height, rooms}] sorted by elevation — the viewer
-    shows which storey AND room the camera is in (feedback #007: the owner
-    sank through the floor into the garage without noticing; raw
-    coordinates broke the feedback conversation)."""
-    doc = json.loads(BUILDING.read_text())
-    bands = []
-    for i, s in enumerate(doc.get("stories", []), start=1):
-        spaces = list(s.get("spaces", []))
-        for apt in s.get("apartments", []):
-            spaces.extend(apt.get("spaces", []))
-        elevation = s.get("elevation", 0)
-        bands.append({
-            "name": s.get("name") or f"Storey {i}",
-            "elevation": elevation,
-            "height": s.get("height", 3.0),
-            "rooms": [
-                {"name": sp.get("name") or sp.get("room_type", "room"),
-                 "poly": [[v["x"], v["y"]]
-                          for v in sp["boundary"]["vertices"]]}
-                for sp in spaces if sp.get("boundary")
-            ],
-        })
-    return sorted(bands, key=lambda b: b["elevation"])
-
-
-TEMPLATE = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Villa Maketa — walkthrough</title>
+<title>__TITLE__ — walkthrough</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; }
   #overlay {
@@ -272,7 +137,7 @@ TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div id="overlay"><h1>Villa Maketa</h1>
+<div id="overlay"><h1>__TITLE__</h1>
   <div id="overlay-msg">Loading scene…</div>
   <div id="loadbar"><div id="loadbar-fill"></div></div>
   <div id="overlay-legend">WASD — move &nbsp;·&nbsp; mouse — look &nbsp;·&nbsp; Shift — fast<br>
@@ -401,7 +266,7 @@ scene.fog = new THREE.Fog(0x87b5e0, 60, 220);
 // Blender (x, y, z) -> three.js (x, z, -y). Start outside the SE entrance,
 // eye height 1.7 m, looking north (three.js -Z).
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 500);
-camera.position.set(8.2, 1.7, 4.0);
+camera.position.set(__START__);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -449,19 +314,19 @@ function cameraSpec() {
 function screenshot() {
   renderer.render(scene, camera);  // fresh frame in the buffer for toDataURL
   const a = document.createElement('a');
-  a.download = 'villa-shot_' + cameraSpec().text.replaceAll(',', '_') + '.png';
+  a.download = '__MODEL__-shot_' + cameraSpec().text.replaceAll(',', '_') + '.png';
   a.href = renderer.domElement.toDataURL('image/png');
   a.click();
 }
 try {
   if (location.protocol === 'file:') {
     throw new Error(
-      'Browsers block loading villa.glb from file://. Serve this folder instead:\\n' +
-      '  python3 -m http.server 8000 -d <this directory>\\n' +
+      'Browsers block loading __MODEL__.glb from file://. Serve this folder instead:\n' +
+      '  python3 -m http.server 8000 -d <this directory>\n' +
       'then open http://localhost:8000/walkthrough.html');
   }
-  const resp = await fetch('villa.glb');
-  if (!resp.ok) throw new Error('fetching villa.glb failed: HTTP ' + resp.status);
+  const resp = await fetch('__MODEL__.glb');
+  if (!resp.ok) throw new Error('fetching __MODEL__.glb failed: HTTP ' + resp.status);
   // Stream the body so the overlay shows real progress — a 30 MB GLB on a
   // slow link otherwise looks identical to a hung page.
   const total = Number(resp.headers.get('Content-Length')) || 0;
@@ -506,7 +371,7 @@ try {
   if (!roofNodes.length) console.warn('no roof nodes found — R toggle disabled');
   const bbox = new THREE.Box3().setFromObject(gltf.scene);
   const size = bbox.getSize(new THREE.Vector3());
-  console.log('villa bbox (m):', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
+  console.log('__MODEL__ bbox (m):', size.x.toFixed(1), size.y.toFixed(1), size.z.toFixed(1));
   if (size.length() < 1) throw new Error('scene bounding box is degenerate: ' + size.toArray());
   ready = true;
   // Start immediately (owner 2026-08-08: "no click to start") — the backdrop
@@ -564,7 +429,7 @@ function setHud() {
   // second divider closes the element block before the where-am-I lines
   const rule = (structuralMode === 'fem' && aimText) ? FEM_RULE : '';
   hud.textContent = [mode, aimText, infoText, rule, positionLine()]
-    .filter(Boolean).join('\\n');
+    .filter(Boolean).join('\n');
 }
 
 function centerHit() {
@@ -582,10 +447,10 @@ function centerHit() {
 // root labels the object; its node gives the WHOLE object's bbox.
 function semanticNode(obj) {
   let node = obj;
-  let named = /^Object_\\d+$/.test(obj.name) ? null : obj;
+  let named = /^Object_\d+$/.test(obj.name) ? null : obj;
   while (node.parent && node.parent !== modelRoot && node.parent !== scene) {
     node = node.parent;
-    if (node.name && !/^Object_\\d+$/.test(node.name)) named = node;
+    if (node.name && !/^Object_\d+$/.test(node.name)) named = node;
   }
   const label = ((named || node).name || 'unnamed').replace(/_root$/, '');
   return { node: named || node, label };
@@ -640,13 +505,13 @@ function whereAmI() {
 
 function positionLine() {
   const p = camera.position;
-  return whereAmI() + '\\npos ' + p.x.toFixed(1) + ', ' + (-p.z).toFixed(1) +
+  return whereAmI() + '\npos ' + p.x.toFixed(1) + ', ' + (-p.z).toFixed(1) +
          ' · h ' + p.y.toFixed(1);
 }
 
 function displayName(label) {
   // IfcWindow_Living_Window_W1 / IfcWindow_..._frame -> tag + readable name
-  const clean = label.replace(/^Ifc\\w+?_/, '').replace(/_frame$/, '');
+  const clean = label.replace(/^Ifc\w+?_/, '').replace(/_frame$/, '');
   const tag = TAGS[clean];
   const pretty = clean.replace(/_/g, ' ');
   return tag ? tag + ' — ' + pretty : (label.startsWith('F_') ? label.slice(2) : pretty);
@@ -767,7 +632,7 @@ function _enterFem() {
   femGroup.visible = true;
   document.body.classList.add('xray');   // dark-on-light HUD, see CSS
   _updateLoadsBtn();
-  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)\\nload balance ' +
+  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)\nload balance ' +
     femEnv.balance + ' · aim + I for a fragment · L to exit';
   setHud();
 }
@@ -850,9 +715,9 @@ function femReadout(hit, g) {
     rows.push(femCell(p[i][0], p[i][1]) +
       (p[i + 1] ? '   ' + femCell(p[i + 1][0], p[i + 1][1]) : ''));
   }
-  return el.name + '\\ntile ' + pct(femEnv.quads.u[hit.q]) +
+  return el.name + '\ntile ' + pct(femEnv.quads.u[hit.q]) +
     (g === undefined ? '' : '  ·  ' + FEM_COMPONENT[g]) +
-    '\\n' + FEM_RULE + '\\n' + rows.join('\\n');
+    '\n' + FEM_RULE + '\n' + rows.join('\n');
 }
 
 function femHit() {
@@ -872,16 +737,16 @@ function femInfo() {
   const g = (femEnv.quads.g || [])[q];
   const s = (femEnv.quads.s || [])[q];
   const comp = g === undefined ? '' :
-    '\\ngoverned by ' + FEM_COMPONENT[g] +
+    '\ngoverned by ' + FEM_COMPONENT[g] +
     (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
-  infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\\n' +
+  infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\n' +
     'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
-    comp + '\\nelement design value ' + Math.round(el.u * 100) + '%' +
+    comp + '\nelement design value ' + Math.round(el.u * 100) + '%' +
     (el.peak ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
-    '\\n(sized on the design value — standard practice; the peak sits at a' +
+    '\n(sized on the design value — standard practice; the peak sits at a' +
     ' corner and flags local detailing, not the member size)' +
     ((el.p || []).length
-      ? '\\nall channels: ' + el.p.map((c) => c[0] + ' ' + c[1]).join(' · ')
+      ? '\nall channels: ' + el.p.map((c) => c[0] + ' ' + c[1]).join(' · ')
       : '');
   setHud();
 }
@@ -892,17 +757,17 @@ function showInfo() {
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
   const { node, label } = semanticNode(hit.object);
   const size = new THREE.Box3().setFromObject(node).getSize(new THREE.Vector3());
-  infoText = displayName(label) + '\\n' +
+  infoText = displayName(label) + '\n' +
     'W ' + size.x.toFixed(2) + ' × D ' + size.z.toFixed(2) +
-    ' × H ' + size.y.toFixed(2) + ' m\\n' +
+    ' × H ' + size.y.toFixed(2) + ' m\n' +
     'distance ' + hit.distance.toFixed(2) + ' m';
   const loads = loadDataFor(node);
   if (loads) {
     infoText += loads.kind === 'beam'
-      ? '\\nbeam ' + loads.section + ' over ' + loads.over +
-        '\\nq ' + loads.q + ' kN/m · M ' + loads.M + ' kNm · ' +
+      ? '\nbeam ' + loads.section + ' over ' + loads.over +
+        '\nq ' + loads.q + ' kN/m · M ' + loads.M + ' kNm · ' +
         Math.round(loads.u * 100) + '% of capacity'
-      : '\\nbearing wall · q ' + loads.q + ' kN/m · ' +
+      : '\nbearing wall · q ' + loads.q + ' kN/m · ' +
         Math.round(loads.u * 100) + '% of capacity';
   }
   setHud();
@@ -942,7 +807,7 @@ function commitMeasurement(a, b) {
   label.position.copy(a.clone().add(b).multiplyScalar(0.5));
   measureGroup.add(label);
   const d = b.clone().sub(a);
-  infoText = 'measured ' + a.distanceTo(b).toFixed(2) + ' m\\n' +
+  infoText = 'measured ' + a.distanceTo(b).toFixed(2) + ' m\n' +
     'ΔX ' + Math.abs(d.x).toFixed(2) + '  ΔY ' + Math.abs(d.z).toFixed(2) +
     '  ΔH ' + Math.abs(d.y).toFixed(2);
   setHud();
@@ -1251,7 +1116,7 @@ function showFeedbackLabels() {
   // center + face midpoints and badge the first visible spot.
   for (const n of modelRoot.children) {
     if (!n.name || /_frame$|_Handle_/.test(n.name)) continue;
-    const clean = n.name.replace(/^Ifc\\w+?_/, '');
+    const clean = n.name.replace(/^Ifc\w+?_/, '');
     if (!TAGS[clean]) continue;
     const text = displayName(n.name);
     if (seen.has(text)) continue;  // tagged elements: one badge is enough
@@ -1270,7 +1135,7 @@ function showFeedbackLabels() {
       if (!hit) continue;
       const hitSem = semanticNode(hit.object);
       if (hitSem.node !== n &&
-          hitSem.label.replace(/^Ifc\\w+?_/, '').replace(/_frame$/, '') !== clean) continue;
+          hitSem.label.replace(/^Ifc\w+?_/, '').replace(/_frame$/, '') !== clean) continue;
       place(text, (v.x + 1) / 2 * innerWidth, (1 - (v.y + 1) / 2) * innerHeight);
       break;
     }
@@ -1564,22 +1429,3 @@ renderer.setAnimationLoop(() => {
 </script>
 </body>
 </html>
-"""
-
-
-def main():
-    validate_glb(GLB.read_bytes())
-    tags = element_tags()
-    loads_file = OUT_DIR / "loads.json"
-    loads = loads_file.read_text() if loads_file.exists() else "{}"
-    html = (TEMPLATE
-            .replace("__THREE_VERSION__", THREE_VERSION)
-            .replace("__TAGS__", json.dumps(tags, sort_keys=True))
-            .replace("__STOREYS__", json.dumps(storey_bands()))
-            .replace("__LOADS__", loads))
-    HTML.write_text(html, encoding="utf-8")
-    print(f"wrote {HTML} ({HTML.stat().st_size / 1024:.0f} KB; "
-          f"{len(tags)} element tags; loads ./villa.glb at runtime)")
-
-
-main()

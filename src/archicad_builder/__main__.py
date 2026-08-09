@@ -111,6 +111,15 @@ def validate(
         help="Exit 1 when unwaived errors remain (for pipeline gates)."),
 ):
     """Run all validators on a building."""
+    # project.toml is validated HERE — the strict gate must fire before any
+    # Blender step consumes the file with lenient stdlib parsing
+    # (specs/project-config.md)
+    from archicad_builder.project_config import ConfigError, ProjectConfig
+    try:
+        ProjectConfig.load(PROJECTS_DIR / project)
+    except ConfigError as exc:
+        typer.echo(f"project.toml invalid: {exc}", err=True)
+        raise typer.Exit(1) from exc
     building = _load_building(project)
     waivers = _load_project_waivers(project)
     result = _validate_json(building, waivers)
@@ -816,6 +825,25 @@ def render_furnished_cmd(
            / f"floor_{target.name.lower().replace(' ', '_')}_furnished.png")
     render_furnished_plan(target, items, out)
     _output({"ok": True, "written": str(out), "items": len(items)})
+
+
+@app.command("walkthrough")
+def walkthrough_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Build output/walkthrough.html (validates the GLB first)."""
+    import tomllib as _tomllib
+
+    from archicad_builder.walkthrough import GlbError, build_page
+    project_dir = PROJECTS_DIR / project
+    pipe = _tomllib.loads((project_dir / "pipeline.toml").read_text())
+    model = pipe.get("project", {}).get("model")
+    if not model:
+        typer.echo("pipeline.toml declares no [project] model", err=True)
+        raise typer.Exit(1)
+    try:
+        build_page(project_dir, model)
+    except GlbError as exc:
+        typer.echo(f"walkthrough: {exc}", err=True)
+        raise typer.Exit(1) from exc
 
 
 @app.command("fetch-assets")

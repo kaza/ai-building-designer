@@ -27,9 +27,10 @@ framework = true   # imports archicad_builder
 outputs = ["building.json"]
 
 [[step]]
-name = "validate"        # gate: --strict so unwaived errors stop the build
+name = "validate"        # gate: --strict so unwaived errors stop the build;
+                         # also the strict project.toml check (config gate)
 run = ["{python}", "-m", "archicad_builder", "validate", "{project}", "--strict"]
-inputs = ["building.json", "validation.json"]
+inputs = ["building.json", "validation.json", "project.toml"]
 cache = false
 
 [[step]]
@@ -78,8 +79,9 @@ env_by_profile = { all = { VILLA_FULL_RENDER = "1" } }
 
 [[step]]
 name = "glb"             # reads the .blend the previous step wrote
-run = ["{blender}", "-b", "output/{model}.blend", "-P", "export_glb.py"]
-inputs = ["output/villa.blend"]
+run = ["{blender}", "-b", "output/{model}.blend", "-P", "{framework}/export/glb_blender.py"]
+framework = true   # the shim + glb_logic live in the package
+inputs = ["output/villa.blend", "project.toml"]
 outputs = ["output/villa.glb"]
 
 [[step]]
@@ -97,6 +99,7 @@ outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]
 
 [[step]]
 name = "walkthrough"     # the browser deliverable; embeds loads.json
-run = ["{python}", "make_walkthrough.py"]
-inputs = ["output/villa.glb", "output/loads.json", "building.json"]
+run = ["{python}", "-m", "archicad_builder", "walkthrough", "{project}"]
+framework = true   # page template + generator live in the package
+inputs = ["output/villa.glb", "output/loads.json", "building.json", "project.toml"]
 outputs = ["output/walkthrough.html"]

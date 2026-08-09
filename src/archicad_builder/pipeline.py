@@ -202,6 +202,10 @@ def _resolve_argv(step: Step, project_dir: Path, model: str,
     flag beats sniffing the resolved path for the word 'blender' — a
     custom $BLENDER would silently drop the version from the digest."""
     out, uses_blender = [], False
+    # {framework} lets a Blender step reference a shim INSIDE the package
+    # (blender -b … -P {framework}/export/glb_blender.py) without a project
+    # copy or an absolute path in the TOML (ADR-006)
+    framework_dir = str(Path(__file__).resolve().parent)
     for token in step.argv:
         if token == "{python}":
             out.append(sys.executable)
@@ -210,13 +214,14 @@ def _resolve_argv(step: Step, project_dir: Path, model: str,
             uses_blender = True
         else:
             expanded = (token.replace("{project}", project)
-                             .replace("{model}", model))
+                             .replace("{model}", model)
+                             .replace("{framework}", framework_dir))
             leftover = re.findall(r"\{[a-zA-Z_]+\}", expanded)
             if leftover:
                 raise PipelineError(
                     f"step {step.name!r}: unknown placeholder "
                     f"{leftover[0]} in {token!r} — known: {{python}}, "
-                    "{blender}, {project}, {model}")
+                    "{blender}, {project}, {model}, {framework}")
             out.append(expanded)
     return out, uses_blender
 
