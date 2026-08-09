@@ -65,6 +65,29 @@ villa's name.
 `archicad-builder freshness <project>` reports the same verdict on its
 own, exit 1 when something is stale.
 
+## Build profiles
+Cumulative, one axis: `all` ⊃ `fem` ⊃ `web`.
+
+| Profile | Adds | Why |
+|---|---|---|
+| `web` | model, GLB, 2D plans, walkthrough, load takedown | everything the site shows except the X-ray |
+| `fem` (default) | the plate FEM and the X-ray page | the X-ray is the differentiating view; a `web` default would silently remove its link from the site and make `L` do nothing |
+| `all` | the two Cycles renders | ~70% of a full build for two marketing images |
+
+A step declares the cheapest profile that includes it (`profile = "fem"`)
+and may declare extra environment for a profile (`env_by_profile = { all
+= { VILLA_FULL_RENDER = "1" } }`), which is how one Blender step produces
+renders under `all` and only the scene otherwise.
+
+**A cheap build never quietly ships an expensive artifact.** If a step
+outside the built profile left files on disk, they would be published,
+so the release gate still demands they be current — and says how to fix
+it. Rebuilding `web` after a model change therefore blocks the release
+while an X-ray of the previous building is sitting there, and tells you
+to run `--profile fem` or delete it. Refusing beats the alternative,
+where a routine cheap publish silently drops a feature from the live
+site.
+
 ## Boundaries
 - The pipeline **orchestrates** the existing project scripts; it does
   not rewrite them. `make_walkthrough.py` (1585 lines) and
@@ -163,6 +186,7 @@ output.
 | 2026-08-09 | `validate` gained `--strict`; the pipeline gate uses it | the command has always exited 0, so the "gate" step in the documented pipeline could never fail a build (Codex found this by reading the code) |
 | 2026-08-09 | No `--only` | it bypasses the release invariant for a debugging convenience |
 | 2026-08-09 | A step declares the environment it RUNS with (`env_set`), and the villa's Cycles renders are ordinary cached outputs instead of env-gated ones | the renders were produced only when the operator remembered `VILLA_FULL_RENDER=1`, so a plain run silently shipped a release without them, and publishing globbed whatever stale copies were lying around. The cache pays the ~4 min once |
+| 2026-08-09 | Cumulative profiles `web`/`fem`/`all`, defaulting to `fem`; artifacts left by a step outside the built profile block the release instead of shipping or being dropped | owner asked for a web-only default with opt-in FEM and renders. Measured: web ~9 s of work, FEM ~104 s, renders ~259 s — so the renders are the only thing worth gating, and defaulting below `fem` would remove the X-ray link from the site on every routine publish |
 | 2026-08-09 | The release gate compares against the environment RECORDED for each step, not the current shell | publishing must not require reproducing the shell the build ran in; what matters is that nothing changed since, and the output hashes capture what was produced |
 
 ## Related

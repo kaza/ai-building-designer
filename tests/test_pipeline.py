@@ -399,3 +399,67 @@ class TestEnvAndRelease:
                 'MODE = "full"', 'MODE = "cheap"'))
         assert {r.name: r for r in run_pipeline(project)}["a"].ran
         assert (project / "output" / "a.txt").read_text() == "cheap"
+
+
+class TestProfiles:
+    """Cumulative build profiles (owner 2026-08-09): all > fem > web.
+    A cheap build must never quietly ship an artifact it did not make."""
+
+    def _profiled(self, project):
+        (project / "pipeline.toml").write_text(
+            (project / "pipeline.toml").read_text().replace(
+                'name = "b"', 'name = "b"\nprofile = "fem"'))
+
+    def test_web_profile_skips_the_expensive_step(self, project):
+        self._profiled(project)
+        ran = run_pipeline(project, profile="web")
+        assert [r.name for r in ran] == ["a"]
+        assert not (project / "output" / "b.txt").exists()
+
+    def test_default_profile_includes_it(self, project):
+        self._profiled(project)
+        assert [r.name for r in run_pipeline(project)] == ["a", "b"]
+
+    def test_unknown_profile_is_rejected(self, project):
+        with pytest.raises(PipelineError, match="unknown profile"):
+            run_pipeline(project, profile="turbo")
+
+    def test_a_web_build_with_no_leftovers_is_publishable(self, project):
+        self._profiled(project)
+        run_pipeline(project, profile="web")
+        assert freshness_problems(project) == []
+
+    def test_a_web_rebuild_will_not_ship_a_stale_artifact(self, project):
+        """The trap: build everything, change the model, rebuild cheap.
+        The expensive artifact is still on disk and is now WRONG."""
+        self._profiled(project)
+        run_pipeline(project)                      # full build
+        (project / "seed.txt").write_text("CHANGED")
+        run_pipeline(project, profile="web")       # cheap rebuild
+        problems = freshness_problems(project)
+        assert any("b.txt" in p and "not built by" in p for p in problems)
+        assert any("--profile fem" in p for p in problems), (
+            "the message must say how to fix it")
+
+    def test_deleting_the_leftover_makes_it_publishable(self, project):
+        self._profiled(project)
+        run_pipeline(project)
+        (project / "seed.txt").write_text("CHANGED")
+        run_pipeline(project, profile="web")
+        (project / "output" / "b.txt").unlink()
+        assert freshness_problems(project) == []
+
+    def test_profile_env_changes_the_command_and_the_digest(self, project):
+        (project / "make_a.py").write_text(
+            "import os\nfrom pathlib import Path\n"
+            "Path('output/a.txt').write_text(os.environ.get('EXTRA', 'plain'))\n")
+        (project / "pipeline.toml").write_text(
+            (project / "pipeline.toml").read_text().replace(
+                'inputs = ["seed.txt"]',
+                'inputs = ["seed.txt"]\n'
+                'env_by_profile = { all = { EXTRA = "rendered" } }'))
+        run_pipeline(project, profile="web")
+        assert (project / "output" / "a.txt").read_text() == "plain"
+        ran = {r.name: r for r in run_pipeline(project, profile="all")}
+        assert ran["a"].ran
+        assert (project / "output" / "a.txt").read_text() == "rendered"

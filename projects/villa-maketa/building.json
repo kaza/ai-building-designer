@@ -1,18 +1,18 @@
 {
-  "global_id": "2t6YRNsuP52v2s26EE2YXV",
+  "global_id": "2_WmJ1M7z3IAc5UeJ4x0nX",
   "name": "Villa Maketa",
   "description": "Villa from cardboard maquette: garage + ground floor",
   "units": "meters",
   "stories": [
     {
-      "global_id": "3pX7Gy2z54DhFlhdvKsXt$",
+      "global_id": "3Tng2XigDEJOxfOS16OU43",
       "name": "Garage",
       "description": "",
       "elevation": -2.89,
       "height": 2.89,
       "walls": [
         {
-          "global_id": "14C8WnGR9DfB54WtWIor2N",
+          "global_id": "0XmKq0Ul16whGjhALbXlfa",
           "name": "Garage South Wall",
           "tag": "",
           "description": "",
@@ -31,7 +31,7 @@
           "finish": "stone_rubble"
         },
         {
-          "global_id": "0oTCbhAvDA6Rkpn_QeytZO",
+          "global_id": "3HSD8rYTD2PvF$aEbCTk$Q",
           "name": "Garage South Wall East",
           "tag": "",
           "description": "",
@@ -50,7 +50,7 @@
           "finish": "stone_rubble"
         },
         {
-          "global_id": "3U0FmSqAzC0u51d$9_8YnB",
+          "global_id": "3CIRJ$Fn9FURlD546bW1FZ",
           "name": "Garage East Wall",
           "tag": "",
           "description": "",
@@ -69,7 +69,7 @@
           "finish": "stone_rubble"
         },
         {
-          "global_id": "1MdrqW_DrDwfa_g4UmC_J9",
+          "global_id": "0ayz8yT$D4GflnBbJ3K9xK",
           "name": "Garage North Wall",
           "tag": "",
           "description": "",
@@ -88,7 +88,7 @@
           "finish": "stone_rubble"
         },
         {
-          "global_id": "2mgcW$joDBCwe0Ae33xlzc",
+          "global_id": "31UPAyuNTCM8ocIE8ZOJZY",
           "name": "Garage West Wall",
           "tag": "",
           "description": "",
@@ -109,7 +109,7 @@
       ],
       "slabs": [
         {
-          "global_id": "3P8c4q2ofEbPvhmLdgkJYu",
+          "global_id": "0XNZTuEQrEVgwOMyEnYE7L",
           "name": "Garage Slab",
           "description": "",
           "outline": {
@@ -139,11 +139,11 @@
       ],
       "doors": [
         {
-          "global_id": "23$CVuWeD6_O4lBpjvU3YL",
+          "global_id": "0$TxeIgq1Ayh3rscFUYMf0",
           "name": "Garage Vehicle Door",
           "tag": "",
           "description": "",
-          "wall_id": "3U0FmSqAzC0u51d$9_8YnB",
+          "wall_id": "3CIRJ$Fn9FURlD546bW1FZ",
           "position": 1.0,
           "width": 2.4,
           "height": 2.1,
@@ -155,7 +155,7 @@
       "roofs": [],
       "staircases": [
         {
-          "global_id": "0$5lHlpfv6EQNUXKOPe$F_",
+          "global_id": "2bbdceyMX10ekYrCe3Fbtn",
           "name": "Garage Stair Lower",
           "tag": "",
           "description": "",
@@ -189,7 +189,7 @@
       "virtual_elements": [],
       "spaces": [
         {
-          "global_id": "1Pn76GK9nBwfVdF$skxe_u",
+          "global_id": "0$tEe9q2vBngXB3L3bzlKR",
           "name": "Garage",
           "tag": "",
           "description": "",
@@ -219,14 +219,14 @@
       "apartments": []
     },
     {
-      "global_id": "2oWf9Jxyj15OK5AP5Vgk07",
+      "global_id": "1AqyTKJyr0UfJwbyDegNmG",
       "name": "Ground Floor",
       "description": "",
       "elevation": 0.0,
       "height": 3.0,
       "walls": [
         {
-          "global_id": "0c7L14ZH9Aa9qrMCcB2fyd",
+          "global_id": "0PvLlfpKfDagqoXzQGu5YF",
           "name": "South Wall",
           "tag": "",
           "description": "",
@@ -244,7 +244,7 @@
           "is_external": true
         },
         {
-          "global_id": "3_5Rq6Rv90jw7oZ$xzSMFy",
+          "global_id": "31eVSm0Pn6_uLnW8yzq$kq",
           "name": "East Wall",
           "tag": "",
           "description": "",
@@ -262,7 +262,7 @@
           "is_external": true
         },
         {
-          "global_id": "2ytECEZFT6iBTTT$q6lXjz",
+          "global_id": "2$ITv$pan6Dx5teTykXPqo",
           "name": "North Wall",
           "tag": "",
           "description": "",
@@ -280,7 +280,7 @@
           "is_external": true
         },
         {
-          "global_id": "1pYauLF85BiugylUmg0U7K",
+          "global_id": "3wj9ZNNhf4L8pjkBhKVkWt",
           "name": "Room 2 West Wall",
           "tag": "",
           "description": "",
@@ -298,7 +298,7 @@
           "is_external": true
         },
         {
-          "global_id": "3XzuVwZqvDewJax48ZAOkk",
+          "global_id": "3fOsay8qj3pu_m9Lj9ZdQ8",
           "name": "Master North Wall",
           "tag": "",
           "description": "",
@@ -316,7 +316,7 @@
           "is_external": true
         },
         {
-          "global_id": "2aBr8KhxnD19pfuFa8VTfK",
+          "global_id": "1D0tLN16XACAUTSypbbzMl",
           "name": "Living North Wall",
           "tag": "",
           "description": "",
@@ -335,7 +335,7 @@
           "finish": "accent"
         },
         {
-          "global_id": "0g9rxoGJn3EBTcpM_m9rSo",
+          "global_id": "14a09yt2DEmftU6$ONuZQd",
           "name": "West Wall",
           "tag": "",
           "description": "",
@@ -354,7 +354,7 @@
           "finish": "accent"
         },
         {
-          "global_id": "0BDrHLgV1DsB_JejqX81tz",
+          "global_id": "0tz9S3CWv0bh7GrIj_28fZ",
           "name": "Living East Wall",
           "tag": "",
           "description": "",
@@ -372,7 +372,7 @@
           "is_external": false
         },
         {
-          "global_id": "25mKJlJAPBqQaV0UxL2VCm",
+          "global_id": "169L04X7nF3gIKd8IlzLrH",
           "name": "Corridor West Wall",
           "tag": "",
           "description": "",
@@ -390,7 +390,7 @@
           "is_external": false
         },
         {
-          "global_id": "2NoNtaXwj3gwlHUMaZNLge",
+          "global_id": "3wvNcrg8rBqATND0FKzfaQ",
           "name": "Bath South Wall",
           "tag": "",
           "description": "",
@@ -408,7 +408,7 @@
           "is_external": false
         },
         {
-          "global_id": "0qWCEry9H00hEL4pzsu3k2",
+          "global_id": "3Jh3D$viL3qhR66ktFb9rt",
           "name": "Bath Divider Wall",
           "tag": "",
           "description": "",
@@ -426,7 +426,7 @@
           "is_external": false
         },
         {
-          "global_id": "2LtOEb2ur7SvLzARS6IL5b",
+          "global_id": "2lytARsbH4CwzIAB3106AN",
           "name": "Master South Wall",
           "tag": "",
           "description": "",
@@ -444,7 +444,7 @@
           "is_external": false
         },
         {
-          "global_id": "1qKmLOoXXEJv1NwKB3iD$h",
+          "global_id": "0R4nHHW4D79QgFBZ8P6lpA",
           "name": "Room 2 South Wall East",
           "tag": "",
           "description": "",
@@ -462,7 +462,7 @@
           "is_external": false
         },
         {
-          "global_id": "0mS$ZPRpD7Wx$u2jJWEhZu",
+          "global_id": "2_ag5h0sn6ngfY7KVsew6U",
           "name": "Room 2 South Wall West",
           "tag": "",
           "description": "",
@@ -480,7 +480,7 @@
           "is_external": false
         },
         {
-          "global_id": "2Ff$6BI$D04gmHehPgGPWN",
+          "global_id": "19qHx2$lD8cw9PlizptXv4",
           "name": "South Wall East",
           "tag": "",
           "description": "",
@@ -498,7 +498,7 @@
           "is_external": true
         },
         {
-          "global_id": "1LC$s0vJ171PXI0$s$$GWy",
+          "global_id": "3UIVeU8rfBERQQOJee$pMN",
           "name": "West Wall South",
           "tag": "",
           "description": "",
@@ -516,7 +516,7 @@
           "is_external": true
         },
         {
-          "global_id": "2qD$_E_LL0Pu2HLB514Xx1",
+          "global_id": "1X1kezU5n19xYfmK_zUm05",
           "name": "Deck Screen Stone",
           "tag": "",
           "description": "",
@@ -535,7 +535,7 @@
           "finish": "stone_rubble"
         },
         {
-          "global_id": "02SPt3k5z23APuGySsuFY$",
+          "global_id": "3U4FaVuGn8$BhTHdXh601d",
           "name": "Deck Screen Glass",
           "tag": "",
           "description": "",
@@ -554,7 +554,7 @@
           "finish": "glass"
         },
         {
-          "global_id": "1dRHlqYbf0zQb$X$AoitfZ",
+          "global_id": "1wccO2tkfAI8_MnLn8oHjP",
           "name": "Deck Screen Return N",
           "tag": "",
           "description": "",
@@ -575,7 +575,7 @@
       ],
       "slabs": [
         {
-          "global_id": "3oH735fP1AXO7dYNRBZ7T_",
+          "global_id": "3jLq_S6Tz8FQ5W4zzmjVQy",
           "name": "Ground Slab",
           "description": "",
           "outline": {
@@ -612,7 +612,7 @@
           "span_direction": "x"
         },
         {
-          "global_id": "3oTtEp09vCMAr8Y7wEQr5P",
+          "global_id": "2fqOTz9cv5suuu4dKofjLI",
           "name": "Deck",
           "description": "",
           "outline": {
@@ -648,7 +648,7 @@
           "slab_type": "FLOOR"
         },
         {
-          "global_id": "2Nr8i5zNr8pue2XBQKPHTE",
+          "global_id": "2RYJsYw6nD0wcSJ0g8MVaw",
           "name": "Pool",
           "description": "",
           "outline": {
@@ -676,7 +676,7 @@
           "slab_type": "FLOOR"
         },
         {
-          "global_id": "1evIS4m7L5AOYd_ceF7yMG",
+          "global_id": "1ciQBP7OvCXfquMliDu_Hh",
           "name": "Lawn",
           "description": "",
           "outline": {
@@ -706,11 +706,11 @@
       ],
       "doors": [
         {
-          "global_id": "2Z_7X_UF15rPfR3BBATexJ",
+          "global_id": "3dgyyX2oj04OewJgJcW0Sb",
           "name": "Vila Entry Door",
           "tag": "",
           "description": "",
-          "wall_id": "2Ff$6BI$D04gmHehPgGPWN",
+          "wall_id": "19qHx2$lD8cw9PlizptXv4",
           "position": 0.9,
           "width": 1.0,
           "height": 2.1,
@@ -718,11 +718,11 @@
           "swing_inward": true
         },
         {
-          "global_id": "0EPDQga6v8tgyIGDo57qnD",
+          "global_id": "3blcxABiD6vwi$MbRv7CeX",
           "name": "Vila Kitchen Door",
           "tag": "",
           "description": "",
-          "wall_id": "0BDrHLgV1DsB_JejqX81tz",
+          "wall_id": "0tz9S3CWv0bh7GrIj_28fZ",
           "position": 1.6,
           "width": 0.9,
           "height": 2.1,
@@ -730,11 +730,11 @@
           "swing_inward": true
         },
         {
-          "global_id": "0Kd$pvu1bD7eszfLlw4$A8",
+          "global_id": "1e4_MZSpj1HQWJzc$xR7rW",
           "name": "Vila Bath 1 Door",
           "tag": "",
           "description": "",
-          "wall_id": "2LtOEb2ur7SvLzARS6IL5b",
+          "wall_id": "2lytARsbH4CwzIAB3106AN",
           "position": 0.75,
           "width": 0.75,
           "height": 2.1,
@@ -742,11 +742,11 @@
           "swing_inward": false
         },
         {
-          "global_id": "25YQlfu8H7i9A9OAvYNvBM",
+          "global_id": "2Z2YRuSEnDIev7h4VrBVAv",
           "name": "Vila Guest Bathroom Door",
           "tag": "",
           "description": "",
-          "wall_id": "25mKJlJAPBqQaV0UxL2VCm",
+          "wall_id": "169L04X7nF3gIKd8IlzLrH",
           "position": 0.3,
           "width": 0.75,
           "height": 2.1,
@@ -754,11 +754,11 @@
           "swing_inward": true
         },
         {
-          "global_id": "03zTUXcPn0WAklBertiKzl",
+          "global_id": "0Dt_qVyAb4ew9NKSVv8UHm",
           "name": "Vila Master Bedroom Door",
           "tag": "",
           "description": "",
-          "wall_id": "25mKJlJAPBqQaV0UxL2VCm",
+          "wall_id": "169L04X7nF3gIKd8IlzLrH",
           "position": 2.1,
           "width": 0.9,
           "height": 2.1,
@@ -766,11 +766,11 @@
           "swing_inward": true
         },
         {
-          "global_id": "0vFsZnr6b70hHvD9CDET53",
+          "global_id": "0yb51Gjxj2YAl4IQedxY$0",
           "name": "Vila Room 2 Door",
           "tag": "",
           "description": "",
-          "wall_id": "1qKmLOoXXEJv1NwKB3iD$h",
+          "wall_id": "0R4nHHW4D79QgFBZ8P6lpA",
           "position": 0.3,
           "width": 0.9,
           "height": 2.1,
@@ -778,11 +778,11 @@
           "swing_inward": true
         },
         {
-          "global_id": "0USOGp7tfBdRHv8xzN8vRA",
+          "global_id": "0g6pQDN8TBreIbZsvDMesP",
           "name": "Vila Room 2 Terrace Door",
           "tag": "",
           "description": "",
-          "wall_id": "2ytECEZFT6iBTTT$q6lXjz",
+          "wall_id": "2$ITv$pan6Dx5teTykXPqo",
           "position": 1.75,
           "width": 1.1,
           "height": 2.8,
@@ -791,11 +791,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "1cyEpa02L03Aox2O9zlGvP",
+          "global_id": "3FeDM2S_10XO3G_DCBl2V5",
           "name": "Vila Master Bedroom Terrace Door",
           "tag": "",
           "description": "",
-          "wall_id": "3XzuVwZqvDewJax48ZAOkk",
+          "wall_id": "3fOsay8qj3pu_m9Lj9ZdQ8",
           "position": 0.0,
           "width": 0.95,
           "height": 2.8,
@@ -804,11 +804,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "2MtCJfSbH7CO5wXR2MbiqA",
+          "global_id": "2t9eM9krr5G9lEHnYCUGL1",
           "name": "Vila Master Bedroom Terrace Door Small",
           "tag": "",
           "description": "",
-          "wall_id": "3XzuVwZqvDewJax48ZAOkk",
+          "wall_id": "3fOsay8qj3pu_m9Lj9ZdQ8",
           "position": 0.95,
           "width": 0.55,
           "height": 2.8,
@@ -819,11 +819,11 @@
       ],
       "windows": [
         {
-          "global_id": "3$RK_gAoDA8uYb0vddOjBy",
+          "global_id": "0YdmWFiKf73RMJx2yYqSiD",
           "name": "Kitchen Window",
           "tag": "",
           "description": "",
-          "wall_id": "0c7L14ZH9Aa9qrMCcB2fyd",
+          "wall_id": "0PvLlfpKfDagqoXzQGu5YF",
           "position": 1.5,
           "width": 1.5,
           "height": 0.75,
@@ -831,11 +831,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "2tmkelJTn0BOB_LSoyOduP",
+          "global_id": "2Yuz8X7CX8lf4zsY5OfMjH",
           "name": "Living Band Window",
           "tag": "",
           "description": "",
-          "wall_id": "0g9rxoGJn3EBTcpM_m9rSo",
+          "wall_id": "14a09yt2DEmftU6$ONuZQd",
           "position": 0.0,
           "width": 3.35,
           "height": 0.75,
@@ -843,11 +843,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "1JdiYI6bv1dhxsra9rpkeH",
+          "global_id": "2lrlWkg8nEbuWQXU5k0Bk$",
           "name": "Living Glass W2",
           "tag": "",
           "description": "",
-          "wall_id": "0g9rxoGJn3EBTcpM_m9rSo",
+          "wall_id": "14a09yt2DEmftU6$ONuZQd",
           "position": 3.35,
           "width": 1.9,
           "height": 2.75,
@@ -855,11 +855,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "3uUsQRB552Ve$9cqLb9MIY",
+          "global_id": "3GTdNsVnT8e8v6On6RcwbV",
           "name": "Living Sliding Window",
           "tag": "",
           "description": "",
-          "wall_id": "2aBr8KhxnD19pfuFa8VTfK",
+          "wall_id": "1D0tLN16XACAUTSypbbzMl",
           "position": 0.0,
           "width": 2.15,
           "height": 2.75,
@@ -867,11 +867,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "3JMSEdgtr5afj8T28_Hr_Q",
+          "global_id": "3Et8L62JD6ivIclq6ImpMF",
           "name": "Room 2 Sliding Door",
           "tag": "",
           "description": "",
-          "wall_id": "2ytECEZFT6iBTTT$q6lXjz",
+          "wall_id": "2$ITv$pan6Dx5teTykXPqo",
           "position": 0.65,
           "width": 1.1,
           "height": 2.75,
@@ -879,11 +879,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "21H0sdJEb6jfS6OduznFfa",
+          "global_id": "0wpDZmqanCifsnKJ7gL4Te",
           "name": "Hallway Window",
           "tag": "",
           "description": "",
-          "wall_id": "3_5Rq6Rv90jw7oZ$xzSMFy",
+          "wall_id": "31eVSm0Pn6_uLnW8yzq$kq",
           "position": 2.7,
           "width": 5.3,
           "height": 0.75,
@@ -891,11 +891,11 @@
           "pane_side": "inner"
         },
         {
-          "global_id": "2H6sn1OCv6WvaX681hRqWh",
+          "global_id": "0pdKR8WNr8IQRnmhJpn00T",
           "name": "Living Band Window N",
           "tag": "",
           "description": "",
-          "wall_id": "2aBr8KhxnD19pfuFa8VTfK",
+          "wall_id": "1D0tLN16XACAUTSypbbzMl",
           "position": 2.15,
           "width": 2.35,
           "height": 0.75,
@@ -905,7 +905,7 @@
       ],
       "roofs": [
         {
-          "global_id": "0Gqz3Wb8H2zw_44CDLum2n",
+          "global_id": "3cafW1VGvELOfzxlGeCndQ",
           "name": "Roof West",
           "description": "",
           "outline": {
@@ -951,7 +951,7 @@
           "finish": "roof_brown"
         },
         {
-          "global_id": "27RHUn4Dj09hqzCd3$pFcm",
+          "global_id": "1aGpVCUt1BZQLAxw$e5x7U",
           "name": "Roof East",
           "description": "",
           "outline": {
@@ -981,7 +981,7 @@
           "finish": "roof_brown"
         },
         {
-          "global_id": "0tFoIce9v6kOg5k82bV4N4",
+          "global_id": "03Ptp3Rc5Ace$RisiMQ5Qc",
           "name": "Roof South White",
           "description": "",
           "outline": {
@@ -1012,7 +1012,7 @@
       ],
       "staircases": [
         {
-          "global_id": "1reBjA2$H4bRW8uLzvdzeR",
+          "global_id": "3256K3k5L5SeMtIhcVrBYs",
           "name": "Garage Stair",
           "tag": "",
           "description": "",
@@ -1047,7 +1047,7 @@
       "spaces": [],
       "apartments": [
         {
-          "global_id": "0B1jzmcLLEjuzmiX4gXNKR",
+          "global_id": "2KvnxMWAj8sx_uIqA_fxDC",
           "name": "Vila",
           "tag": "A1",
           "description": "",
@@ -1081,7 +1081,7 @@
           },
           "spaces": [
             {
-              "global_id": "2rGNoq1Sf1IuHLOE4KCHzi",
+              "global_id": "1A1AA7V0f5nfbvFAt5iQd8",
               "name": "Kitchen",
               "tag": "",
               "description": "",
@@ -1108,7 +1108,7 @@
               }
             },
             {
-              "global_id": "3yIBENQIf1BwQxUvMEmwDi",
+              "global_id": "2J15CdQavC0u04x9Lx68Z0",
               "name": "Living",
               "tag": "",
               "description": "",
@@ -1135,7 +1135,7 @@
               }
             },
             {
-              "global_id": "2fCPMqIDP4QfFRUzZBOUA9",
+              "global_id": "14wEWQWnXBC8718an_AsBE",
               "name": "Bath 1",
               "tag": "",
               "description": "",
@@ -1162,7 +1162,7 @@
               }
             },
             {
-              "global_id": "02ChUMXUX4lgb2OjO38pGV",
+              "global_id": "2Oew_hUwnEFPcEauA7nskX",
               "name": "Guest Bathroom",
               "tag": "",
               "description": "",
@@ -1189,7 +1189,7 @@
               }
             },
             {
-              "global_id": "2hAjV9bZT7rPToFPeiwhOV",
+              "global_id": "3xntj89$HDKw1MqdscSfxY",
               "name": "Master Bedroom",
               "tag": "",
               "description": "",
@@ -1216,7 +1216,7 @@
               }
             },
             {
-              "global_id": "10Eu9KbC56HwazCzvwaIV6",
+              "global_id": "2ELqSO7W9FAOj$8wIR2586",
               "name": "Room 2",
               "tag": "",
               "description": "",
@@ -1243,7 +1243,7 @@
               }
             },
             {
-              "global_id": "1e1p9BBzjBo8wxNTgcNQYD",
+              "global_id": "2n3WYo4uj0cv5GvYXdmLxg",
               "name": "Hallway",
               "tag": "",
               "description": "",
@@ -1294,7 +1294,7 @@
               }
             },
             {
-              "global_id": "0mBRLhn_f9sBND_ioWq6cE",
+              "global_id": "1XsU3qfJH3qAZR_J_3IVr8",
               "name": "Garage Stair",
               "tag": "",
               "description": "",

@@ -758,14 +758,23 @@ def pipeline_cmd(
                                   help="Resume at this step (prefix must be fresh)."),
     list_only: bool = typer.Option(False, "--list",
                                    help="Print the order without running."),
+    profile: str = typer.Option(
+        None, "--profile",
+        help="web (model + plans) | fem (adds the load calculation, "
+             "default) | all (adds the Cycles renders)."),
 ):
     """Rebuild a project: every step, in order, skipping only what it can
     prove is unchanged (specs/project-pipeline.md)."""
-    from archicad_builder.pipeline import PipelineError, run_pipeline
+    from archicad_builder.pipeline import (
+        DEFAULT_PROFILE,
+        PipelineError,
+        run_pipeline,
+    )
     project_dir = PROJECTS_DIR / project
     try:
         results = run_pipeline(project_dir, force=force, from_step=from_step,
-                               list_only=list_only)
+                               list_only=list_only,
+                               profile=profile or DEFAULT_PROFILE)
     except PipelineError as exc:
         typer.echo(f"pipeline: {exc}", err=True)
         raise typer.Exit(1) from exc
@@ -773,7 +782,8 @@ def pipeline_cmd(
         mark = "->" if r.ran else "  "
         typer.echo(f"{mark} {r.name:20} {r.reason}")
     if not list_only:
-        typer.echo(f"pipeline complete: {sum(r.ran for r in results)} ran, "
+        typer.echo(f"pipeline complete ({profile or DEFAULT_PROFILE}): "
+                   f"{sum(r.ran for r in results)} ran, "
                    f"{sum(not r.ran for r in results)} skipped")
 
 

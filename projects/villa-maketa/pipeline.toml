@@ -5,12 +5,10 @@
 # inputs/outputs is what lets the runner prove a step can be skipped —
 # an undeclared input is a stale artifact waiting to happen.
 #
-# The Cycles renders used to be env-gated (VILLA_FULL_RENDER), so a plain
-# run produced a release without them — and publishing globbed whatever
-# stale copies were lying around, which is how two-day-old renders shipped
-# beside a fresh model. The step now SETS that variable itself: the renders
-# are ordinary declared outputs, produced once and then cached like
-# everything else.
+# Profiles are cumulative: all > fem > web (default fem). Measured on an
+# idle machine: everything web-visible ~9 s, the FEM load calculation
+# ~104 s, the two Cycles renders ~259 s — 70% of a full build for two
+# marketing images, which is why they are `all` only.
 
 [project]
 model = "villa"          # artifact basename: villa.blend, villa.glb
@@ -68,9 +66,10 @@ outputs = ["output/villa-maketa.obj"]
 name = "blend"           # materials + furniture; PNGs only under VILLA_FULL_RENDER
 run = ["{blender}", "-b", "-P", "render_blender.py"]
 inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json"]
-outputs = ["output/villa.blend", "output/perspective.png",
-           "output/top_down.png"]
-env_set = { VILLA_FULL_RENDER = "1" }   # always render; the cache pays once
+outputs = ["output/villa.blend"]
+# the renders exist only in the `all` profile, so they are optional here
+optional_outputs = ["output/perspective.png", "output/top_down.png"]
+env_by_profile = { all = { VILLA_FULL_RENDER = "1" } }
 
 [[step]]
 name = "glb"             # reads the .blend the previous step wrote
@@ -85,7 +84,8 @@ inputs = ["building.json"]
 outputs = ["output/loads.json"]
 
 [[step]]
-name = "fem"             # plate FEM (~8 min) + standalone X-ray page
+name = "fem"             # plate FEM (~104 s) + standalone X-ray page
+profile = "fem"
 run = ["{python}", "-m", "archicad_builder", "fem", "{project}"]
 inputs = ["building.json"]
 outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]

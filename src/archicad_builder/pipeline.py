@@ -32,7 +32,13 @@ import tomllib
 from dataclasses import dataclass, field as dc_field
 from pathlib import Path
 
-SCHEMA = 1
+SCHEMA = 2
+# Cumulative build profiles: `all` contains `fem` contains `web`. One axis,
+# no combinatorics. The default is `fem` because the X-ray costs ~104 s
+# against the ~259 s of the marketing renders, and a `web` default would
+# silently drop the X-ray link from the site (owner 2026-08-09).
+PROFILES = ("web", "fem", "all")
+DEFAULT_PROFILE = "fem"
 STATE_NAME = ".pipeline.json"
 LOCK_NAME = ".pipeline.lock"
 MAC_BLENDER = "/Applications/Blender.app/Contents/MacOS/Blender"
@@ -59,7 +65,18 @@ class Step:
     # the operator's shell: the villa's Cycles renders were env-gated, so a
     # plain run silently produced a release without them.
     env_set: dict[str, str] = dc_field(default_factory=dict)
+    # extra environment for particular profiles, e.g. the Blender step
+    # renders its PNGs only under `all`
+    env_by_profile: dict[str, dict[str, str]] = dc_field(default_factory=dict)
+    # the CHEAPEST profile that includes this step
+    profile: str = "web"
     cache: bool = True
+
+    def env_for(self, profile: str) -> dict[str, str]:
+        return {**self.env_set, **self.env_by_profile.get(profile, {})}
+
+    def in_profile(self, profile: str) -> bool:
+        return PROFILES.index(self.profile) <= PROFILES.index(profile)
     # does this step import archicad_builder? Hashing the framework for
     # steps that don't (Blender scripts run in Blender's own interpreter,
     # fetch_assets only touches the network) meant an edit to publish.py
@@ -125,10 +142,24 @@ def load_pipeline(project_dir: Path) -> tuple[dict, list[Step]]:
             optional_outputs=list(entry.get("optional_outputs", [])),
             env=list(entry.get("env", [])),
             env_set={k: str(v) for k, v in entry.get("env_set", {}).items()},
+            env_by_profile={prof: {k: str(v) for k, v in vals.items()}
+                            for prof, vals in
+                            entry.get("env_by_profile", {}).items()},
+            profile=entry.get("profile", "web"),
             cache=bool(entry.get("cache", True)),
             framework=entry.get("framework")))
     if not steps:
         raise PipelineError(f"{cfg_path} declares no steps")
+    for st in steps:
+        if st.profile not in PROFILES:
+            raise PipelineError(
+                f"step {st.name!r} declares profile {st.profile!r} — "
+                f"known: {', '.join(PROFILES)}")
+        for prof in st.env_by_profile:
+            if prof not in PROFILES:
+                raise PipelineError(
+                    f"step {st.name!r} has env_by_profile for unknown "
+                    f"profile {prof!r}")
 
     seen: set[str] = set()
     claimed: dict[str, str] = {}
@@ -248,7 +279,9 @@ def _env_snapshot(step: Step) -> dict[str, str]:
 
 
 def _action_digest(step: Step, project_dir: Path, argv: list[str],
-                   tools: str, env_values: dict[str, str] | None = None) -> str:
+                   tools: str, env_values: dict[str, str] | None = None,
+                   *, profile: str = DEFAULT_PROFILE) -> str:
+    env_set = step.env_for(profile)
     h = hashlib.sha256()
     h.update(f"schema={SCHEMA}\n".encode())
     h.update(("argv=" + "\x00".join(argv) + "\n").encode())
@@ -257,8 +290,8 @@ def _action_digest(step: Step, project_dir: Path, argv: list[str],
     values = _env_snapshot(step) if env_values is None else env_values
     for name in step.env:
         h.update(f"env:{name}={values.get(name, '\x00UNSET')}\n".encode())
-    for name in sorted(step.env_set):
-        h.update(f"envset:{name}={step.env_set[name]}\n".encode())
+    for name in sorted(env_set):
+        h.update(f"envset:{name}={env_set[name]}\n".encode())
     # the step's own script is an implicit input — editing make_walkthrough
     # must rebuild the walkthrough even though building.json is untouched
     for token in argv[1:]:
@@ -360,9 +393,25 @@ def freshness_problems(project_dir: Path) -> list[str]:
     if not state.get("complete"):
         return ["the last pipeline run was incomplete — run "
                 f"`archicad-builder pipeline {project_dir.name}`"]
+    built = state.get("profile", DEFAULT_PROFILE)
     problems = []
     tools_cache: dict = {}
     for step in steps:
+        # A step outside the built profile is fine ONLY if it left nothing
+        # behind. If its artifacts are on disk they would be shipped, so
+        # they still have to be current — that is how a `web` rebuild after
+        # a model change gets caught holding an X-ray of the old building.
+        if not step.in_profile(built):
+            present = [rel for rel in step.all_outputs
+                       if (project_dir / rel).is_file()]
+            if not present:
+                continue
+            problems.append(
+                f"{step.name}: {', '.join(present)} on disk but not built by "
+                f"the {built!r} profile — run `archicad-builder pipeline "
+                f"{project_dir.name} --profile {step.profile}`, or delete "
+                "them to publish without")
+            continue
         try:
             argv, uses_blender = _resolve_argv(
                 step, project_dir, cfg.get("model", ""), project_dir.name)
@@ -370,7 +419,7 @@ def freshness_problems(project_dir: Path) -> list[str]:
             digest = _action_digest(
                 step, project_dir, argv,
                 _tool_versions(argv, tools_cache, uses_blender=uses_blender),
-                env_values=recorded_env)
+                env_values=recorded_env, profile=built)
         except PipelineError as exc:
             problems.append(f"{step.name}: {exc}")
             continue
@@ -433,9 +482,13 @@ class Lock:
 
 
 def run_pipeline(project_dir: Path, *, force: bool = False,
-                 from_step: str | None = None,
-                 list_only: bool = False) -> list[StepRun]:
-    cfg, steps = load_pipeline(project_dir)
+                 from_step: str | None = None, list_only: bool = False,
+                 profile: str = DEFAULT_PROFILE) -> list[StepRun]:
+    if profile not in PROFILES:
+        raise PipelineError(
+            f"unknown profile {profile!r} — known: {', '.join(PROFILES)}")
+    cfg, all_steps = load_pipeline(project_dir)
+    steps = [s for s in all_steps if s.in_profile(profile)]
     names = [s.name for s in steps]
     if from_step and from_step not in names:
         raise PipelineError(
@@ -459,7 +512,8 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
                                          project_dir.name)
                 digest = _action_digest(
                     step, project_dir, argv,
-                    _tool_versions(argv, tools_cache, uses_blender=ub))
+                    _tool_versions(argv, tools_cache, uses_blender=ub),
+                    profile=profile)
                 why = _stale_reason(step, project_dir, state, digest)
                 if why and step.cache:
                     raise PipelineError(
@@ -471,7 +525,8 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
                                                project_dir.name)
             tools = _tool_versions(argv, tools_cache,
                                    uses_blender=uses_blender)
-            digest = _action_digest(step, project_dir, argv, tools)
+            digest = _action_digest(step, project_dir, argv, tools,
+                                    profile=profile)
             why = None if force else _stale_reason(step, project_dir, state,
                                                    digest)
             if why is None and not force:
@@ -496,10 +551,10 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
             # (Gemini review 2026-08-09) — hence BaseException.
             restore = True
             try:
+                step_env = step.env_for(profile)
                 proc = subprocess.run(
                     argv, cwd=project_dir,
-                    env=({**os.environ, **step.env_set} if step.env_set
-                         else None))
+                    env=({**os.environ, **step_env} if step_env else None))
                 if proc.returncode != 0:
                     raise PipelineError(
                         f"step {step.name!r} failed (exit {proc.returncode}): "
@@ -528,7 +583,8 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
 
             # re-derive the digest AFTER the run: an input edited during a
             # long step would otherwise be recorded as already built
-            after = _action_digest(step, project_dir, argv, tools)
+            after = _action_digest(step, project_dir, argv, tools,
+                                   profile=profile)
             state.setdefault("steps", {})[step.name] = {
                 "action": after,
                 "outputs": _output_hashes(step, project_dir),
@@ -537,6 +593,9 @@ def run_pipeline(project_dir: Path, *, force: bool = False,
             _write_state(project_dir, state)
             results.append(StepRun(step.name, True, why or "forced"))
 
+        # the release gate needs to know WHICH build this was: a `web` run
+        # ships no X-ray, and that must not look like a broken `fem` run
+        state["profile"] = profile
         state["complete"] = (start == 0)   # a partial run is not a release
         _write_state(project_dir, state)
     return results
