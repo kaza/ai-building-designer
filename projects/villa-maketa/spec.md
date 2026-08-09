@@ -256,29 +256,27 @@ inward pair), Master desk, Room2 wardrobe and both loungers moved.
 
 ## Rendering & viewing
 
-Full pipeline — ORDER MATTERS (`ifc_to_obj` reads the IFC, so export first):
+One command (specs/project-pipeline.md) — it knows the order, skips what
+it can prove is unchanged, and refuses to let a stale artifact reach the
+publish step:
 
 ```bash
-.venv/bin/python projects/villa-maketa/fetch_assets.py                 # 0. CC0 furniture (gitignored cache)
-.venv/bin/python projects/villa-maketa/build.py                        # 1. JSON
-.venv/bin/python -m archicad_builder validate villa-maketa             # 2. gate
-.venv/bin/python -m archicad_builder render villa-maketa               # 3. 2D plan
-.venv/bin/python projects/villa-maketa/render_furnished_plan.py        # 4. 2D + furniture
-.venv/bin/python -m archicad_builder export villa-maketa               # 5. IFC
-.venv/bin/python projects/villa-maketa/ifc_to_obj.py                   # 6. OBJ for Blender
-/Applications/Blender.app/Contents/MacOS/Blender -b -P \
-    projects/villa-maketa/render_blender.py                            # 7. blend (Cycles PNGs opt-in)
-/Applications/Blender.app/Contents/MacOS/Blender -b \
-    projects/villa-maketa/output/villa.blend \
-    -P projects/villa-maketa/export_glb.py                             # 8. GLB (reads villa.blend)
-.venv/bin/python projects/villa-maketa/make_walkthrough.py            # 9. walkthrough HTML
-.venv/bin/python projects/villa-maketa/check_furniture.py             # 10. W100 gate (exit 1 on violations)
+.venv/bin/python -m archicad_builder pipeline villa-maketa      # everything
+.venv/bin/python -m archicad_builder pipeline villa-maketa --list   # just the order
+.venv/bin/python -m archicad_builder freshness villa-maketa     # publishable?
 ```
 
-Step 7 is CHEAP by default (owner 2026-08-06: the walkthrough is the product,
-regenerated every run; the ~4 min Cycles PNGs are opt-in): it saves
-villa.blend and stops. `VILLA_FULL_RENDER=1` also renders perspective.png +
-top_down.png.
+The order lives in `pipeline.toml` (13 steps, each declaring what it
+reads and writes), not in this document — a hand-written list drifts,
+and this one did: it used to omit `loads` and `fem` even after
+publishing started refusing a mismatched `fem-field.json`. A full clean
+run is ~13 min (Blender ~1 min, FEM ~8 min); a no-op re-run is ~2 s.
+
+The `blend` step is CHEAP by default (owner 2026-08-06: the walkthrough is
+the product, regenerated every run; the ~4 min Cycles PNGs are opt-in): it
+saves villa.blend and stops. `VILLA_FULL_RENDER=1` also renders
+perspective.png + top_down.png — the step declares that variable, so
+flipping it re-runs the render instead of silently reusing the cheap one.
 
 Outputs (all in `output/`, gitignored, regenerable):
 

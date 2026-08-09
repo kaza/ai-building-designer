@@ -104,12 +104,23 @@ def _output(data: dict) -> None:
 # ---------------------------------------------------------------------------
 
 @app.command()
-def validate(project: str = typer.Argument(..., help="Project directory name")):
+def validate(
+    project: str = typer.Argument(..., help="Project directory name"),
+    strict: bool = typer.Option(
+        False, "--strict",
+        help="Exit 1 when unwaived errors remain (for pipeline gates)."),
+):
     """Run all validators on a building."""
     building = _load_building(project)
     waivers = _load_project_waivers(project)
     result = _validate_json(building, waivers)
     _output({"ok": True, "validation": result})
+    # Without --strict this command has ALWAYS exited 0, which made the
+    # "validate" step in the documented pipeline a gate that could never
+    # fail (Codex plan review 2026-08-09). Default behaviour is unchanged
+    # because agents parse the JSON.
+    if strict and result.get("errors"):
+        raise typer.Exit(1)
 
 
 @app.command()
@@ -737,6 +748,50 @@ def generate(
         "stories": len(building.stories),
         "validation": validation,
     })
+
+
+@app.command("pipeline")
+def pipeline_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    force: bool = typer.Option(False, "--force", help="Run every step."),
+    from_step: str = typer.Option(None, "--from",
+                                  help="Resume at this step (prefix must be fresh)."),
+    list_only: bool = typer.Option(False, "--list",
+                                   help="Print the order without running."),
+):
+    """Rebuild a project: every step, in order, skipping only what it can
+    prove is unchanged (specs/project-pipeline.md)."""
+    from archicad_builder.pipeline import PipelineError, run_pipeline
+    project_dir = PROJECTS_DIR / project
+    try:
+        results = run_pipeline(project_dir, force=force, from_step=from_step,
+                               list_only=list_only)
+    except PipelineError as exc:
+        typer.echo(f"pipeline: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    for r in results:
+        mark = "->" if r.ran else "  "
+        typer.echo(f"{mark} {r.name:20} {r.reason}")
+    if not list_only:
+        typer.echo(f"pipeline complete: {sum(r.ran for r in results)} ran, "
+                   f"{sum(not r.ran for r in results)} skipped")
+
+
+@app.command("publish")
+def publish_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Publish built artifacts to the cloud (specs/web-deployment.md)."""
+    from archicad_builder.publish import publish
+    publish(project)
+
+
+@app.command("freshness")
+def freshness_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Report why a project's artifacts are (not) publishable."""
+    from archicad_builder.pipeline import freshness_problems
+    problems = freshness_problems(PROJECTS_DIR / project)
+    _output({"ok": not problems, "problems": problems})
+    if problems:
+        raise typer.Exit(1)
 
 
 # ---------------------------------------------------------------------------

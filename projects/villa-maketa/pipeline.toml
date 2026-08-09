@@ -1,0 +1,95 @@
+# Villa Maketa build order (specs/project-pipeline.md).
+#
+# ORDER MATTERS and the ordering bugs were expensive: ifc_to_obj reads the
+# IFC, export_glb reads the .blend that render_blender writes. Declaring
+# inputs/outputs is what lets the runner prove a step can be skipped —
+# an undeclared input is a stale artifact waiting to happen.
+#
+# perspective.png / top_down.png are optional_outputs: they only exist when
+# VILLA_FULL_RENDER=1, but publishing globbed them anyway, so two-day-old
+# Cycles renders travelled beside a fresh model. Optional outputs are not
+# required to exist and ARE hashed when they do.
+
+[project]
+model = "villa"          # artifact basename: villa.blend, villa.glb
+
+[[step]]
+name = "assets"          # CC0 furniture cache (gitignored)
+run = ["{python}", "fetch_assets.py"]
+outputs = ["assets/licenses.json"]   # written only after every asset arrived
+
+[[step]]
+name = "build"           # spec dimensions -> building.json
+run = ["{python}", "build.py"]
+framework = true   # imports archicad_builder
+outputs = ["building.json"]
+
+[[step]]
+name = "validate"        # gate: --strict so unwaived errors stop the build
+run = ["{python}", "-m", "archicad_builder", "validate", "{project}", "--strict"]
+inputs = ["building.json", "validation.json"]
+cache = false
+
+[[step]]
+name = "furniture-gate"  # W100 door-swing clearance; cheap, so fail early
+run = ["{python}", "check_furniture.py"]
+framework = true   # imports archicad_builder
+inputs = ["building.json", "furniture.json"]
+cache = false
+
+[[step]]
+name = "plans"           # 2D architectural plans
+run = ["{python}", "-m", "archicad_builder", "render", "{project}"]
+inputs = ["building.json"]
+outputs = ["output/floor_ground_floor.png", "output/floor_garage.png"]
+
+[[step]]
+name = "plans-furnished"
+run = ["{python}", "render_furnished_plan.py"]
+framework = true   # imports archicad_builder
+inputs = ["building.json", "furniture.json"]
+outputs = ["output/floor_ground_floor_furnished.png"]
+
+[[step]]
+name = "ifc"
+run = ["{python}", "-m", "archicad_builder", "export", "{project}"]
+inputs = ["building.json"]
+outputs = ["output/villa-maketa.ifc"]
+
+[[step]]
+name = "obj"             # tessellated mesh for Blender
+run = ["{python}", "ifc_to_obj.py"]
+inputs = ["output/villa-maketa.ifc"]
+outputs = ["output/villa-maketa.obj"]
+
+[[step]]
+name = "blend"           # materials + furniture; PNGs only under VILLA_FULL_RENDER
+run = ["{blender}", "-b", "-P", "render_blender.py"]
+inputs = ["output/villa-maketa.obj", "furniture.json", "assets/licenses.json"]
+outputs = ["output/villa.blend"]
+optional_outputs = ["output/perspective.png", "output/top_down.png"]
+env = ["VILLA_FULL_RENDER"]
+
+[[step]]
+name = "glb"             # reads the .blend the previous step wrote
+run = ["{blender}", "-b", "output/{model}.blend", "-P", "export_glb.py"]
+inputs = ["output/villa.blend"]
+outputs = ["output/villa.glb"]
+
+[[step]]
+name = "loads"           # strip load-takedown engine
+run = ["{python}", "-m", "archicad_builder", "loads", "{project}"]
+inputs = ["building.json"]
+outputs = ["output/loads.json"]
+
+[[step]]
+name = "fem"             # plate FEM (~8 min) + standalone X-ray page
+run = ["{python}", "-m", "archicad_builder", "fem", "{project}"]
+inputs = ["building.json"]
+outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]
+
+[[step]]
+name = "walkthrough"     # the browser deliverable; embeds loads.json
+run = ["{python}", "make_walkthrough.py"]
+inputs = ["output/villa.glb", "output/loads.json", "building.json"]
+outputs = ["output/walkthrough.html"]

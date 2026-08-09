@@ -26,7 +26,7 @@ FastAPI app (pages + feedback inbox) and stores the heavy bytes in blob.
 ─────────────────────────────────────────────────────────────────────────
  feedback poll (psql) ◄───────────────  Postgres: building_designer DB
  implement → verify → commit → push ─►  GitHub (model + code history)
- webapp/publish.py <project> ────────┬► blob `projects` container:
+ archicad-builder publish <proj> ────┬► blob `projects` container:
    1. refuse if tree dirty/unpushed  │    villa-<sha>.glb, walkthrough-
    2. artifacts SHA-named FIRST      │    <sha>.html, plan PNGs
    3. build.json LAST (the pointer) ─┘
@@ -95,7 +95,7 @@ psql "$DATABASE_URL" -c "SELECT id, comment, where_label FROM feedback \
   works unchanged in both worlds. The app *proxies* walkthrough.html
   from blob (never redirects it) to preserve that origin; the GLB is a
   307 redirect to blob so 30 MB never flows through the app.
-- **Publishing is a deliberate local CLI step** (`webapp/publish.py`),
+- **Publishing is a deliberate local CLI step** (`archicad-builder publish`),
   not a push side effect: refuse a dirty/unpushed tree; upload
   SHA-stamped artifacts FIRST, `build.json` LAST. build.json is the
   per-project release pointer the app reads (cached ≤15 s) — a
@@ -121,10 +121,13 @@ psql "$DATABASE_URL" -c "SELECT id, comment, where_label FROM feedback \
   we are a low-traffic tenant on both.
 
 ## Phases
-1. **Framework refactor** (roadmap): `render / export-glb / walkthrough /
-   serve / publish <project>` as framework commands with per-project
-   config; one-command rebuild (the stale-pipeline killer); villa =
-   worked example. publish.py moves from webapp/ into the CLI then.
+1. ~~**Framework refactor**~~ ✅ shipped 2026-08-09: `archicad-builder
+   pipeline <project>` runs every step in a declared order and skips only
+   what it can prove is unchanged; `publish` moved from `webapp/` into the
+   CLI and now refuses artifacts the pipeline did not produce cleanly.
+   Design and freshness rules: [project-pipeline.md](project-pipeline.md).
+   The villa's rendering scripts stay at the project layer until a second
+   project needs a walkthrough (that decision is logged there).
 2. ~~Cloud MVP~~ ✅ shipped 2026-08-08 (this page).
 3. **Later, on demand**: auth, instant rollback UI, agent auto-poll
    daemon, multi-user.
