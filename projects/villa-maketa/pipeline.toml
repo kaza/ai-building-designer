@@ -32,7 +32,7 @@ cache = false
 
 [[step]]
 name = "furniture-gate"  # W100 door-swing clearance; cheap, so fail early
-run = ["{python}", "check_furniture.py"]
+run = ["{python}", "-m", "archicad_builder", "check-furniture", "{project}"]
 framework = true   # imports archicad_builder
 inputs = ["building.json", "furniture.json"]
 cache = false
@@ -45,7 +45,7 @@ outputs = ["output/floor_ground_floor.png", "output/floor_garage.png"]
 
 [[step]]
 name = "plans-furnished"
-run = ["{python}", "render_furnished_plan.py"]
+run = ["{python}", "-m", "archicad_builder", "render-furnished", "{project}", "--story", "Ground Floor"]
 framework = true   # imports archicad_builder
 inputs = ["building.json", "furniture.json"]
 outputs = ["output/floor_ground_floor_furnished.png"]
@@ -58,7 +58,7 @@ outputs = ["output/villa-maketa.ifc"]
 
 [[step]]
 name = "obj"             # tessellated mesh for Blender
-run = ["{python}", "ifc_to_obj.py"]
+run = ["{python}", "-m", "archicad_builder", "export-obj", "{project}"]
 inputs = ["output/villa-maketa.ifc"]
 outputs = ["output/villa-maketa.obj"]
 

@@ -34,7 +34,7 @@ export is never a lost building.
 
 **Harder:** no import path from ArchiCAD — edits made downstream in CAD are lost by design,
 and that has to be said out loud to anyone who opens the IFC. Every new output format costs an
-exporter. Pipeline order matters (e.g. `ifc_to_obj` reads the IFC, so export must run first),
+exporter. Pipeline order matters (e.g. `export-obj` reads the IFC, so export must run first) and is declared in each project's `pipeline.toml` (specs/project-pipeline.md),
 which makes the documented step order load-bearing rather than advisory.
 
 ## Revisited 2026-08-06 — "shouldn't we work in IFC all the time?" (owner)

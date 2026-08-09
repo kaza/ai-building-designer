@@ -107,7 +107,7 @@ Kitchen↔Living is open plan — no wall between them.
 | 2026-08-03 | Second bath modeled as WC (toilet type) | E045 requires separate WC for 2+ bedrooms; maquette's 2nd bath has WC fixtures |
 | 2026-08-04 | Guest bathroom ≥1.30m CLEAR between W11 and W9; shower 0.8×1.3 spans it | owner requirement; divider wall centerline at x=6.58 |
 | 2026-08-04 | Bath 1 shrinks to 4.2m² (E041b warning accepted) | consequence of the 1.30m guest bath; en-suite, not adaptable housing |
-| 2026-08-04 | Furnished plan via overlay script (`render_furnished_plan.py`) | reuses repo renderer, no repo change; sanitary ware + furniture from furniture.json |
+| 2026-08-04 | Furnished plan via overlay (now `archicad-builder render-furnished`, promoted 2026-08-09) | reuses repo renderer, no repo change; sanitary ware + furniture from furniture.json |
 | 2026-08-03 | Validators: Austrian-block rules that don't fit a villa are accepted as warnings | Villa ≠ Wohnblock |
 
 ## Preview v2 (maquette-look renders)
@@ -150,7 +150,7 @@ lighting good enough to read the space.
 | 1 | `export_glb.py` | Blender headless: load `output/villa.blend`, drop render-only helpers (cameras, sky), make materials glTF-safe (procedural textures don't export — set a flat per-material `baseColorFactor` from a name→color map, same palette as render_blender.py), export `output/villa.glb` |
 | 2 | `make_walkthrough.py` | plain-Python templating: validates the GLB container and writes `output/walkthrough.html` — Three.js (pinned CDN import map), `PointerLockControls`, WASD + mouse look, Shift = fast, Space/C = up/down; `HemisphereLight` + `DirectionalLight` sun; start camera at the SE entrance looking north; loads `./villa.glb` at runtime |
 | 3 | Pipeline | two new steps after the Blender render (order matters: reads villa.blend) |
-| 4 | `serve.py` | serves `output/` (port 8123) + `POST /feedback`: the F key freezes the view, the owner draws screen-space strokes and comments, the page POSTs a composite PNG + meta.json (camera pose, `#debug=` hash, normalized strokes with raycast element tags, comment) → `feedback/<NNN>/` (project level — owner input, not a regenerable artifact); PNG download fallback when the POST fails |
+| 4 | `archicad-builder serve <project>` (was serve.py; promoted 2026-08-09) | serves `output/` (port 8123) + `POST /feedback`: the F key freezes the view, the owner draws screen-space strokes and comments, the page POSTs a composite PNG + meta.json (camera pose, `#debug=` hash, normalized strokes with raycast element tags, comment) → `feedback/<NNN>/` (project level — owner input, not a regenerable artifact); PNG download fallback when the POST fails |
 
 Decisions:
 - **Free-fly, no collision** — walking + wall collision is backlog; free-fly answers
@@ -188,7 +188,7 @@ improved rendering". Two deliverables:
 | 1 | `fetch_assets.py` | downloads a PINNED list of CC0 models from the Poly Haven API (`api.polyhaven.com/files/<id>`, glTF + 1k textures) into `assets/<id>/` (gitignored — reproducible via script, not committed binaries) |
 | 2 | `furniture.json` | items gain optional `"asset": "<id>"`; items without it keep today's procedural boxes (per-item migration) |
 | 3 | `render_blender.py` | asset loader: import glTF, uniform-scale to the item's footprint, drop to floor z, rotate per `facing`; fallback = existing procedural path |
-| 4 | `render_furnished_plan.py` | parametric matplotlib symbols per type (bed w/ pillows + fold at the `head` edge, sofa backrest + cushions, toilet oriented by `facing`, sink, shower X, tub with drain, table + chairs, wardrobe rail) replacing plain rectangles — backlog #6 done in the same pass |
+| 4 | furnished-plan symbols (now framework: `export/furnished_plan.py`) | parametric matplotlib symbols per type (bed w/ pillows + fold at the `head` edge, sofa backrest + cushions, toilet oriented by `facing`, sink, shower X, tub with drain, table + chairs, wardrobe rail) replacing plain rectangles — backlog #6 done in the same pass |
 | 5 | Walkthrough | no code change — the page fetches `villa.glb` at runtime, and export_glb.py preserves TEX_IMAGE materials; GLB grew 0.6 → 8.5MB with 1k textures, fine for the separate-file delivery |
 
 **Asset set v2 (owner, 2026-08-05: "modern, not Louis XIV — procedural is
@@ -233,7 +233,7 @@ Plan-review decisions (Gemini + Codex, 2026-08-05):
 | 2D symbols edge-parametrized per N/S/E/W facing, drawn directly in data coords | everything is axis-aligned, so per-edge geometry needs no rotation transform at all (simpler than the Affine2D route Codex suggested) |
 
 W100 door-swing gate ([framework spec](../../specs/furniture-door-clearance.md)):
-`check_furniture.py` builds footprints from furniture.json (id = item name,
+`archicad-builder check-furniture` builds footprints from furniture.json (id = item name,
 made unique with `#n` on duplicates), runs the GF check, exits 1 on findings —
 pipeline step 10. The very first run found **5 real violations** (0.18–0.71 m²);
 fixes: both 1.4 m terrace doors became outward-swinging (architecturally

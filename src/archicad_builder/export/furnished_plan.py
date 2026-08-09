@@ -1,5 +1,10 @@
 """Architectural floor plan WITH furniture symbols.
 
+Promoted from projects/villa-maketa/render_furnished_plan.py on
+2026-08-09: 280 lines that mentioned the villa exactly once. The symbol
+drawers (sofa, bed, toilet, bathtub, ...) are generic; WHICH furniture a
+building has, and where, is project data in furniture.json.
+
 Reuses the repo's floorplan renderer, keeps the matplotlib figure alive
 (plt.close is suppressed during the call), then draws architectural furniture
 symbols from furniture.json on top and saves a second PNG.
@@ -7,7 +12,6 @@ symbols from furniture.json on top and saves a second PNG.
 Symbols are drawn directly in data coordinates, parametrized by the item's
 N/S/E/W facing (axis-aligned by construction) — no affine rotation involved.
 
-Run: .venv/bin/python projects/villa-maketa/render_furnished_plan.py
 """
 
 import json
@@ -21,8 +25,6 @@ from matplotlib.patches import Ellipse, FancyBboxPatch, Rectangle
 from archicad_builder.export import floorplan
 from archicad_builder.models import Building
 
-HERE = Path(__file__).parent
-OUT = HERE / "output" / "floor_ground_floor_furnished.png"
 
 STYLE = {
     # type: (face color, edge color)
@@ -261,20 +263,19 @@ def draw_item(ax, item):
                 color="#4E342E", zorder=Z + 3)
 
 
-building = Building.load(HERE / "building.json")
-furniture = json.loads((HERE / "furniture.json").read_text())
+def render_furnished_plan(story, furniture_items, out_path, title=None):
+    """Base plan + furniture symbols on top, saved as one PNG.
 
-# Render the base plan but keep the figure open so we can draw on it
-story = building.get_story("Ground Floor")
-with patch.object(floorplan.plt, "close", lambda *a, **k: None):
-    floorplan.render_floorplan(story, OUT, title="Ground Floor — furnished")
-
-fig = plt.gcf()
-ax = fig.axes[0]
-
-for item in furniture["items"]:
-    draw_item(ax, item)
-
-fig.savefig(OUT, dpi=150, bbox_inches="tight")
-plt.close(fig)
-print(f"Saved {OUT}")
+    The base renderer closes its figure; we suppress that so the symbols
+    can be drawn onto the same axes before saving.
+    """
+    with patch.object(floorplan.plt, "close", lambda *a, **k: None):
+        floorplan.render_floorplan(
+            story, out_path, title=title or f"{story.name} — furnished")
+    fig = plt.gcf()
+    ax = fig.axes[0]
+    for item in furniture_items:
+        draw_item(ax, item)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return out_path

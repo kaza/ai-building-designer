@@ -750,6 +750,85 @@ def generate(
     })
 
 
+@app.command("export-obj")
+def export_obj_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Tessellate the project's IFC into an OBJ for Blender."""
+    from archicad_builder.export.obj import ifc_to_obj
+    out = PROJECTS_DIR / project / "output"
+    ifc = out / f"{project}.ifc"
+    if not ifc.is_file():
+        typer.echo(f"no IFC at {ifc} — run `export {project}` first", err=True)
+        raise typer.Exit(1)
+    res = ifc_to_obj(ifc, out / f"{project}.obj", label=project)
+    for skip in res.skipped:
+        typer.echo(f"skipped {skip}", err=True)
+    _output({"ok": True, "products": res.products, "vertices": res.vertices,
+             "skipped": len(res.skipped),
+             "written": str(out / f"{project}.obj")})
+
+
+@app.command("check-furniture")
+def check_furniture_cmd(project: str = typer.Argument(..., help="Project directory name")):
+    """Furniture must not block door swings (W100). Exit 1 on violations."""
+    import json as _json
+
+    from archicad_builder.validators.clearance import (
+        FurnitureFootprint,
+        check_furniture_clearance,
+    )
+    building = _load_building(project)
+    path = PROJECTS_DIR / project / "furniture.json"
+    if not path.is_file():
+        _output({"ok": True, "findings": [], "note": "no furniture.json"})
+        return
+    items = _json.loads(path.read_text())["items"]
+    names = [i["name"] for i in items]
+    footprints = [
+        FurnitureFootprint(
+            i["name"] if names.count(i["name"]) == 1 else f"{i['name']}#{idx}",
+            i["name"], *i["bounds"])
+        for idx, i in enumerate(items)
+    ]
+    # every storey, not just the one the villa happened to furnish
+    findings = [f for story in building.stories
+                for f in check_furniture_clearance(story, footprints)]
+    _output({"ok": not findings,
+             "findings": [{"severity": f.severity, "door": f.element_id,
+                           "message": f.message} for f in findings]})
+    if findings:
+        raise typer.Exit(1)
+
+
+@app.command("render-furnished")
+def render_furnished_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    story: str = typer.Option(None, "--story", help="Storey to render."),
+):
+    """Floor plan with furniture symbols drawn on top."""
+    import json as _json
+
+    from archicad_builder.export.furnished_plan import render_furnished_plan
+    building = _load_building(project)
+    target = building.get_story(story) if story else building.stories[-1]
+    items = _json.loads(
+        (PROJECTS_DIR / project / "furniture.json").read_text())["items"]
+    out = (PROJECTS_DIR / project / "output"
+           / f"floor_{target.name.lower().replace(' ', '_')}_furnished.png")
+    render_furnished_plan(target, items, out)
+    _output({"ok": True, "written": str(out), "items": len(items)})
+
+
+@app.command("serve")
+def serve_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    port: int = typer.Option(8123, "--port"),
+):
+    """Serve the walkthrough locally and receive F-key feedback."""
+    from archicad_builder.serve import serve
+    root = PROJECTS_DIR / project
+    serve(root / "output", root / "feedback", port=port)
+
+
 @app.command("pipeline")
 def pipeline_cmd(
     project: str = typer.Argument(..., help="Project directory name"),

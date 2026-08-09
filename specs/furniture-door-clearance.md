@@ -34,7 +34,7 @@ furniture item in furniture.json until the warning clears.
   data and runs the check as a pipeline gate (exit 1 on findings; the
   checked-in project must exit 0 — violations are fixed by MOVING furniture).
   Worked example: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md)
-  § Furniture v2 (`check_furniture.py`).
+  § Furniture v2. CLI: `archicad-builder check-furniture <project>` (exit 1 on violations; promoted from the villa 2026-08-09).
 
 ## Boundaries & edge cases
 - **W100 is a conservative plan-view (2D) check** — furniture height is
