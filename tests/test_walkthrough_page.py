@@ -95,14 +95,14 @@ class TestXrayReadability:
 
 
 class TestStructureView:
-    """G cycles off -> structure -> structure+ghost; one mode owns the
-    materials at a time (specs/browser-walkthrough.md 2026-08-10)."""
+    """G toggles the construction X-ray: everything transparent, hard
+    edges (specs/browser-walkthrough.md 2026-08-10)."""
 
     def test_flag_set_parser_ignores_unknown_flags(self, template):
         assert "const flags = new Set(parts.slice(5));" in template
         assert "flags.has('xray')" in template
-        # old ,ghost links map onto the see-through state
-        assert "flags.has('ghost') ? 2 : (flags.has('struct') ? 1 : 0)" \
+        # legacy ,ghost links map onto the x-ray state
+        assert "(flags.has('struct') || flags.has('ghost')) ? 1 : 0" \
             in template
         assert "parts.length !== 5 && !xray" not in template
 
@@ -119,9 +119,14 @@ class TestStructureView:
         assert "if (e.code === 'KeyG' && !e.repeat) cycleStruct();" in template
         assert 'id="m-ghost"' in template
         assert "const BEARING = __BEARING__;" in template
-        assert ",struct'" in template and ",ghost'" in template
+        assert ",struct'" in template
 
-    def test_furniture_hidden_and_bearing_tinted(self, template):
+    def test_everything_transparent_with_edges(self, template):
+        # every structural element gets a translucent clone + edge lines;
+        # furniture is hidden, nothing stays opaque
+        assert "EdgesGeometry" in template
         assert "n.visible = false;" in template
-        assert "BEARING_TINT" in template
-        assert "isWall && BEARING[clean]" in template
+        assert "opacity: bearing ? 0.16 : (isWall ? 0.10 : 0.06)" in template
+        assert "AdditiveBlending" in template
+        assert "scene.background = new THREE.Color(0x04070d);" in template
+        assert "_structEdges" in template

@@ -223,8 +223,8 @@ const INITIAL_VIEW = (() => {
   // so the camera survives links from newer builds (Codex review — the
   // old positional parse threw the whole view away)
   const flags = new Set(parts.slice(5));
-  // old ,ghost links map onto the see-through state of the new cycle
-  const struct = flags.has('ghost') ? 2 : (flags.has('struct') ? 1 : 0);
+  // legacy ,ghost links map onto the x-ray state
+  const struct = (flags.has('struct') || flags.has('ghost')) ? 1 : 0;
   return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4],
            xray: flags.has('xray'), struct };
 })();
@@ -233,8 +233,7 @@ let _lastViewHash = '';
 function writeViewHash() {
   if (!viewHashOn || DEBUG_MODE) return;
   const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '')
-    + (structWanted >= 1 ? ',struct' : '')
-    + (structWanted === 2 ? ',ghost' : '');
+    + (structWanted ? ',struct' : '');
   if (spec === _lastViewHash) return;  // change detector: Safari caps
   try {                                // replaceState at 100 calls / 30 s
     history.replaceState(history.state, '', '#v=' + spec);
@@ -589,40 +588,26 @@ function _ghost(n) {
                                          : mk(n.material);
 }
 
-// ── Structure view (G): the construction, not the furniture ──────────
-// Cycles off -> structure -> structure+ghost (owner 2026-08-10, the
-// ArchiCAD "Core of Load-Bearing Elements Only" idea):
-//   1 structure:       furniture/decor HIDDEN, walls solid, load-bearing
-//                      walls tinted so the bearing lines read at a glance
-//   2 structure+ghost: additionally non-bearing walls/slabs/roofs go
-//                      translucent — bearing walls seen THROUGH the rest
-// Structure and FEM X-ray both restyle materials, so exactly ONE owns the
-// model at a time: entering FEM unwinds this synchronously BEFORE its
-// fetch, and leaving FEM re-applies the wanted state.
-let structWanted = 0;
+// ── Construction X-ray (G): everything transparent, edges hard ──────
+// Owner 2026-08-10: "in xray all should be transparent somehow". The
+// alignment information lives in the OUTLINES, not the faces (Revit
+// wireframe / hidden-line idea): every structural element goes faint
+// (bearing walls a stronger red so the bearing lines still read),
+// doors/windows go faint too, furniture/decor is hidden, and every
+// element gets crisp edge lines. One state: off -> x-ray.
+// FEM stress X-ray still owns the materials exclusively: entering it
+// unwinds this synchronously; leaving it re-applies the wanted state.
+let structWanted = 0;          // 0 off, 1 construction x-ray
 let structApplied = 0;
 const _structSaved = new Map();   // uuid -> {material?, visible?}
-const BEARING_TINT = 0x9e2b25;    // brick red — reads as "carries load"
+const _structEdges = [];          // LineSegments overlays, removed on exit
+const _structScene = {};          // saved background/fog
 function _ifcBase(n) {
   for (let o = n; o; o = o.parent) {
     const base = (o.name || '').split('.')[0];
     if (base.startsWith('Ifc')) return base;
   }
   return null;
-}
-function _mkGhostM(m) {
-  const g = m.clone();
-  g.transparent = true;
-  g.opacity = 0.12;
-  g.depthWrite = false;
-  return g;
-}
-function _mkBearingM(m) {
-  const b = m.clone();
-  if (b.color) b.color.setHex(BEARING_TINT);
-  b.transparent = false;
-  b.opacity = 1;
-  return b;
 }
 function _mapMat(mat, fn) {
   return Array.isArray(mat) ? mat.map(fn) : fn(mat);
@@ -631,31 +616,54 @@ function _applyStruct(mode) {
   if (!modelRoot || structApplied === mode) return;
   _unapplyStruct();
   if (!mode) return;
-  modelRoot.traverse((n) => {
-    if (!n.isMesh) return;
+  const targets = [];
+  modelRoot.traverse((n) => { if (n.isMesh) targets.push(n); });
+  for (const n of targets) {
     const base = _ifcBase(n);
     if (!base) {
       // furniture, stair-tower decor, ground planes — construction noise
       _structSaved.set(n.uuid, { visible: n.visible });
       n.visible = false;
-      return;
+      continue;
     }
     const clean = base.replace(/^Ifc\w+?_/, '');
     const isWall = base.startsWith('IfcWall');
-    const isStruct = isWall || base.startsWith('IfcSlab')
-      || base.startsWith('IfcRoof');
-    if (isWall && BEARING[clean]) {
-      _structSaved.set(n.uuid, { material: n.material });
-      n.material = _mapMat(n.material, _mkBearingM);
-    } else if (mode === 2 && isStruct) {
-      _structSaved.set(n.uuid, { material: n.material });
-      n.material = _mapMat(n.material, _mkGhostM);
-    }
-  });
+    const bearing = isWall && BEARING[clean];
+    _structSaved.set(n.uuid, { material: n.material });
+    // hologram faces: additive glow on the black background (owner's
+    // reference images 2026-08-10) — bearing structure red, rest cyan
+    const faceHex = bearing ? 0xd64541 : 0x3fa7d6;
+    n.material = _mapMat(n.material, () => new THREE.MeshBasicMaterial({
+      color: faceHex, transparent: true,
+      opacity: bearing ? 0.16 : (isWall ? 0.10 : 0.06),
+      blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.DoubleSide }));
+    // glowing edges — misalignment shows as broken/offset lines
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(n.geometry, 30),
+      new THREE.LineBasicMaterial({
+        color: bearing ? 0xff6b5e : 0x7fdcff, transparent: true,
+        opacity: 0.9, blending: THREE.AdditiveBlending }));
+    n.add(edges);
+    _structEdges.push(edges);
+  }
+  // the hologram needs the dark room: swap sky/fog out, restore on exit
+  _structScene.background = scene.background;
+  _structScene.fog = scene.fog;
+  scene.background = new THREE.Color(0x04070d);
+  scene.fog = null;
   structApplied = mode;
 }
 function _unapplyStruct() {
   if (!structApplied) return;
+  scene.background = _structScene.background;
+  scene.fog = _structScene.fog;
+  for (const e of _structEdges) {
+    if (e.parent) e.parent.remove(e);
+    e.geometry.dispose();
+    e.material.dispose();
+  }
+  _structEdges.length = 0;
   modelRoot.traverse((n) => {
     const saved = _structSaved.get(n.uuid);
     if (!saved) return;
@@ -668,9 +676,9 @@ function _unapplyStruct() {
   _structSaved.clear();
   structApplied = 0;
 }
-const STRUCT_LABEL = ['off', 'on', 'ghost'];
+const STRUCT_LABEL = ['off', 'on'];
 function cycleStruct() {
-  structWanted = (structWanted + 1) % 3;
+  structWanted = (structWanted + 1) % 2;
   if (structuralMode === 'off') _applyStruct(structWanted);
   const btn = document.getElementById('m-ghost');
   if (btn) btn.textContent = 'Structure: ' + STRUCT_LABEL[structWanted];
@@ -1481,8 +1489,8 @@ if (location.hash.startsWith('#debug') && ready) {
       const mat = (n) => n && {
         color: n.material.color ? n.material.color.getHexString() : null,
         t: n.material.transparent, op: n.material.opacity };
-      return { meshes, hidden, bearing: mat(bearing),
-               partition: mat(partition),
+      return { meshes, hidden, edges: _structEdges.length,
+               bearing: mat(bearing), partition: mat(partition),
                furnVisible: furn ? furn.visible : null };
     },
     ghostProbe: () => {
