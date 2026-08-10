@@ -75,6 +75,14 @@ def _load_json(path: Path):
     return json.loads(path.read_text())
 
 
+def incomplete_count(html: str) -> int:
+    """Sections that make the report unfit to hand over: missing (NOT
+    RUN) or older than the building they describe (STALE). Counting only
+    NOT RUN let a fully stale report claim completeness (Codex re-review
+    2026-08-10)."""
+    return html.count("NOT RUN") + html.count("STALE —")
+
+
 def build_report(project_dir: Path) -> str:
     project_dir = Path(project_dir)
     building_path = project_dir / "building.json"

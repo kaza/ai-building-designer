@@ -67,7 +67,7 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        # 26 findings waived: villa-vs-block noise incl. garage-storey core
+        # 22 findings waived: villa-vs-block noise incl. garage-storey core
         # rules (E011/E012/E013), the wide garage vehicle door (W060), the
         # REAL Roof West deck cantilever (E065) pending the owner's
         # columns-vs-shorter-roof decision, 7x E062 — the ring beams
@@ -77,7 +77,9 @@ class TestValidateWaivers:
         # Table 9.3, E102 torsion): strengthening is an owner+engineer
         # decision pending the actual hazard ag and geotech report
         # (specs/seismic-lateral.md, project spec.md).
-        assert v["waived_count"] == 26
+        # (the garage is a rigid basement below the seismic base since the
+        # Codex re-review fix — its 4 seismic findings correctly vanished)
+        assert v["waived_count"] == 22
         assert {w["rule"] for w in v["waived"]} == {
             "W001", "W040", "W060", "E041b", "E011", "E012", "E013", "E065",
             "E062", "E100", "E101", "E102",

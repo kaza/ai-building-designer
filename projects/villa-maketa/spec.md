@@ -330,7 +330,7 @@ moves when they land.
 
 | Finding | Number | Meaning |
 |---|---|---|
-| E100 x-direction shear | GF capacity 272 kN vs demand 581 kN | the band windows ate the x-direction shear walls — strengthening (RC upgrade / confined masonry) is a design decision |
+| E100 x-direction shear | GF capacity 272 kN vs demand 581 kN | the band windows ate the x-direction shear walls — strengthening (RC upgrade / confined masonry) is a design decision. The garage is a rigid basement below the seismic base and is exempt (braced by soil) |
 | E101 URM acceptability | ag·S = 0.18 g beyond Table 9.3 | the villa will not be built as plain unreinforced masonry; structure type to be fixed with the engineer |
 | E102 torsion (GF) | e0 = 3.57 m vs 0.30·r = 2.11 m | stair tower half outside + one-sided garage wing; engineer runs a spatial model (the FEM X-ray is one) |
 | E105 (fixed in model) | Garage West footing 215 kPa @ 0.6 m | widened to 0.8 m — x=4.5 is the roof's bearing line |
@@ -348,7 +348,7 @@ with reasons, honest-gaps list.
 
 ## Accepted validation results
 
-**0 errors, 0 warnings, 26 waived, 0 stale.** The E044 false positives were fixed in
+**0 errors, 0 warnings, 22 waived, 0 stale.** The E044 false positives were fixed in
 the framework (specs/facade-detection.md); the villa-vs-block noise, the deliberate
 beam-less bands (E062), the deck cantilever (E065) and the seismic commission's real
 findings (E100/E101/E102 — see the seismic section above) are waived with reasons in

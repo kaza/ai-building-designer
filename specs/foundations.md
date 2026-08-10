@@ -43,8 +43,10 @@ capacity, checked for pressure, sliding and overturning.
    `(worst wall base line load from the strip engine + footing
    self-weight) / width > sigma_rd`. Uses the strip engine's
    station-sampled wall profiles — peaks, not averages.
-5. **E106 — sliding under base shear** (error, per direction):
-   `Fb > friction_mu · G` where G is the unfactored DEAD weight only
+5. **E106 — sliding under base shear** (error, ONE finding — the ELF
+   base shear is direction-independent, so direction labels would only
+   duplicate it): `Fb > friction_mu · G` where G is the unfactored
+   DEAD weight only
    (building + footings). Live load is never credited as favorable
    friction — ψE is a mass participation factor, not a resistance
    factor (Codex plan review). Passive earth pressure is ignored

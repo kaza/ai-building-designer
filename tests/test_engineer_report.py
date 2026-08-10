@@ -104,6 +104,28 @@ class TestReport:
         html = build_report(_project(tmp_path))
         assert "http://" not in html and "https://" not in html
 
+    def test_stale_sections_count_as_incomplete(self, tmp_path):
+        # the CLI reported incomplete_sections: 0 for a fully stale
+        # report (Codex re-review 2026-08-10)
+        import time
+
+        from archicad_builder.report import incomplete_count
+        proj = _project(tmp_path)
+        assert incomplete_count(build_report(proj)) == 1  # only FEM absent
+        time.sleep(0.05)
+        (proj / "building.json").touch()
+        assert incomplete_count(build_report(proj)) > 1
+
+    def test_invalid_project_toml_raises_config_error(self, tmp_path):
+        from archicad_builder.project_config import ConfigError
+        proj = _project(tmp_path)
+        (proj / "project.toml").write_text("[site]\nnot toml ===")
+        try:
+            build_report(proj)
+            raise AssertionError("expected ConfigError")
+        except ConfigError:
+            pass
+
     def test_stale_analysis_is_flagged(self, tmp_path):
         # Codex code review 2026-08-10: editing building.json and
         # rerunning ONLY `report` must not look like a complete handoff

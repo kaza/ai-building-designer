@@ -287,7 +287,13 @@ def compute_seismic(building: Building, site: Site,
 
         entry: dict = dict(story=s.name, story_id=s.global_id,
                            V=round(shear, 1),
-                           floor_area=round(floor_area, 1))
+                           floor_area=round(floor_area, 1),
+                           # a storey whose ceiling is at or below the
+                           # seismic base is a rigid basement: braced by
+                           # soil, not judged by Table 9.3 (Codex
+                           # re-review 2026-08-10)
+                           below_base=(s.elevation + s.height
+                                       <= base_elev + GROUND_EPS))
         # centers of rigidity, then torsional radius about (crx, cry)
         stiff = {"x": [], "y": []}   # (k, x, y) per direction
         for w, d, l_net in walls:

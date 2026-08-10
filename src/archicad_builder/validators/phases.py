@@ -1594,6 +1594,9 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
     elf_ok = "elf" not in res["_unresolved"]
 
     for st in res["storeys"]:
+        if st.get("below_base"):
+            continue    # rigid basement: braced by soil, not a seismic
+            #             storey (Codex re-review 2026-08-10)
         for d in ("x", "y"):
             e = st[d]
             if elf_ok and st["V"] > e["capacity"]:
@@ -1738,6 +1741,20 @@ def validate_foundations(building, site, basis=None) -> list[ValidationError]:
             p = ShapelyPolygon([(v.x, v.y) for v in sl.outline.vertices])
             base_polys.append(make_valid(p) if not p.is_valid else p)
     base_union = unary_union(base_polys).buffer(0.05) if base_polys else None
+
+    # a footing above the lowest storey reaches no soil and is checked
+    # by nothing — the builder rejects it, but JSON/IFC can still smuggle
+    # one in (Codex re-review 2026-08-10)
+    for st_up in stories[1:]:
+        for f in st_up.footings:
+            errors.append(ValidationError(
+                severity="error", element_type="Footing",
+                element_id=f.global_id,
+                message=(
+                    f"E104: Footing '{f.name}' sits on '{st_up.name}', "
+                    f"above the lowest storey '{lowest.name}' — it "
+                    "reaches no soil and no check covers it."),
+            ))
 
     # E104 — every bearing wall on the lowest storey needs a footing
     covered: dict[str, object] = {}

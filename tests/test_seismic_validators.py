@@ -134,6 +134,15 @@ class TestE103Continuity:
 
 
 class TestE101StoreyCount:
+    def test_basement_storeys_get_no_seismic_findings(self):
+        # a rigid basement is braced by soil — E100/E101/E102 must not
+        # judge it by Table 9.3 (Codex re-review 2026-08-10)
+        b = _box(wall_t=0.15, size=(20.0, 20.0), storeys=2)
+        site = _site(ag=0.10, seismic_base_elevation=3.0)
+        for code in ("E100", "E101", "E102"):
+            assert all("'S0'" not in f.message
+                       for f in _findings(b, site, code))
+
     def test_rigid_basement_does_not_count_as_a_seismic_storey(self):
         # Codex code review 2026-08-10: Table 9.3 selects by ACTIVE
         # storeys above the seismic base, not by total storeys

@@ -218,6 +218,28 @@ class TestUpdateIfcAllKinds:
         assert len(voided) == 2      # their window opening + our door
 
 
+class TestUpdateIfcFootings:
+    def test_added_footing_reaches_updated_ifc(self, tmp_path):
+        # Codex code review 2026-08-10: footings were absent from the
+        # update-ifc product loops — a locally added footing never
+        # reached updated.ifc
+        import ifcopenshell
+        src = tmp_path / "partner.ifc"
+        IFCExporter(fixture_building()).export(src)
+        target = tmp_path / "proj"
+        import_project(src, target)
+
+        b = Building.load(target / "building.json")
+        ours = b.add_footing("GF", (0, 0), (6, 0), width=0.6, height=0.5,
+                             name="Our Footing")
+        b.save(target / "building.json")
+
+        out = update_ifc(target)
+        patched = ifcopenshell.open(str(out))
+        assert ours.global_id in {f.GlobalId
+                                  for f in patched.by_type("IfcFooting")}
+
+
 class TestUpdateIfcFailLoud:
     def make_project(self, tmp_path):
         src = tmp_path / "partner.ifc"

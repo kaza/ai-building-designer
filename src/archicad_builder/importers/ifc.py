@@ -159,7 +159,13 @@ def import_ifc(path: Path) -> ImportResult:
                     f"{entity.is_a()} {entity.GlobalId} {entity.Name!r} "
                     "(no containing storey)")
                 continue
-            getattr(story, collection).append(el)
+            coll = getattr(story, collection)
+            # legacy exports (pre 2026-08-10) carried footings inside
+            # the STOREY payload too — the same element must never land
+            # twice (Codex re-review 2026-08-10)
+            if any(x.global_id == el.global_id for x in coll):
+                continue
+            coll.append(el)
             imported_ids.add(el.global_id)
 
     # spaces (apartment structure does not exist in IFC — they come back

@@ -96,6 +96,23 @@ class TestSeismicCombos:
         for q in res.field["quads"]:
             assert 0 <= q["cmb"] < len(res.combos)
 
+    def test_partition_mass_shakes_with_its_storey(self):
+        # non-bearing walls bucket at their storey's CEILING like the
+        # ELF (Codex re-review 2026-08-10: the floor-bucketing variant
+        # dropped ground-storey partition mass from the lateral ledger).
+        # Coverage-style: the partition path must run and equilibrium
+        # must still close with the partition's ELF share included.
+        from archicad_builder.seismic import compute_seismic
+        b = _box()
+        b.add_wall("S0", (2, 1), (2, 3), height=3.0, thickness=0.12,
+                   name="Partition", load_bearing=False)
+        res = compute_fem(b, mesh=0.4, site=_site())
+        elf = compute_seismic(b, _site())
+        cb = res.case_balance["EQX"]
+        assert cb["applied"] == pytest.approx(
+            sum(f["F"] for f in elf["forces"]), rel=0.02)
+        assert cb["reacted"] == pytest.approx(cb["applied"], rel=0.01)
+
     def test_two_storey_forces_split_by_elf(self):
         res = compute_fem(_box(2), mesh=0.4, site=_site())
         # both diaphragms loaded: EQX applied equals sum of both Fi

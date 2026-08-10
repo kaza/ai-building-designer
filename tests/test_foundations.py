@@ -101,6 +101,47 @@ class TestIfcExport:
         assert exported_ids == {f.global_id
                                 for f in b.stories[0].footings}
 
+    def test_legacy_ifc_with_footings_in_storey_payload_deduped(
+            self, tmp_path, monkeypatch):
+        # pre-2026-08-10 exports carried footings in the STOREY payload
+        # AND as IfcFooting entities; the importer must not double them
+        # (Codex re-review 2026-08-10)
+        from archicad_builder.export.ifc import IFCExporter
+        from archicad_builder.importers.ifc import import_ifc
+        from archicad_builder.models.building import Story
+
+        orig = Story.model_dump
+
+        def legacy_dump(self, **kw):
+            ex = kw.get("exclude")
+            if isinstance(ex, dict) and "footings" in ex:
+                kw["exclude"] = {k: v for k, v in ex.items()
+                                 if k != "footings"}
+            return orig(self, **kw)
+
+        b = _box()
+        path = tmp_path / "legacy.ifc"
+        monkeypatch.setattr(Story, "model_dump", legacy_dump)
+        IFCExporter(b).export(path)
+        monkeypatch.undo()
+        footings = import_ifc(path).building.stories[0].footings
+        assert len(footings) == 4
+        assert len({f.global_id for f in footings}) == 4
+
+    def test_upper_storey_footing_via_json_is_flagged(self):
+        # the builder guard can be bypassed by JSON/IFC — the validator
+        # must still catch a footing that reaches no soil (Codex
+        # re-review 2026-08-10)
+        b = _box(storeys=2)
+        payload = b.model_dump(mode="json")
+        payload["stories"][1]["footings"] = [
+            {"name": "Smuggled", "start": {"x": 0, "y": 0},
+             "end": {"x": 6, "y": 0}, "width": 0.6, "height": 0.5}]
+        smuggled = Building.model_validate(payload)
+        found = _findings(smuggled, _site(), "E104")
+        assert any("Smuggled" in f.message
+                   and "reaches no soil" in f.message for f in found)
+
     def test_round_trip_does_not_duplicate_footings(self, tmp_path):
         # Codex code review 2026-08-10: footings rode along in the
         # storey's AB_Parametric payload AND were imported as elements —

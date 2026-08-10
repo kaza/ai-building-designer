@@ -335,7 +335,7 @@ def report_cmd(
 ):
     """Engineer handoff report (specs/engineer-handoff.md) -> output/engineer-report.html."""
     from archicad_builder.project_config import ConfigError
-    from archicad_builder.report import build_report
+    from archicad_builder.report import build_report, incomplete_count
 
     proj_dir = PROJECTS_DIR / project
     if not (proj_dir / "building.json").exists():
@@ -352,7 +352,7 @@ def report_cmd(
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html)
     _output({"ok": True, "written": str(out),
-             "incomplete_sections": html.count("NOT RUN")})
+             "incomplete_sections": incomplete_count(html)})
 
 
 @app.command("list")
