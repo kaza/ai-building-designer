@@ -249,7 +249,7 @@ def compute_loads(building: Building, basis: DesignBasis | None = None) -> dict:
                     [(v.x, v.y) for v in element.outline.vertices])
                 if not poly.is_valid:
                     poly = make_valid(poly)
-            key = ("IfcSlab_" + element.name.replace(" ", "_"))
+            key = element.global_id
             if span_dir not in ("x", "y"):
                 unresolved[key] = "no span_direction declared"
                 continue
@@ -264,6 +264,7 @@ def compute_loads(building: Building, basis: DesignBasis | None = None) -> dict:
             if kind == "roof":  # roofs are view/check targets; floors only load walls
                 result[key] = {
                     "kind": "slab",
+                    "name": element.name,
                     "u": round(max(m / m_rd, slender), 2),
                     "M": round(m, 1),
                     "span": round(span, 2),
@@ -279,8 +280,9 @@ def compute_loads(building: Building, basis: DesignBasis | None = None) -> dict:
             q_total = wl.line_load() + extra
             cap = w.thickness * basis.wall_phi * basis.wall_fd
             profile = [round((p + extra) / cap, 2) for p in wl.profile()]
-            result["IfcWallStandardCase_" + w.name.replace(" ", "_")] = {
+            result[w.global_id] = {
                 "kind": "wall",
+                "name": w.name,
                 "u": round(q_total / cap, 2),
                 "q": round(q_total, 1),
                 "a": [w.start.x, w.start.y],
@@ -313,8 +315,9 @@ def compute_loads(building: Building, basis: DesignBasis | None = None) -> dict:
                 span = opening.width + 0.25
                 m = q_local * span ** 2 / 8
                 m_rd = basis.beam_moment_capacity(beam.width, beam.depth)
-                result["IfcBeam_" + beam.name.replace(" ", "_")] = {
+                result[beam.global_id] = {
                     "kind": "beam",
+                    "name": beam.name,
                     "u": round(m / m_rd, 2),
                     "q": round(q_local, 1),
                     "M": round(m, 1),

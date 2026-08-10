@@ -89,30 +89,6 @@ def validate_glb(data: bytes) -> dict:
     return doc
 
 
-def element_tags(doc: dict) -> dict:
-    """Sanitized element name -> plan tag (W3, D5, Win4, ST1).
-
-    Mirrors Story.ensure_tags() numbering (per story, in element order) so
-    the walkthrough info card and the 2D plan speak the same ids — that is
-    how the owner references elements. Tags repeat per story (the garage
-    has its own W1…), so non-ground stories get an initial prefix (G:W3) —
-    feedback #007 showed bare garage tags read as ground-floor elements.
-    """
-    tags: dict[str, str] = {}
-    for story in doc.get("stories", []):
-        story_prefix = ("" if story.get("elevation", 0) == 0
-                        else f"{(story.get('name') or 'S')[0]}:")
-        for key, prefix in (("walls", "W"), ("doors", "D"),
-                            ("windows", "Win"), ("staircases", "ST")):
-            for i, el in enumerate(story.get(key, []), start=1):
-                tag = el.get("tag") or f"{prefix}{i}"
-                name = el.get("name", "")
-                if name:
-                    tags.setdefault(name.replace(" ", "_"),
-                                    story_prefix + tag)
-    return tags
-
-
 def storey_bands(doc: dict) -> list:
     """[{name, elevation, height, rooms}] sorted by elevation — the viewer
     shows which storey AND room the camera is in (feedback #007: the owner
@@ -138,18 +114,6 @@ def storey_bands(doc: dict) -> list:
     return sorted(bands, key=lambda b: b["elevation"])
 
 
-def bearing_walls(doc: dict) -> dict:
-    """Sanitized wall name -> True for every load-bearing wall, all
-    storeys. Structure view tints these so the bearing lines read at a
-    glance (owner 2026-08-10)."""
-    out: dict[str, bool] = {}
-    for story in doc.get("stories", []):
-        for wall in story.get("walls", []):
-            if wall.get("load_bearing") and wall.get("name"):
-                out[wall["name"].replace(" ", "_")] = True
-    return out
-
-
 def render_page(doc: dict, *, model: str, title: str,
                 start: tuple[float, float, float],
                 loads_json: str = "{}") -> str:
@@ -168,10 +132,6 @@ def render_page(doc: dict, *, model: str, title: str,
                       .replace(">", "&gt;")),
         "__MODEL__": model,
         "__START__": ", ".join(str(c) for c in start),
-        "__TAGS__": json.dumps(element_tags(doc),
-                               sort_keys=True).replace("</", "<\\/"),
-        "__BEARING__": json.dumps(bearing_walls(doc),
-                                  sort_keys=True).replace("</", "<\\/"),
         "__STOREYS__": json.dumps(storey_bands(doc)).replace("</", "<\\/"),
         # parse + re-serialize: raw text here would be arbitrary JS, not
         # data ("{};globalThis.PWNED=1;//" — Codex 2026-08-09)
@@ -198,7 +158,8 @@ def build_page(project_dir: Path, model: str) -> Path:
         loads_json=loads_file.read_text() if loads_file.exists() else "{}")
     target = out_dir / "walkthrough.html"
     target.write_text(html, encoding="utf-8")
-    tags = element_tags(doc)
+    from archicad_builder.render3d.metadata import element_metadata
+    tagged = sum(1 for m in element_metadata(doc).values() if m["tag"])
     print(f"wrote {target} ({target.stat().st_size / 1024:.0f} KB; "
-          f"{len(tags)} element tags; loads ./{model}.glb at runtime)")
+          f"{tagged} tagged elements; loads ./{model}.glb at runtime)")
     return target

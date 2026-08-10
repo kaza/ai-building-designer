@@ -115,10 +115,9 @@ class TestStructureView:
     def test_struct_returns_after_fem_exit_and_failure(self, template):
         assert template.count("_applyStruct(structWanted);") >= 2
 
-    def test_bindings_hash_and_bearing_payload(self, template):
+    def test_bindings_and_hash(self, template):
         assert "if (e.code === 'KeyG' && !e.repeat) cycleStruct();" in template
         assert 'id="m-ghost"' in template
-        assert "const BEARING = __BEARING__;" in template
         assert ",struct'" in template
 
     def test_everything_transparent_with_edges(self, template):
@@ -131,13 +130,13 @@ class TestStructureView:
         assert "scene.background = new THREE.Color(0x04070d);" in template
         assert "_structEdges" in template
 
-    def test_split_mesh_suffix_is_stripped_for_bearing_lookup(self, template):
-        # stone walls become two GLB nodes (_1/_2) — the garage rendered
-        # non-bearing until the suffix strip (owner catch 2026-08-10)
-        assert template.count(".replace(/_\\d+$/, '')") >= 2
+    def test_no_name_fallback_and_loud_on_missing_metadata(self, template):
+        # metadata-only (owner 2026-08-10): the name-parsing fallback and
+        # the BEARING payload are gone; a metadata-less GLB says so
+        assert "__BEARING__" not in template
+        assert "BEARING[clean]" not in template
+        assert "carries no metadata" in template
 
-    def test_real_attribute_beats_name_parsing(self, template):
-        # userData (glTF extras) is the primary source; names are the
-        # fallback for old GLBs (owner 2026-08-10)
+    def test_real_attribute_is_the_only_source(self, template):
         assert "o.userData.ab_kind" in template
-        assert "meta ? !!meta.ab_load_bearing" in template
+        assert "const bearing = !!meta.ab_load_bearing;" in template

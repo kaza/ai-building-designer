@@ -210,15 +210,17 @@ def loads_cmd(
            else PROJECTS_DIR / project / "output" / "loads.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_json.dumps(result, indent=1, sort_keys=True))
+    # keys are GlobalIds now (owner 2026-08-10); names ride in the records
     worst = sorted(
-        ((k, v["u"]) for k, v in result.items()
-         if not k.startswith("_")), key=lambda t: -t[1])[:5]
+        ((k, v) for k, v in result.items()
+         if not k.startswith("_")), key=lambda t: -t[1]["u"])[:5]
     _output({
         "ok": True,
         "written": str(out),
         "elements": sum(1 for k in result if not k.startswith("_")),
         "unresolved": result["_unresolved"],
-        "worst": [{"element": k, "u": u} for k, u in worst],
+        "worst": [{"element": v.get("name", k), "id": k, "u": v["u"]}
+                  for k, v in worst],
     })
 
 
@@ -872,22 +874,14 @@ def update_ifc_cmd(
 def walkthrough_cmd(
     project: str = typer.Argument(..., help="Project directory name"),
     model: str = typer.Option(
-        None, "--model",
-        help="Artifact basename; pass {model} from the pipeline so the "
-             "step's digest covers it (default: pipeline.toml)."),
+        ..., "--model",
+        help="Artifact basename; the pipeline passes {model} so the "
+             "step's digest covers it."),
 ):
     """Build output/walkthrough.html (validates the GLB first)."""
-    import tomllib as _tomllib
-
     from archicad_builder.project_config import ConfigError
     from archicad_builder.walkthrough import GlbError, build_page
     project_dir = PROJECTS_DIR / project
-    if not model:
-        pipe = _tomllib.loads((project_dir / "pipeline.toml").read_text())
-        model = pipe.get("project", {}).get("model")
-    if not model:
-        typer.echo("pipeline.toml declares no [project] model", err=True)
-        raise typer.Exit(1)
     try:
         build_page(project_dir, model)
     except (GlbError, ConfigError) as exc:

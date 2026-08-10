@@ -23,20 +23,34 @@ _PREFIX = {
 }
 
 
+# plan-tag prefixes, mirroring Story.ensure_tags numbering (per story, in
+# element order) so the walkthrough and the 2D plan speak the same ids.
+# Non-ground stories get an initial prefix (G:W3) — feedback #007.
+_TAG_PREFIX = {"walls": "W", "doors": "D", "windows": "Win",
+               "staircases": "ST"}
+
+
 def element_metadata(doc: dict) -> dict[str, dict]:
-    """OBJ object name -> {global_id, kind, name, load_bearing}."""
+    """OBJ object name -> {global_id, kind, name, load_bearing, tag}."""
     out: dict[str, dict] = {}
     for story in doc.get("stories", []):
+        story_prefix = ("" if story.get("elevation", 0) == 0
+                        else f"{(story.get('name') or 'S')[0]}:")
         for kind, prefix in _PREFIX.items():
-            for el in story.get(kind, []):
+            for i, el in enumerate(story.get(kind, []), start=1):
                 name = el.get("name") or ""
                 if not name:
                     continue
+                tag = ""
+                if kind in _TAG_PREFIX:
+                    tag = story_prefix + (
+                        el.get("tag") or f"{_TAG_PREFIX[kind]}{i}")
                 key = f"{prefix}_{name.replace(' ', '_')}"
                 out[key] = {
                     "global_id": el.get("global_id", ""),
                     "kind": kind[:-1] if kind.endswith("s") else kind,
                     "name": name,
                     "load_bearing": bool(el.get("load_bearing")),
+                    "tag": tag,
                 }
     return out

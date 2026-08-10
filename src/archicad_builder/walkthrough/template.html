@@ -223,8 +223,7 @@ const INITIAL_VIEW = (() => {
   // so the camera survives links from newer builds (Codex review — the
   // old positional parse threw the whole view away)
   const flags = new Set(parts.slice(5));
-  // legacy ,ghost links map onto the x-ray state
-  const struct = (flags.has('struct') || flags.has('ghost')) ? 1 : 0;
+  const struct = flags.has('struct') ? 1 : 0;
   return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4],
            xray: flags.has('xray'), struct };
 })();
@@ -465,8 +464,6 @@ function semanticNode(obj) {
 }
 
 // element plan tags (W3, D5, Win4...) — same ids as the 2D floor plan
-const TAGS = __TAGS__;
-const BEARING = __BEARING__;
 
 // storey bands (sorted by elevation) — live "where am I" readout
 const STOREYS = __STOREYS__;
@@ -518,12 +515,16 @@ function positionLine() {
          ' · h ' + p.y.toFixed(1);
 }
 
-function displayName(label) {
-  // IfcWindow_Living_Window_W1 / IfcWindow_..._frame -> tag + readable name
-  const clean = label.replace(/^Ifc\w+?_/, '').replace(/_frame$/, '');
-  const tag = TAGS[clean];
-  const pretty = clean.replace(/_/g, ' ');
-  return tag ? tag + ' — ' + pretty : (label.startsWith('F_') ? label.slice(2) : pretty);
+function displayName(node) {
+  // real attributes (glTF extras): tag + human name. Furniture carries no
+  // metadata — its node name IS its only label, so prettify that.
+  const meta = _abMeta(node);
+  if (meta) {
+    return meta.ab_tag ? meta.ab_tag + ' — ' + meta.ab_name : meta.ab_name;
+  }
+  const label = (node.name || '').split('.')[0];
+  return label.startsWith('F_') ? label.slice(2).replace(/_/g, ' ')
+                                : label.replace(/_/g, ' ');
 }
 
 // --- Structural views (L / menu): off -> strip loads -> FEM x-ray --------
@@ -553,11 +554,8 @@ function loadRampColor(u) {
 }
 
 function loadDataFor(node) {
-  for (let n = node; n; n = n.parent) {
-    const base = (n.name || '').split('.')[0];
-    if (LOADS[base]) return LOADS[base];
-  }
-  return null;
+  const meta = _abMeta(node);
+  return (meta && LOADS[meta.ab_global_id]) || null;
 }
 
 function _disposeMat(m) {
@@ -602,13 +600,6 @@ let structApplied = 0;
 const _structSaved = new Map();   // uuid -> {material?, visible?}
 const _structEdges = [];          // LineSegments overlays, removed on exit
 const _structScene = {};          // saved background/fog
-function _ifcBase(n) {
-  for (let o = n; o; o = o.parent) {
-    const base = (o.name || '').split('.')[0];
-    if (base.startsWith('Ifc')) return base;
-  }
-  return null;
-}
 function _abMeta(n) {
   // real attributes: the scene builder stamps ab_* custom properties,
   // the GLB carries them as node extras, GLTFLoader parks them here.
@@ -627,22 +618,20 @@ function _applyStruct(mode) {
   if (!mode) return;
   const targets = [];
   modelRoot.traverse((n) => { if (n.isMesh) targets.push(n); });
+  let stamped = 0;
   for (const n of targets) {
-    const base = _ifcBase(n);
-    if (!base) {
-      // furniture, stair-tower decor, ground planes — construction noise
+    // metadata-only: the GLB carries real attributes (glTF extras); no
+    // name parsing, no fallback (owner 2026-08-10). Anything without
+    // metadata is furniture/decor — construction noise, hidden.
+    const meta = _abMeta(n);
+    if (!meta) {
       _structSaved.set(n.uuid, { visible: n.visible });
       n.visible = false;
       continue;
     }
-    const meta = _abMeta(n);
-    const isWall = meta ? meta.ab_kind === 'wall'
-                        : base.startsWith('IfcWall');
-    // the REAL attribute when the GLB carries extras; name fallback for
-    // old GLBs (split meshes carry _1/_2 suffixes, hence the strip)
-    const clean = base.replace(/^Ifc\w+?_/, '').replace(/_\d+$/, '');
-    const bearing = meta ? !!meta.ab_load_bearing
-                         : (isWall && BEARING[clean]);
+    stamped++;
+    const isWall = meta.ab_kind === 'wall';
+    const bearing = !!meta.ab_load_bearing;
     _structSaved.set(n.uuid, { material: n.material });
     // hologram faces: additive glow on the black background (owner's
     // reference images 2026-08-10) — bearing structure red, rest cyan
@@ -660,6 +649,14 @@ function _applyStruct(mode) {
         opacity: 0.9, blending: THREE.AdditiveBlending }));
     n.add(edges);
     _structEdges.push(edges);
+  }
+  if (!stamped) {
+    // an old GLB without extras would render an EMPTY x-ray — say so
+    _unapplyStruct();
+    structWanted = 0;
+    infoText = 'this model carries no metadata — rebuild the GLB';
+    setHud();
+    return;
   }
   // the hologram needs the dark room: swap sky/fog out, restore on exit
   _structScene.background = scene.background;
@@ -889,7 +886,7 @@ function showInfo() {
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
   const { node, label } = semanticNode(hit.object);
   const size = new THREE.Box3().setFromObject(node).getSize(new THREE.Vector3());
-  infoText = displayName(label) + '\n' +
+  infoText = displayName(node) + '\n' +
     'W ' + size.x.toFixed(2) + ' × D ' + size.z.toFixed(2) +
     ' × H ' + size.y.toFixed(2) + ' m\n' +
     'distance ' + hit.distance.toFixed(2) + ' m';
@@ -1240,7 +1237,7 @@ function showFeedbackLabels() {
       if (!hit) continue;
       const sem = semanticNode(hit.object);
       if (/_Handle_/.test(sem.label)) continue;  // handles label their door
-      const text = displayName(sem.label);       // frame hits → their window
+      const text = displayName(sem.node);        // frame hits → their window
       if (!text || text === 'unnamed') continue;
       if (!needsBadge(text, gx * innerWidth, gy * innerHeight)) continue;
       place(text, gx * innerWidth, gy * innerHeight);
@@ -1251,10 +1248,9 @@ function showFeedbackLabels() {
   // grid points (owner feedback #008/#009), so sample each element's bbox
   // center + face midpoints and badge the first visible spot.
   for (const n of modelRoot.children) {
-    if (!n.name || /_frame$|_Handle_/.test(n.name)) continue;
-    const clean = n.name.replace(/^Ifc\w+?_/, '');
-    if (!TAGS[clean]) continue;
-    const text = displayName(n.name);
+    const nMeta = _abMeta(n);
+    if (!nMeta || !nMeta.ab_tag) continue;   // untagged or furniture
+    const text = displayName(n);
     if (seen.has(text)) continue;  // tagged elements: one badge is enough
     const box = new THREE.Box3().setFromObject(n);
     if (box.isEmpty()) continue;
@@ -1270,8 +1266,9 @@ function showFeedbackLabels() {
       const hit = raycaster.intersectObject(modelRoot, true).find((h) => visible(h.object));
       if (!hit) continue;
       const hitSem = semanticNode(hit.object);
+      const hitMeta = _abMeta(hitSem.node);
       if (hitSem.node !== n &&
-          hitSem.label.replace(/^Ifc\w+?_/, '').replace(/_frame$/, '') !== clean) continue;
+          (!hitMeta || hitMeta.ab_global_id !== nMeta.ab_global_id)) continue;
       place(text, (v.x + 1) / 2 * innerWidth, (1 - (v.y + 1) / 2) * innerHeight);
       break;
     }
@@ -1362,7 +1359,7 @@ function strokeElements(stroke) {
     const p = stroke[i];
     raycaster.setFromCamera(new THREE.Vector2(p.x * 2 - 1, -(p.y * 2 - 1)), camera);
     const hit = raycaster.intersectObject(modelRoot, true).find((h) => visible(h.object));
-    if (hit) found.add(displayName(semanticNode(hit.object).label));
+    if (hit) found.add(displayName(semanticNode(hit.object).node));
   }
   return [...found];
 }
@@ -1508,12 +1505,10 @@ if (location.hash.startsWith('#debug') && ready) {
         if (!n.isMesh) return;
         meshes++;
         if (!n.visible) hidden++;
-        const base = _ifcBase(n);
-        if (!base) { furn = furn || n; return; }
-        const clean = base.replace(/^Ifc\w+?_/, '')
-          .replace(/_\d+$/, '');
-        if (base.startsWith('IfcWall')) {
-          if (BEARING[clean]) bearing = bearing || n;
+        const meta = _abMeta(n);
+        if (!meta) { furn = furn || n; return; }
+        if (meta.ab_kind === 'wall') {
+          if (meta.ab_load_bearing) bearing = bearing || n;
           else partition = partition || n;
         }
       });
@@ -1528,7 +1523,8 @@ if (location.hash.startsWith('#debug') && ready) {
       let wall = null, other = null;
       modelRoot.traverse((n) => {
         if (!n.isMesh) return;
-        if (_ifcBase(n) && _ifcBase(n).startsWith('IfcWall')) { wall = wall || n; }
+        const m = _abMeta(n);
+        if (m && m.ab_kind === 'wall') { wall = wall || n; }
         else if (n.name && !n.name.startsWith('Ifc')) { other = other || n; }
       });
       return {
@@ -1569,7 +1565,7 @@ function updateAim(now) {
       }
     } else {
       const hit = centerHit();
-      if (hit) next = displayName(semanticNode(hit.object).label);
+      if (hit) next = displayName(semanticNode(hit.object).node);
     }
   }
   if (next !== aimText) { aimText = next; setHud(); }
