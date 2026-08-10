@@ -122,3 +122,27 @@ class TestE103Continuity:
     def test_ground_storey_walls_are_exempt(self):
         # single storey: nothing above the lowest, nothing to check
         assert _findings(_box(storeys=1), _site(), "E103") == []
+
+    def test_fully_cantilevered_upper_wall_is_flagged(self):
+        # Codex code review 2026-08-10: a wall entirely OUTSIDE the lower
+        # footprint on an ELEVATED storey is hanging in air, not on grade
+        b = _box(storeys=2)
+        b.add_wall("S1", (8, 1), (12, 1), height=3.0, thickness=0.3,
+                   name="Air Wall", load_bearing=True)
+        found = _findings(b, _site(), "E103")
+        assert any("Air Wall" in f.message for f in found)
+
+
+class TestE101StoreyCount:
+    def test_rigid_basement_does_not_count_as_a_seismic_storey(self):
+        # Codex code review 2026-08-10: Table 9.3 selects by ACTIVE
+        # storeys above the seismic base, not by total storeys
+        from archicad_builder.seismic import compute_seismic
+        # ag*S = 0.10*1.2 = 0.12 -> Table 9.3 band <= 0.15:
+        # 2 storeys need 5.0%, 1 storey needs 3.5%
+        two = compute_seismic(_box(storeys=2), _site(ag=0.10))
+        based = compute_seismic(_box(storeys=2),
+                                _site(ag=0.10,
+                                      seismic_base_elevation=3.0))
+        assert two["storeys"][0]["x"]["density_min"] == 5.0
+        assert based["storeys"][0]["x"]["density_min"] == 3.5

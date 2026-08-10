@@ -44,7 +44,7 @@ def _esc(v) -> str:
 def _table(headers, rows) -> str:
     head = "".join(f"<th>{_esc(h)}</th>" for h in headers)
     body = "".join(
-        "<tr>" + "".join(f"<td>{_esc(c)}</td>" for c in row) + "</tr>"
+        "<tr>" + "".join(f"<td>{_fmt(c)}</td>" for c in row) + "</tr>"
         for row in rows)
     return f"<table><tr>{head}</tr>{body}</table>"
 
@@ -56,6 +56,17 @@ def _kv(d: dict) -> str:
 def _not_run(what: str) -> str:
     return (f'<div class="notrun">NOT RUN — {_esc(what)} is missing. '
             "This report is INCOMPLETE until it is generated.</div>")
+
+
+def _fmt(v) -> str:
+    """dicts/lists render as readable lines, never as Python repr
+    (Gemini code review 2026-08-10)."""
+    if isinstance(v, dict):
+        return "<br>".join(f"{_esc(k)}: {_fmt(val)}"
+                           for k, val in sorted(v.items()))
+    if isinstance(v, (list, tuple)):
+        return "<br>".join(_fmt(i) for i in v)
+    return _esc(v)
 
 
 def _load_json(path: Path):
@@ -75,6 +86,18 @@ def build_report(project_dir: Path) -> str:
     fem = _load_json(out / "fem-loads.json")
     seismic = _load_json(out / "seismic.json")
     digest = hashlib.sha256(building_path.read_bytes()).hexdigest()[:12]
+
+    # analyses older than the building they claim to describe are a lie
+    # in a signed document (Codex code review 2026-08-10)
+    b_mtime = building_path.stat().st_mtime
+
+    def _stale_banner(name: str) -> str:
+        p = out / name
+        if p.is_file() and p.stat().st_mtime < b_mtime:
+            return (f'<div class="notrun">STALE — output/{_esc(name)} '
+                    "predates the current building.json; re-run its "
+                    "pipeline step before handing this report over.</div>")
+        return ""
 
     s: list[str] = []
     s.append(
@@ -113,6 +136,7 @@ def build_report(project_dir: Path) -> str:
 
     # gravity — strip engine
     s.append("<h2>Gravity — strip engine</h2>")
+    s.append(_stale_banner("loads.json"))
     if loads is None:
         s.append(_not_run("output/loads.json"))
     else:
@@ -124,12 +148,13 @@ def build_report(project_dir: Path) -> str:
                           v.get("u", "?")] for k, v in worst]))
         if loads.get("_unresolved"):
             s.append("<p class='warn'>unresolved: "
-                     + _esc(loads["_unresolved"]) + "</p>")
+                     + _fmt(loads["_unresolved"]) + "</p>")
         s.append('<p class="muted">assumptions: '
-                 + _esc(loads.get("_assumptions", {})) + "</p>")
+                 + _fmt(loads.get("_assumptions", {})) + "</p>")
 
     # gravity + seismic — FEM
     s.append("<h2>FEM X-ray</h2>")
+    s.append(_stale_banner("fem-loads.json"))
     if fem is None:
         s.append(_not_run("output/fem-loads.json"))
     else:
@@ -141,19 +166,25 @@ def build_report(project_dir: Path) -> str:
             [[v.get("name", k), v.get("kind", "?"), v.get("u", "?"),
               v.get("u_peak", ""), v.get("combo", "ULS")]
              for k, v in worst]))
+        if fem.get("_unresolved"):
+            # partial-FEM conditions must not vanish behind a
+            # complete-looking table (Codex code review 2026-08-10)
+            s.append("<p class='warn'>unresolved: "
+                     + _fmt(fem["_unresolved"]) + "</p>")
         s.append('<p class="muted">'
                  + "<br>".join(_esc(a) for a in fem.get("_assumptions", []))
                  + "</p>")
 
     # seismic ELF
     s.append("<h2>Seismic — lateral force method</h2>")
+    s.append(_stale_banner("seismic.json"))
     if site is None:
         s.append("<p class='err'>unresolved — no [site] configured.</p>")
     elif seismic is None:
         s.append(_not_run("output/seismic.json"))
     elif "_unresolved" in seismic and seismic.get("Fb") is None:
         s.append("<p class='err'>unresolved: "
-                 + _esc(seismic["_unresolved"]) + "</p>")
+                 + _fmt(seismic["_unresolved"]) + "</p>")
     else:
         s.append(_kv({"total seismic weight W (kN)": seismic["W"],
                       "height H (m)": seismic["H"],
@@ -180,9 +211,9 @@ def build_report(project_dir: Path) -> str:
                          "e0 m", "r m", "ls m", "regular"], rows))
         if seismic.get("_unresolved"):
             s.append("<p class='warn'>unresolved: "
-                     + _esc(seismic["_unresolved"]) + "</p>")
+                     + _fmt(seismic["_unresolved"]) + "</p>")
         s.append('<p class="muted">assumptions: '
-                 + _esc(seismic.get("_assumptions", {})) + "</p>")
+                 + _fmt(seismic.get("_assumptions", {})) + "</p>")
 
     # cantilever inventory
     s.append("<h2>Cantilevers</h2>")
@@ -227,7 +258,10 @@ def build_report(project_dir: Path) -> str:
         else:
             s.append("<p class='err'>unresolved — no [site.soil]: bearing, "
                      "sliding and overturning checks did not run.</p>")
-        s.append('<p class="muted">EC7-lite: one bearing number, no '
+        s.append('<p class="muted">Bearing (E105), sliding (E106) and '
+                 'overturning (E107) verdicts appear under Validation '
+                 'below — a passing check produces no row there. '
+                 'EC7-lite: one bearing number, no '
                  'settlement, no groundwater, no passive pressure, no '
                  'drained/undrained distinction. Seismic bearing increase '
                  '(moment eccentricity M/W) not computed. EN 1998-5 '

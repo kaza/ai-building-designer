@@ -493,9 +493,11 @@ def compute_fem(building: Building, mesh: float = 0.25,
                               "its outline")
 
     # ---------- self-weight + partitions ----------
-    # wall/beam mass lumps at its storey's diaphragm for the lateral
-    # ledger (EC8 applies Fi at diaphragm levels — spreading it over the
-    # wall height was Codex plan-review finding #10)
+    # wall/beam mass lumps at its storey's diaphragm BUCKET; the force
+    # lands on the highest node of each plan column at or below that
+    # diaphragm — a short wall's inertia genuinely acts at its own top,
+    # so it is not hoisted to a level it never reaches (declared in
+    # _assumptions; Codex code review 2026-08-10)
     dia_by_gid: dict[str, float] = {}
     for s in stories:
         for w in s.walls:
@@ -558,13 +560,17 @@ def compute_fem(building: Building, mesh: float = 0.25,
                     m.model.add_node_load(m.nodes[nkey], "FZ",
                                           -qline * trib, case="G")
                     attached["G"] += qline * trib
-                    # partition mass sits ON the diaphragm at its floor
-                    # level — ground-level partitions shake the soil, not
-                    # the structure
-                    if (elf is not None
-                            and s.elevation > seismic_base + GROUND_EPS):
-                        lateral_ledger[_k(s.elevation)][m.nodes[nkey]] += \
-                            qline * trib
+                    # partition mass buckets at its storey's CEILING —
+                    # the same convention the ELF uses, so the two
+                    # engines shake the same masses (Codex code review
+                    # 2026-08-10: floor-bucketing dropped ground-storey
+                    # partitions and skewed the plan distribution)
+                    if elf is not None:
+                        dia = s.elevation + s.height
+                        if dia > seismic_base + GROUND_EPS:
+                            nn = (_top_node(key[0], key[1], dia)
+                                  or m.nodes[nkey])
+                            lateral_ledger[_k(dia)][nn] += qline * trib
                 else:
                     dropped += qline * trib
             if dropped > TOL:
@@ -915,6 +921,12 @@ def compute_fem(building: Building, mesh: float = 0.25,
         "isotropic strip capacity — reinforcement is treated as "
         "direction-independent, thickness capped at 0.25 m",
     ]
+    if elf is not None:
+        assumptions.append(
+            "EQ nodal forces: mass buckets per storey diaphragm scaled "
+            "to the ELF storey force; applied at the highest node of "
+            "each plan column at or below the diaphragm (a short wall "
+            "pushes at its own top, not a level it never reaches)")
     # The honest answer to "what is missing" — printed on the X-ray page so
     # nobody mistakes a calm color for a safe building (owner 2026-08-08).
     not_modelled = [

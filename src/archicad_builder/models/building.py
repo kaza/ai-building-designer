@@ -367,8 +367,16 @@ class Building(BaseModel):
         description: str = "",
     ) -> StripFooting:
         """Add a strip footing (specs/foundations.md). Top sits at the
-        storey elevation; the body extends `height` m down."""
+        storey elevation; the body extends `height` m down. Lowest storey
+        only — a footing above it would be silently ignored by every
+        check (CodeRabbit review 2026-08-10)."""
         story = self._require_story(story_name)
+        lowest = min(self.stories, key=lambda s: s.elevation)
+        if story is not lowest:
+            raise ValueError(
+                f"strip footings belong on the lowest storey only; "
+                f"'{story.name}' is above '{lowest.name}' "
+                "(specs/foundations.md)")
         footing = StripFooting(
             name=name,
             description=description,

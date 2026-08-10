@@ -103,3 +103,37 @@ class TestReport:
     def test_self_contained_no_external_refs(self, tmp_path):
         html = build_report(_project(tmp_path))
         assert "http://" not in html and "https://" not in html
+
+    def test_stale_analysis_is_flagged(self, tmp_path):
+        # Codex code review 2026-08-10: editing building.json and
+        # rerunning ONLY `report` must not look like a complete handoff
+        import os
+        import time
+        proj = _project(tmp_path)
+        time.sleep(0.05)
+        (proj / "building.json").touch()
+        html = build_report(proj)
+        assert "STALE" in html
+
+    def test_fem_unresolved_surfaces(self, tmp_path):
+        proj = _project(tmp_path)
+        (proj / "output" / "fem-loads.json").write_text(json.dumps({
+            "w1": {"kind": "wall", "name": "South", "u": 0.5,
+                   "combo": "ULS"},
+            "_assumptions": [], "_not_modelled": ["wind"],
+            "_unresolved": ["roof 'R': pitched roofs are not meshed"],
+        }))
+        html = build_report(proj)
+        assert "pitched roofs are not meshed" in html
+        assert "wind" in html   # exclusions merge verbatim
+
+    def test_unresolved_dicts_render_as_text_not_repr(self, tmp_path):
+        # Gemini code review 2026-08-10: _esc(dict) printed raw Python
+        # repr into the engineer-facing page
+        proj = _project(tmp_path)
+        seis = json.loads((proj / "output" / "seismic.json").read_text())
+        seis["_unresolved"] = {"elf": "T1 outside applicability"}
+        (proj / "output" / "seismic.json").write_text(json.dumps(seis))
+        html = build_report(proj)
+        assert "T1 outside applicability" in html
+        assert "{&#x27;" not in html and "{'" not in html

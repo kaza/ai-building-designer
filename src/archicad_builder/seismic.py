@@ -310,7 +310,10 @@ def compute_seismic(building: Building, site: Site,
         ly = (max(ys) - min(ys)) if ys else 0.0
         ls = math.sqrt((lx ** 2 + ly ** 2) / 12) if (lx or ly) else 0.0
 
-        n_storeys = len(stories)
+        # Table 9.3 counts the storeys of the SEISMIC system — levels
+        # above the base; a rigid basement is not a storey the quake
+        # sways (Codex code review 2026-08-10)
+        n_storeys = len(active)
         ag_s = ag_d * SPECTRUM[(stype, site.ground_type)][0]
         d_min, acceptable = _density_minimum(ag_s, n_storeys)
 

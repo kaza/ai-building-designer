@@ -334,6 +334,7 @@ def report_cmd(
     output: str | None = typer.Option(None, "--output", "-o"),
 ):
     """Engineer handoff report (specs/engineer-handoff.md) -> output/engineer-report.html."""
+    from archicad_builder.project_config import ConfigError
     from archicad_builder.report import build_report
 
     proj_dir = PROJECTS_DIR / project
@@ -341,7 +342,11 @@ def report_cmd(
         typer.echo(json.dumps({"ok": False,
                                "error": f"Project not found: {proj_dir}"}))
         raise typer.Exit(1)
-    html = build_report(proj_dir)
+    try:
+        html = build_report(proj_dir)
+    except ConfigError as exc:
+        typer.echo(f"project.toml invalid: {exc}", err=True)
+        raise typer.Exit(1) from exc
     out = (Path(output) if output
            else proj_dir / "output" / "engineer-report.html")
     out.parent.mkdir(parents=True, exist_ok=True)

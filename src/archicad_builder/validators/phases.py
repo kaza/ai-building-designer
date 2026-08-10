@@ -1649,10 +1649,22 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
         footprint = _storey_footprint(lower)
         if footprint is None:
             continue        # no slab geometry: E050's legacy check owns it
+        # a storey ABOVE grade has no "on grade" escape: its walls must
+        # stand on walls, footprint or not (Codex code review 2026-08-10
+        # — a fully cantilevered wall returned "on grade" and passed)
+        elevated = upper.elevation > 0.01
         for wall in upper.walls:
             if not wall.load_bearing:
                 continue
-            unsupported = _unsupported_length(wall, footprint, lower_bearing)
+            if elevated:
+                probe = footprint.union(
+                    ShapelyLine([(wall.start.x, wall.start.y),
+                                 (wall.end.x, wall.end.y)]).buffer(0.05))
+                unsupported = _unsupported_length(wall, probe,
+                                                  lower_bearing)
+            else:
+                unsupported = _unsupported_length(wall, footprint,
+                                                  lower_bearing)
             if unsupported >= 0.1:
                 errors.append(ValidationError(
                     severity="error", element_type="Wall",
@@ -1773,38 +1785,61 @@ def validate_foundations(building, site, basis=None) -> list[ValidationError]:
 
     # E106/E107 — base shear into the ground
     seis = compute_seismic(building, site, basis)
-    foot_dead = sum(
-        math.hypot(f.end.x - f.start.x, f.end.y - f.start.y)
-        * f.width * f.height * db.rc_density for f in lowest.footings)
+    foot_dead = 0.0
+    foot_mx = foot_my = 0.0
+    for f in lowest.footings:
+        w = (math.hypot(f.end.x - f.start.x, f.end.y - f.start.y)
+             * f.width * f.height * db.rc_density)
+        foot_dead += w
+        foot_mx += w * (f.start.x + f.end.x) / 2
+        foot_my += w * (f.start.y + f.end.y) / 2
     n_dead = seis["dead_total"] + foot_dead
     fb = seis["Fb"]
     mu = site.soil.friction_mu
-    for d in ("x", "y"):
-        if fb > mu * n_dead:
-            errors.append(ValidationError(
-                severity="error", element_type="Building",
-                element_id=lowest.global_id,
-                message=(
-                    f"E106: direction {d}: seismic base shear {fb:.0f} kN "
-                    f"exceeds sliding friction mu*G = {mu:.2f} * "
-                    f"{n_dead:.0f} = {mu * n_dead:.0f} kN (dead weight "
-                    "only credited; passive earth pressure ignored)."),
-            ))
+    # Fb is direction-independent in the ELF — ONE finding, not two
+    # direction-labeled copies (CodeRabbit review 2026-08-10)
+    if fb > mu * n_dead:
+        errors.append(ValidationError(
+            severity="error", element_type="Building",
+            element_id=lowest.global_id,
+            message=(
+                f"E106: seismic base shear {fb:.0f} kN exceeds sliding "
+                f"friction mu*G = {mu:.2f} * {n_dead:.0f} = "
+                f"{mu * n_dead:.0f} kN (dead weight only credited; "
+                "passive earth pressure ignored)."),
+        ))
 
     geoms = [ShapelyLine([(f.start.x, f.start.y), (f.end.x, f.end.y)])
              .buffer(f.width / 2, cap_style=2) for f in lowest.footings]
     if base_union is not None:
         geoms.append(base_union)
-    if geoms:
+    if geoms and n_dead > 0:
         hull = unary_union(geoms)
         minx, miny, maxx, maxy = hull.bounds
         m_ot = sum(frc["F"] * (frc["z"] - seis["base"])
                    for frc in seis["forces"])
-        com = seis["com"]
+        # the dead-weight resultant includes the footings themselves —
+        # crediting their weight at the building CoM let a remote
+        # footing fake stability (Codex code review 2026-08-10)
+        com = ((seis["com"][0] * seis["dead_total"] + foot_mx) / n_dead,
+               (seis["com"][1] * seis["dead_total"] + foot_my) / n_dead)
         for d, lo, hi, c in (("x", minx, maxx, com[0]),
                              ("y", miny, maxy, com[1])):
+            if m_ot <= 0:
+                continue        # no overturning action to resist
             arm = min(c - lo, hi - c)
-            if arm <= 0 or m_ot <= 0:
+            if arm <= 0:
+                # the resultant is at or beyond the toe: already
+                # unstable — an error, never a silent skip (CodeRabbit
+                # + Codex reviews 2026-08-10)
+                errors.append(ValidationError(
+                    severity="error", element_type="Building",
+                    element_id=lowest.global_id,
+                    message=(
+                        f"E107: direction {d}: the dead-weight resultant "
+                        f"falls outside the foundation footprint (arm "
+                        f"{arm:.2f} m) — no stabilizing lever exists."),
+                ))
                 continue
             ratio = n_dead * arm / m_ot
             if ratio < 1.1:
@@ -1818,10 +1853,6 @@ def validate_foundations(building, site, basis=None) -> list[ValidationError]:
                         f"{m_ot:.0f} kNm) — the building tips before it "
                         "slides."),
                 ))
-    elif bearing:
-        # no footings and no base slab: E104 already fired per wall;
-        # sliding was still checkable, overturning was not
-        pass
     return errors
 
 

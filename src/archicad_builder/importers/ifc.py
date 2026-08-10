@@ -241,7 +241,8 @@ def _duplicate_ids(building: Building) -> list[str]:
     for s in building.stories:
         visit(s.global_id)
         for kind in ("walls", "slabs", "doors", "windows", "roofs",
-                     "staircases", "beams", "virtual_elements", "spaces"):
+                     "staircases", "beams", "footings",
+                     "virtual_elements", "spaces"):
             for el in getattr(s, kind):
                 visit(el.global_id)
     return dupes
@@ -315,7 +316,8 @@ def update_ifc(project_dir: Path, out_path: Path | None = None) -> Path:
     edited: list[str] = []
     for st_ in building.stories:
         for kind in ("walls", "slabs", "doors", "windows", "roofs",
-                     "staircases", "beams", "virtual_elements", "spaces"):
+                     "staircases", "beams", "footings",
+                     "virtual_elements", "spaces"):
             for el in getattr(st_, kind):
                 present_ids.add(el.global_id)
                 if el.global_id in theirs and el.global_id in src_payloads:
@@ -402,6 +404,10 @@ def update_ifc(project_dir: Path, out_path: Path | None = None) -> Path:
             if beam.global_id not in theirs:
                 _add(patcher._create_beam(beam, story.elevation),
                      beam, "beam")
+        for footing in story.footings:
+            if footing.global_id not in theirs:
+                _add(patcher._create_footing(footing, story.elevation),
+                     footing, "footing")
         for roof in story.roofs:
             if roof.global_id not in theirs:
                 _add(patcher._create_roof(

@@ -75,6 +75,14 @@ class TestSchema:
         b.save(p)
         assert Building.load(p).stories[0].footings == []
 
+    def test_footing_on_upper_storey_is_rejected(self):
+        # CodeRabbit 2026-08-10: a footing above the lowest storey would
+        # be silently ignored by every check — fail loud at the builder
+        b = _box(with_footings=False, storeys=2)
+        with pytest.raises(ValueError, match="lowest storey"):
+            b.add_footing("S1", (0, 0), (6, 0), width=0.6, height=0.5,
+                          name="Floating footing")
+
 
 class TestIfcExport:
     def test_footing_exports_as_ifc_strip_footing(self, tmp_path):
@@ -92,6 +100,21 @@ class TestIfcExport:
         exported_ids = {f.GlobalId for f in footings}
         assert exported_ids == {f.global_id
                                 for f in b.stories[0].footings}
+
+    def test_round_trip_does_not_duplicate_footings(self, tmp_path):
+        # Codex code review 2026-08-10: footings rode along in the
+        # storey's AB_Parametric payload AND were imported as elements —
+        # every footing came back twice with the same GlobalId
+        from archicad_builder.export.ifc import IFCExporter
+        from archicad_builder.importers.ifc import import_ifc
+
+        b = _box()
+        path = tmp_path / "box.ifc"
+        IFCExporter(b).export(path)
+        result = import_ifc(path)
+        footings = result.building.stories[0].footings
+        assert len(footings) == 4
+        assert len({f.global_id for f in footings}) == 4
 
 
 class TestE104Coverage:
@@ -130,14 +153,28 @@ class TestE106Sliding:
     def test_moderate_ag_passes(self):
         assert _findings(_box(), _site(ag=0.1), "E106") == []
 
-    def test_high_ag_low_friction_fails(self):
+    def test_high_ag_low_friction_fails_once(self):
+        # Fb is direction-independent in the ELF, so E106 is ONE finding,
+        # not two direction-labeled copies (CodeRabbit 2026-08-10)
         found = _findings(_box(), _site(ag=0.4, mu=0.2), "E106")
-        assert len(found) == 2      # both directions
+        assert len(found) == 1
+        assert "direction" not in found[0].message
 
 
 class TestE107Overturning:
     def test_squat_box_passes(self):
         assert _findings(_box(), _site(), "E107") == []
+
+    def test_com_outside_footprint_is_an_error_not_a_skip(self):
+        # CodeRabbit 2026-08-10: a negative lever arm (mass resultant
+        # outside the foundation footprint) is the MOST unstable case
+        # and was silently skipped
+        b = _box(with_footings=False)
+        b.add_footing("S0", (10, 0), (16, 0), width=0.6, height=0.5,
+                      name="Far footing")
+        found = _findings(b, _site(), "E107")
+        assert found
+        assert "outside the foundation footprint" in found[0].message
 
     def test_tall_narrow_tower_fails(self):
         # 2 m wide, 12 m tall, strong shaking: rigid-body overturn

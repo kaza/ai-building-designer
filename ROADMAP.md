@@ -13,8 +13,8 @@ never for skipping one (README §Mission).
 
 | Area | State |
 |---|---|
-| Framework (`src/archicad_builder/`) | ✅ working — models, 55 validator codes, generators, queries, IFC + 2D export, CLI |
-| Tests | ✅ 519 passed, 1 skipped |
+| Framework (`src/archicad_builder/`) | ✅ working — models, 63 validator codes (incl. seismic E100–E103, foundations E104–E107), strip + FEM engines, seismic ELF, generators, queries, IFC + 2D export, CLI |
+| Tests | ✅ 900+ passed, 1 skipped |
 | `projects/3apt-corner-core` | ✅ 0 errors, IFC exports |
 | `projects/4apt-centered-core` | ✅ 0 errors, IFC exports |
 | `projects/villa-maketa` | ✅ 0 errors; Blender render, GLB, furniture assets, browser walkthrough + measurement tools |

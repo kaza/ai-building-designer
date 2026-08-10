@@ -475,8 +475,8 @@ class IFCExporter:
                 mode="json", exclude_none=True,
                 exclude={k: True for k in
                          ("walls", "slabs", "doors", "windows", "roofs",
-                          "staircases", "beams", "virtual_elements",
-                          "spaces", "apartments")}))
+                          "staircases", "beams", "footings",
+                          "virtual_elements", "spaces", "apartments")}))
         self.file.createIfcRelAggregates(
             GlobalId=derived_ifc_id("rel-aggregates", ifc_building.GlobalId,
                                     story.global_id),
@@ -906,7 +906,7 @@ class IFCExporter:
     def _create_footing(
         self, footing, elevation: float
     ) -> ifcopenshell.entity_instance:
-        """IfcFooting FOOTING_BEAM: rectangle along the centerline extruded
+        """IfcFooting STRIP_FOOTING: rectangle along the centerline extruded
         up by height from (elevation − height) — top flush with the storey
         datum (specs/foundations.md)."""
         import math as _math

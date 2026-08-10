@@ -34,8 +34,11 @@ like to see this when I click L."
 ## Boundaries
 
 - Structural plausibility screening, NOT Eurocode verification. Linear
-  static, gravity ULS only (same `DesignBasis` as the strip engine).
-  A licensed engineer signs real buildings.
+  static; gravity ULS always, plus the four ELF seismic combinations
+  when the project declares a `[site]`
+  ([seismic-lateral.md](seismic-lateral.md) S2, 2026-08-10). Same
+  `DesignBasis` as the strip engine. A licensed engineer signs real
+  buildings.
 - Axis-aligned geometry only (walls, beams, rectilinear outlines) —
   same constraint the strip engine has. Non-conforming projects fail
   loudly, never approximately.
@@ -78,12 +81,18 @@ like to see this when I click L."
   averaging windows are overlap-weighted so a cell counts only the part
   that falls inside (centre-based windows drifted up to 29%).
 - What the model does NOT contain is published with the results
-  (`not_modelled`, printed on the X-ray page): wind/seismic and lateral
-  stability, buckling and second-order effects, punching and transverse
-  shear, foundations and soil, SLS deflection and crack width,
-  reinforcement detailing, beam shear/torsion/axial (bending only),
-  slab membrane forces, and non-bearing walls (self-weight only, no
-  stiffness). A calm color is not a safe building.
+  (`not_modelled`, printed on the X-ray page): wind and wind-governed
+  lateral stability (seismic IS modeled when `[site]` is set — with
+  its own declared gaps: accidental torsional eccentricity, vertical
+  component, masonry-vs-concrete wall stiffness), buckling and
+  second-order effects, punching and transverse shear, foundations
+  and soil, SLS deflection and crack width, reinforcement detailing,
+  beam shear/torsion/axial (bending only), slab membrane forces, and
+  non-bearing walls (self-weight only, no stiffness). A calm color is
+  not a safe building.
+- Field payload schema 2: per-quad `u`/`g`/`s` plus `cmb` (index of
+  the governing combination into the envelope's `combos` list);
+  element records carry per-combo design values.
 
 ## Components
 

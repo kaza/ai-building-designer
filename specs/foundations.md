@@ -85,7 +85,9 @@ capacity, checked for pressure, sliding and overturning.
 | Date | Decision | Why |
 |---|---|---|
 | 2026-08-10 | `sigma_rd` has no default | soil strength varies 50–600 kPa across normal sites; a default would be an invented geotech report. Fail to `unresolved` instead |
-| 2026-08-10 | E104 reuses E062's coverage geometry, pointed down | one battle-tested contract (parallel, lateral offset, end projection, width) instead of a second slightly different one |
+| 2026-08-10 | E104 requires parallel + full-extent + transverse containment; end projection deliberately NOT required (footings meet at corners, unlike beams over openings) | started from E062's contract, amended same day — CodeRabbit flagged the leftover E062 wording as contradicting the rule |
+| 2026-08-10 | E106 emits ONE finding (Fb is direction-independent); E107 errors on a non-positive lever arm; footing weight enters the overturning resultant at footing positions | code review: two direction-labeled copies of one number mislead; a resultant outside the footprint was silently skipped; crediting footing weight at the building CoM let a remote footing fake stability |
+| 2026-08-10 | Orphan (disconnected) footings still extend the E107 footprint hull — no connectivity check | rigid-body model assumes the foundation acts as one body; whether it does is engineer judgment, noted in the report |
 | 2026-08-10 | Overturning is rigid-body global, ratio ≥ 1.1 | KISS: catches gross geometry sins (tall narrow wing, heavy console); per-wall uplift is FEM/engineer territory |
 
 ## Acceptance
