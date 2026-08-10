@@ -45,23 +45,32 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     # s_arr carries a STRESS in kN/m2 for wall codes and 0 for plates, so a
     # decoder can render MPa without unit metadata (Codex review).
     # c_arr indexes the governing combination into envelope.combos.
+    uc_arr: list[list[float]] = [[] for _ in res.combos]
     for q in res.field["quads"]:
         e_idx.append(index[q["e"]])
         u_arr.append(q["u"])
         g_arr.append(q.get("g", 3))
         s_arr.append(q.get("s", 0))
         c_arr.append(q.get("cmb", 0))
+        # no fallback: a quad without per-combo values is a corrupt
+        # result, and synthesizing them from the envelope would label
+        # envelope numbers as specific combinations (Codex plan review)
+        quc = q["uc"]
+        for ci in range(len(res.combos)):
+            uc_arr[ci].append(quc[ci])
         for corner in q["c"]:
             pos.extend(corner)
     envelope = dict(
-        schema=2, coords=res.field["coords"], mesh=res.field["mesh"],
+        schema=3, coords=res.field["coords"], mesh=res.field["mesh"],
         digest=digest, balance=round(res.balance, 4),
         combos=res.combos, case_balance=res.case_balance,
         assumptions=res.assumptions, unresolved=res.unresolved,
         not_modelled=res.not_modelled,
         elems=elems,
+        # uc: one flat utilization array per combination (V-key views,
+        # specs/fem-xray.md schema 3); u stays the worst-case envelope
         quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
-                   cmb=c_arr, pos=pos))
+                   cmb=c_arr, uc=uc_arr, pos=pos))
     (out_dir / "fem-field.json").write_text(
         json.dumps(envelope, separators=(",", ":")))
 

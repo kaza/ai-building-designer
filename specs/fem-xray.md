@@ -90,9 +90,23 @@ like to see this when I click L."
   beam shear/torsion/axial (bending only), slab membrane forces, and
   non-bearing walls (self-weight only, no stiffness). A calm color is
   not a safe building.
-- Field payload schema 2: per-quad `u`/`g`/`s` plus `cmb` (index of
-  the governing combination into the envelope's `combos` list);
-  element records carry per-combo design values.
+- Field payload schema 3: per-quad `u`/`g`/`s` plus `cmb` (index of
+  the governing combination into the envelope's `combos` list) and
+  `uc` — one flat utilization array PER combination, aligned with
+  `combos` — so the viewer can paint any single combination without a
+  refetch; element records carry per-combo design values.
+- **V cycles the combination view** inside the X-ray (both the
+  walkthrough and xray.html): worst-case ENVELOPE (default) → each
+  combination in `combos` order — ULS doubles as the pure
+  gravity/"load-bearing" view, the SEIS stops isolate each quake
+  direction. L stays the one on/off toggle; V only chooses what the
+  open X-ray shows. Single-combination builds (no `[site]`) hide the
+  V hint — cycling envelope↔ULS alone is a no-op with extra steps.
+  In combination views the tooltip names the active combination and
+  reads that combination's fragment/element values; the
+  governing-component detail (`g`/`s`) is published for the envelope
+  only (per-combo component arrays would triple the payload for a
+  debugging nicety — boundary, not roadmap).
 
 ## Components
 
@@ -146,6 +160,7 @@ like to see this when I click L."
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |
 | 2026-08-10 | Load application refactored to unfactored cases G/Q (+ storey-weighted QE, EQX/EQY when `[site]` is set); combos ULS = 1.35G+1.5Q and SEIS_X±/SEIS_Y± = G+QE±EQ; field schema bumped to 2 (per-quad governing combo `cmb`, envelope `combos` list); per-case equilibrium ledgers (`case_balance`) replace trust in one scalar; walkthrough + xray decoders updated in the same commit | specs/seismic-lateral.md S2; Codex plan review: pre-factored loads can't be re-combined, a scalar balance hides per-case drops, a schema bump must move writer and viewers together. ULS regression on the villa: < 0.4% (rounding) |
 | 2026-08-10 | Every combo costs a backsolve + harvest pass — villa fem step slowed ~3-5×; stays acceptable because fem is a build-time profile step | measured during S2; revisit only if a project's build becomes painful |
+| 2026-08-10 | V cycles combination views (envelope → ULS → SEIS_X± → SEIS_Y±) inside the X-ray; L stays the single on/off toggle; schema 3 adds per-combo `uc` quad arrays | owner: "I want to see it the same way I saw it with L view … maybe lets use V to switch through different views, x-ray and load bearing." ULS *is* the load-bearing view, so V answers both asks without resurrecting a second L (owner precedent 2026-08-08 kept one L; V changes what the open X-ray shows, not how many X-rays exist) |
 
 ## Acceptance
 

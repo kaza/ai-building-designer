@@ -98,3 +98,25 @@ class TestDesignAndPeak:
     def test_page_shows_the_peak_beside_the_design_value(self, tmp_path):
         page = _page(tmp_path)
         assert "worst fragment" in page and "el.peak" in page
+
+
+class TestCombinationViews:
+    """V cycles envelope -> per-combination views (specs/fem-xray.md
+    schema 3)."""
+
+    def test_v_key_cycles_and_repaints(self, tmp_path):
+        page = _page(tmp_path)
+        assert "'KeyV'" in page
+        assert "needsUpdate = true" in page       # recolor in place
+        assert "envelope (worst case)" in page
+
+    def test_schema_gate_is_three(self, tmp_path):
+        page = _page(tmp_path)
+        assert "env.schema !== 3" in page
+        # combos itself must be validated as an array (CodeRabbit)
+        assert "!Array.isArray(env.combos)" in page
+
+    def test_single_combo_hides_the_cycler(self, tmp_path):
+        page = _page(tmp_path)
+        assert "multiView" in page
+        assert "if (multiView) addEventListener('keydown'" in page

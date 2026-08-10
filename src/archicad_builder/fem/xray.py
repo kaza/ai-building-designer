@@ -77,7 +77,15 @@ try {
   const resp = await fetch('__FIELD_URL__');
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   env = await resp.json();
-  if (env.schema !== 2) throw new Error('unknown field schema ' + env.schema);
+  if (env.schema !== 3) throw new Error('unknown field schema ' + env.schema);
+  // malformed per-combo arrays must fail loudly, never paint envelope
+  // values under a combination label (Codex plan review 2026-08-10)
+  if (!Array.isArray(env.combos)
+      || !Array.isArray(env.quads.uc)
+      || env.quads.uc.length !== env.combos.length
+      || env.quads.uc.some(a => !Array.isArray(a)
+                                || a.length !== env.quads.n))
+    throw new Error('malformed uc combination arrays');
 } catch (err) {
   document.getElementById('load').textContent =
     'could not load the structural field: ' + err.message;
@@ -145,6 +153,17 @@ function writeViewHash() {
   }
 }
 
+// view 0 = worst-case envelope; i > 0 = combination i-1 in env.combos
+// (V cycles — specs/fem-xray.md schema 3)
+let viewIdx = 0;
+const multiView = (env.combos || []).length > 1;
+function activeU(q) {
+  return viewIdx === 0 ? u[q] : env.quads.uc[viewIdx - 1][q];
+}
+function viewName() {
+  return viewIdx === 0 ? 'envelope (worst case)' : env.combos[viewIdx - 1];
+}
+
 const byKind = {};
 for (let q = 0; q < n; q++) {
   const kind = env.elems[elem[q]].kind;
@@ -183,6 +202,32 @@ for (const [kind, ids] of Object.entries(byKind)) {
   document.getElementById('hud').appendChild(label);
 }
 
+const viewLine = document.createElement('div');
+viewLine.style.marginTop = '6px';
+document.getElementById('hud').appendChild(viewLine);
+function repaint() {
+  for (const [kind, ids] of Object.entries(lookup)) {
+    const attr = meshes[kind].geometry.getAttribute('color');
+    ids.forEach((q, j) => {
+      const color = ramp(activeU(q));
+      for (let i = 0; i < 6; i++) {
+        attr.setXYZ(j * 6 + i, color.r, color.g, color.b);
+      }
+    });
+    attr.needsUpdate = true;
+  }
+  viewLine.textContent = 'view: ' + viewName()
+    + (multiView ? '  (V — next)' : '');
+}
+repaint();
+if (multiView) addEventListener('keydown', ev => {
+  if (ev.code === 'KeyV' && !ev.repeat) {
+    viewIdx = (viewIdx + 1) % (env.combos.length + 1);
+    repaint();
+    tip.style.display = 'none';  // stale until the pointer moves again
+  }
+});
+
 const copyBtn = document.createElement('button');
 copyBtn.textContent = 'copy view link';
 copyBtn.style.cssText = 'margin-top:6px;cursor:pointer;display:block';
@@ -218,17 +263,27 @@ addEventListener('mousemove', ev => {
     const g = (env.quads.g || [])[q];
     const s = (env.quads.s || [])[q];
     const qc = (env.quads.cmb || [])[q];
-    const combo = (env.combos || []).length > 1 && qc !== undefined
-      ? ` · ${env.combos[qc]}` : '';
-    const elCombo = (env.combos || []).length > 1 && el.combo
-      ? ` @ ${el.combo}` : '';
+    // envelope view: governing combo per fragment + component detail.
+    // combination view: that combination's own value (g/s are published
+    // for the envelope only — specs/fem-xray.md).
+    const combo = viewIdx > 0 ? ` @ ${viewName()}`
+      : (multiView && qc !== undefined ? ` · ${env.combos[qc]}` : '');
+    const elU = viewIdx > 0
+      ? (el.combos || {})[viewName()] : el.u;
+    const elCombo = viewIdx > 0 ? ` @ ${viewName()}`
+      : (multiView && el.combo ? ` @ ${el.combo}` : '');
+    // a missing per-combo element value renders as n/a — NEVER the
+    // envelope number under a combination label (Codex plan review)
+    const elUText = elU === undefined ? 'n/a'
+      : `${(elU * 100).toFixed(0)}%`;
     tip.textContent =
-      `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%${combo}` +
-      (g === undefined ? '' :
+      `${el.name} — this fragment ${(activeU(q) * 100).toFixed(0)}%${combo}` +
+      (viewIdx > 0 || g === undefined ? '' :
         ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
-      ` (element design value ${(el.u * 100).toFixed(0)}%${elCombo}` +
-      (el.peak ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
-      ((el.p || []).length
+      ` (element design value ${elUText}${elCombo}` +
+      (viewIdx === 0 && el.peak
+        ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
+      (viewIdx === 0 && (el.p || []).length
         ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : '') +
       ((el.combos && Object.keys(el.combos).length > 1)
         ? '\n' + Object.entries(el.combos)

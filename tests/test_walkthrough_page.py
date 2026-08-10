@@ -140,3 +140,22 @@ class TestStructureView:
     def test_real_attribute_is_the_only_source(self, template):
         assert "o.userData.ab_kind" in template
         assert "const bearing = !!meta.ab_load_bearing;" in template
+
+
+class TestFemCombinationViews:
+    """V cycles X-ray combination views; menu button for phones
+    (specs/browser-walkthrough.md, fem-xray.md schema 3)."""
+
+    def test_v_key_and_menu_button_wired(self, template):
+        assert "'KeyV'" in template
+        assert "cycleFemView" in template
+        assert 'id="m-femview"' in template
+
+    def test_schema_gate_is_three(self, template):
+        assert "env.schema !== 3" in template
+
+    def test_view_persists_across_l_toggles(self, template):
+        # Gemini plan review: resetting to envelope on every open would
+        # destroy an engineer's investigative context
+        assert "femViewIdx = 0;\n  _repaintFem();" not in template
+        assert "let femViewIdx = 0;" in template

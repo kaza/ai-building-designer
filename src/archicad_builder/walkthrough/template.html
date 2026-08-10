@@ -152,6 +152,7 @@
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
     <button class="tbtn" id="m-loads">X-ray: off</button>
+    <button class="tbtn" id="m-femview" style="display:none">View: envelope</button>
     <button class="tbtn" id="m-ghost">Structure: off</button>
     <button class="tbtn" id="m-link">Copy view link</button>
   </div>
@@ -696,6 +697,45 @@ function cycleStruct() {
   writeViewHash();
 }
 
+// V-key combination views (specs/fem-xray.md schema 3):
+// 0 = worst-case envelope, i > 0 = femEnv.combos[i-1]
+let femViewIdx = 0;
+function femMultiView() {
+  return femEnv && (femEnv.combos || []).length > 1;
+}
+function femViewName() {
+  return femViewIdx === 0 ? 'envelope (worst case)'
+    : femEnv.combos[femViewIdx - 1];
+}
+function femActiveU(q) {
+  return femViewIdx === 0 ? femEnv.quads.u[q]
+    : femEnv.quads.uc[femViewIdx - 1][q];
+}
+function _repaintFem() {
+  if (!femGroup) return;
+  for (const mesh of femLookup) {
+    const attr = mesh.geometry.getAttribute('color');
+    mesh.userData.femIds.forEach((q, j) => {
+      const color = loadRampColor(femActiveU(q));
+      for (let i = 0; i < 6; i++) {
+        attr.setXYZ(j * 6 + i, color.r, color.g, color.b);
+      }
+    });
+    attr.needsUpdate = true;
+  }
+  const btn = document.getElementById('m-femview');
+  if (btn) btn.textContent = 'View: ' +
+    (femViewIdx === 0 ? 'envelope' : femViewName());
+}
+function cycleFemView() {
+  if (structuralMode !== 'fem' || !femMultiView()) return;
+  femViewIdx = (femViewIdx + 1) % (femEnv.combos.length + 1);
+  _repaintFem();
+  infoText = 'X-RAY VIEW: ' + femViewName() +
+    '\nV — next view · L — exit';
+  setHud();
+}
+
 function _buildFemGroup(env) {
   // building coords are z-up; the GLB scene is (x, y-up, z) = (x, z, -y) —
   // same (x, z, -y) mapping the element painter used. Sanity-check against the model bbox so a
@@ -755,9 +795,19 @@ function _enterFem() {
   });
   femGroup.visible = true;
   document.body.classList.add('xray');   // dark-on-light HUD, see CSS
+  // the view PERSISTS across L toggles (Gemini plan review: an engineer
+  // comparing a combo against the finishes must not lose their place);
+  // first open starts at the envelope
+  _repaintFem();
+  const btn = document.getElementById('m-femview');
+  if (btn) btn.style.display = femMultiView() ? '' : 'none';
   _updateLoadsBtn();
-  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)\nload balance ' +
-    femEnv.balance + ' · aim + I for a fragment · L to exit';
+  // the entry banner names the ACTIVE view — the selection persists
+  // across L toggles, so silence here would mislead (Codex plan review)
+  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)' +
+    (femMultiView() ? '\nview: ' + femViewName() + ' · V — next view' : '') +
+    '\nload balance ' + femEnv.balance +
+    ' · aim + I for a fragment · L to exit';
   setHud();
 }
 
@@ -788,7 +838,13 @@ function setStructuralMode(mode) {
         .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then((env) => {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;  // stale
-          if (env.schema !== 2) throw new Error('field schema ' + env.schema);
+          if (env.schema !== 3) throw new Error('field schema ' + env.schema);
+          if (!Array.isArray(env.combos)
+              || !Array.isArray(env.quads.uc)
+              || env.quads.uc.length !== env.combos.length
+              || env.quads.uc.some((a) => !Array.isArray(a)
+                                          || a.length !== env.quads.n))
+            throw new Error('malformed uc combination arrays');
           femEnv = env;
           femGroup = _buildFemGroup(env);
           scene.add(femGroup);
@@ -812,6 +868,8 @@ function setStructuralMode(mode) {
 function _updateLoadsBtn() {
   const btn = document.getElementById('m-loads');
   if (btn) btn.textContent = 'X-ray: ' + (structuralMode === 'fem' ? 'on' : 'off');
+  const vbtn = document.getElementById('m-femview');
+  if (vbtn && structuralMode !== 'fem') vbtn.style.display = 'none';
 }
 
 function cycleStructural() {
@@ -834,18 +892,26 @@ function femCell(label, value) {
 function femReadout(hit, g) {
   const el = hit.el;
   const pct = (v) => Math.round(v * 100) + '%';
-  const rows = [femCell('element', pct(el.u)) +
-                (el.peak ? '   ' + femCell('peak', pct(el.peak)) : '')];
+  // combination view: that combination's numbers; envelope: the design
+  // values with per-channel detail (g/s are envelope-only — schema 3)
+  // no fallback to el.u: a missing per-combo value renders n/a, never
+  // an envelope number under a combination label (Codex plan review)
+  const elU = femViewIdx > 0
+    ? (el.combos || {})[femViewName()] : el.u;
+  const rows = [femCell('element', elU === undefined ? 'n/a' : pct(elU)) +
+                (femViewIdx === 0 && el.peak
+                  ? '   ' + femCell('peak', pct(el.peak)) : '')];
   // channels are [label, value] pairs; a field written before 2026-08-09
   // carries preformatted strings, and indexing those gives single letters
-  const p = (el.p || []).map(
+  const p = (femViewIdx === 0 ? el.p || [] : []).map(
     (c) => (typeof c === 'string' ? [c, ''] : c));
   for (let i = 0; i < p.length; i += 2) {
     rows.push(femCell(p[i][0], p[i][1]) +
       (p[i + 1] ? '   ' + femCell(p[i + 1][0], p[i + 1][1]) : ''));
   }
-  return el.name + '\ntile ' + pct(femEnv.quads.u[hit.q]) +
-    (g === undefined ? '' : '  ·  ' + FEM_COMPONENT[g]) +
+  return el.name + (femViewIdx > 0 ? ' @ ' + femViewName() : '') +
+    '\ntile ' + pct(femActiveU(hit.q)) +
+    (femViewIdx > 0 || g === undefined ? '' : '  ·  ' + FEM_COMPONENT[g]) +
     '\n' + FEM_RULE + '\n' + rows.join('\n');
 }
 
@@ -865,18 +931,24 @@ function femInfo() {
   const { q, el } = hit;
   const g = (femEnv.quads.g || [])[q];
   const s = (femEnv.quads.s || [])[q];
-  const comp = g === undefined ? '' :
+  const inCombo = femViewIdx > 0;
+  const comp = (inCombo || g === undefined) ? '' :
     '\ngoverned by ' + FEM_COMPONENT[g] +
     (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
-  const multi = (femEnv.combos || []).length > 1;
-  const qCombo = multi && femEnv.quads.cmb
-    ? ' @ ' + femEnv.combos[femEnv.quads.cmb[q]] : '';
-  const eCombo = multi && el.combo ? ' @ ' + el.combo : '';
+  const multi = femMultiView();
+  const qCombo = inCombo ? ' @ ' + femViewName()
+    : (multi && femEnv.quads.cmb
+       ? ' @ ' + femEnv.combos[femEnv.quads.cmb[q]] : '');
+  const elU = inCombo ? (el.combos || {})[femViewName()] : el.u;
+  const eCombo = inCombo ? ' @ ' + femViewName()
+    : (multi && el.combo ? ' @ ' + el.combo : '');
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\n' +
-    'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
+    'this fragment ' + Math.round(femActiveU(q) * 100) + '% of capacity' +
     qCombo + comp +
-    '\nelement design value ' + Math.round(el.u * 100) + '%' + eCombo +
-    (el.peak ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
+    '\nelement design value ' +
+    (elU === undefined ? 'n/a' : Math.round(elU * 100) + '%') + eCombo +
+    (!inCombo && el.peak
+      ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
     '\n(sized on the design value — standard practice; the peak sits at a' +
     ' corner and flags local detailing, not the member size)' +
     ((el.p || []).length
@@ -1042,6 +1114,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
   if (e.code === 'KeyL' && !e.repeat) cycleStructural();
+  if (e.code === 'KeyV' && !e.repeat) cycleFemView();
   if (e.code === 'KeyG' && !e.repeat) cycleStruct();
   if (e.code === 'KeyK' && !e.repeat) copyViewLink();
   if (e.code === 'KeyN' && !e.repeat) {
@@ -1136,6 +1209,9 @@ if (isTouch) {
   });
   document.getElementById('m-ghost').addEventListener('click', () => {
     cycleStruct();
+  });
+  document.getElementById('m-femview').addEventListener('click', () => {
+    cycleFemView();
   });
   document.getElementById('m-link').addEventListener('click', () => {
     copyViewLink();
