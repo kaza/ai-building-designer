@@ -117,6 +117,7 @@ def main():
         filepath=str(OUT),
         export_format="GLB",
         export_apply=True,  # realizes remaining bevel/wireframe modifiers
+        export_extras=True,  # ab_* custom props -> node extras -> userData
         export_cameras=False,
         export_lights=False,
     )

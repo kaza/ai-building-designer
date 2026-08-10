@@ -135,3 +135,9 @@ class TestStructureView:
         # stone walls become two GLB nodes (_1/_2) — the garage rendered
         # non-bearing until the suffix strip (owner catch 2026-08-10)
         assert template.count(".replace(/_\\d+$/, '')") >= 2
+
+    def test_real_attribute_beats_name_parsing(self, template):
+        # userData (glTF extras) is the primary source; names are the
+        # fallback for old GLBs (owner 2026-08-10)
+        assert "o.userData.ab_kind" in template
+        assert "meta ? !!meta.ab_load_bearing" in template

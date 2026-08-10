@@ -609,6 +609,15 @@ function _ifcBase(n) {
   }
   return null;
 }
+function _abMeta(n) {
+  // real attributes: the scene builder stamps ab_* custom properties,
+  // the GLB carries them as node extras, GLTFLoader parks them here.
+  // Old GLBs without extras fall back to name parsing.
+  for (let o = n; o; o = o.parent) {
+    if (o.userData && o.userData.ab_kind) return o.userData;
+  }
+  return null;
+}
 function _mapMat(mat, fn) {
   return Array.isArray(mat) ? mat.map(fn) : fn(mat);
 }
@@ -626,12 +635,14 @@ function _applyStruct(mode) {
       n.visible = false;
       continue;
     }
-    // split meshes carry _1/_2 suffixes (stone walls become two GLB
-    // nodes) — strip a trailing _<digits> or the bearing lookup misses
-    // them and the garage renders as non-bearing (owner catch 2026-08-10)
+    const meta = _abMeta(n);
+    const isWall = meta ? meta.ab_kind === 'wall'
+                        : base.startsWith('IfcWall');
+    // the REAL attribute when the GLB carries extras; name fallback for
+    // old GLBs (split meshes carry _1/_2 suffixes, hence the strip)
     const clean = base.replace(/^Ifc\w+?_/, '').replace(/_\d+$/, '');
-    const isWall = base.startsWith('IfcWall');
-    const bearing = isWall && BEARING[clean];
+    const bearing = meta ? !!meta.ab_load_bearing
+                         : (isWall && BEARING[clean]);
     _structSaved.set(n.uuid, { material: n.material });
     // hologram faces: additive glow on the black background (owner's
     // reference images 2026-08-10) — bearing structure red, rest cyan
@@ -1478,10 +1489,14 @@ if (location.hash.startsWith('#debug') && ready) {
       const out = [];
       modelRoot.traverse((n) => {
         if (n.isMesh && (n.name || '').includes(substr)) {
+          const meta = _abMeta(n);
           out.push({ name: n.name,
                      color: n.material.color
                        ? n.material.color.getHexString() : null,
-                     visible: n.visible });
+                     visible: n.visible,
+                     ab: meta ? { kind: meta.ab_kind,
+                                  lb: meta.ab_load_bearing,
+                                  gid: meta.ab_global_id } : null });
         }
       });
       return out;

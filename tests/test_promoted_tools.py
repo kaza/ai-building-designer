@@ -137,3 +137,37 @@ class TestGlbLogic:
         palette = read_palette(text)
         assert palette["Accent"] == (0.905, 0.533, 0.072, 1.0)
         assert len(palette) == 14
+
+
+class TestElementMetadata:
+    """The OBJ hop strips properties; metadata.py rebuilds the link
+    (stamped as Blender custom props -> glTF extras -> userData)."""
+
+    def test_maps_names_with_kind_and_bearing(self):
+        from archicad_builder.render3d.metadata import element_metadata
+        doc = {"stories": [{"walls": [
+            {"name": "Garage South Wall", "global_id": "g1",
+             "load_bearing": True},
+            {"name": "Bath Divider Wall", "global_id": "g2",
+             "load_bearing": False},
+        ], "roofs": [{"name": "Roof West", "global_id": "g3"}]}]}
+        meta = element_metadata(doc)
+        gw = meta["IfcWallStandardCase_Garage_South_Wall"]
+        assert gw == {"global_id": "g1", "kind": "wall",
+                      "name": "Garage South Wall", "load_bearing": True}
+        assert meta["IfcWallStandardCase_Bath_Divider_Wall"][
+            "load_bearing"] is False
+        # roofs export as IfcSlab entities (export/ifc.py)
+        assert meta["IfcSlab_Roof_West"]["kind"] == "roof"
+
+    def test_covers_every_villa_bearing_wall(self):
+        import json
+        from pathlib import Path
+
+        from archicad_builder.render3d.metadata import element_metadata
+        doc = json.loads((Path(__file__).parent.parent / "projects"
+                          / "villa-maketa" / "building.json").read_text())
+        meta = element_metadata(doc)
+        bearing = [k for k, v in meta.items() if v["load_bearing"]]
+        assert len(bearing) == 15          # matches the BEARING payload
+        assert "IfcWallStandardCase_Garage_West_Wall" in bearing

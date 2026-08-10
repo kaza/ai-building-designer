@@ -384,6 +384,25 @@ def finish_material(obj_name):
 
 bpy.ops.wm.obj_import(filepath=str(OBJ), forward_axis="Y", up_axis="Z")
 
+# Stamp element metadata as custom properties BEFORE any face-splitting —
+# split copies inherit them, the glTF export carries them as node extras,
+# and the walkthrough reads real attributes instead of parsing names
+# (owner 2026-08-10). metadata.py is stdlib-only, safe inside Blender.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from archicad_builder.render3d.metadata import element_metadata  # noqa: E402
+
+_meta = element_metadata(_bjson)
+_stamped = 0
+for obj in scene.objects:
+    if obj.type == "MESH" and obj.name in _meta:
+        _m = _meta[obj.name]
+        obj["ab_global_id"] = _m["global_id"]
+        obj["ab_kind"] = _m["kind"]
+        obj["ab_name"] = _m["name"]
+        obj["ab_load_bearing"] = 1 if _m["load_bearing"] else 0
+        _stamped += 1
+print(f"stamped metadata on {_stamped} elements")
+
 for obj in list(scene.objects):
     if obj.type != "MESH":
         continue
