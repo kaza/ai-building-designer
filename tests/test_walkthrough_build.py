@@ -13,7 +13,6 @@ import pytest
 
 from archicad_builder.walkthrough import (
     GlbError,
-    element_tags,
     render_page,
     storey_bands,
     validate_glb,
@@ -90,11 +89,15 @@ FIXTURE_DOC = {
 
 class TestPageData:
     def test_tags_number_per_story_with_prefix(self):
-        tags = element_tags(FIXTURE_DOC)
-        assert tags["South_Wall"] == "W1"
-        assert tags["East_Wall"] == "W2"
-        assert tags["Entry_Door"] == "D1"
-        assert tags["Garage_South_Wall"] == "G:W1"    # non-ground prefix
+        # tag numbering now lives in render3d.metadata (stamped into the
+        # GLB as extras) — same contract, tested at the real source
+        from archicad_builder.render3d.metadata import element_metadata
+        meta = element_metadata(FIXTURE_DOC)
+        assert meta["IfcWallStandardCase_South_Wall"]["tag"] == "W1"
+        assert meta["IfcWallStandardCase_East_Wall"]["tag"] == "W2"
+        assert meta["IfcDoor_Entry_Door"]["tag"] == "D1"
+        assert meta["IfcWallStandardCase_Garage_South_Wall"]["tag"] \
+            == "G:W1"                                 # non-ground prefix
 
     def test_storey_bands_sorted_with_rooms(self):
         bands = storey_bands(FIXTURE_DOC)

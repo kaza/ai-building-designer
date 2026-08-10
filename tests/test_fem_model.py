@@ -84,7 +84,10 @@ class TestSolveAndAccounting:
         strip = compute_loads(_box())
         fem_u = next(e["u"] for e in box_result.elements.values()
                      if e["name"] == "South")
-        strip_u = strip["IfcWallStandardCase_South"]["u"]
+        strip_u = next(
+            v for k, v in strip.items()
+            if not k.startswith("_") and isinstance(v, dict)
+            and v.get("name") == "South")["u"]
         assert fem_u / strip_u == pytest.approx(1.0, abs=0.5)
 
 

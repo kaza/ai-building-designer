@@ -11,6 +11,22 @@ snow 1.32 kN/m², ULS 1.35G + 1.5Q. Fixtures are test-owned.
 
 import pytest
 
+def by_name(loads: dict, name: str) -> dict:
+    """loads.json is keyed by GlobalId (owner 2026-08-10); tests address
+    elements by their human name via the record's own name field."""
+    hits = [v for k, v in loads.items()
+            if not k.startswith("_") and isinstance(v, dict)
+            and v.get("name") == name]
+    assert len(hits) == 1, f"{name}: {len(hits)} matches"
+    return hits[0]
+
+
+def key_of(loads: dict, name: str) -> str:
+    return next(k for k, v in loads.items()
+                if not k.startswith("_") and isinstance(v, dict)
+                and v.get("name") == name)
+
+
 from archicad_builder.models import Building
 from archicad_builder.structural import compute_loads
 from archicad_builder.validators.phases import validate_structural_loads
@@ -42,7 +58,7 @@ def _box_building(with_mid_wall=False, roof_thickness=0.25,
 class TestComputeLoads:
     def test_walls_get_axial_utilization_and_profile(self):
         loads = compute_loads(_box_building())
-        south = loads["IfcWallStandardCase_South"]
+        south = by_name(loads, "South")
         assert south["kind"] == "wall"
         assert 0.0 < south["u"] < 1.0          # a box this small never fails
         assert len(south["profile"]) == 8
@@ -52,8 +68,8 @@ class TestComputeLoads:
         without = compute_loads(_box_building(with_mid_wall=False))
         withmid = compute_loads(_box_building(with_mid_wall=True))
         # east/west walls' tributary shrinks when the mid wall takes over
-        assert (withmid["IfcWallStandardCase_East"]["q"]
-                < without["IfcWallStandardCase_East"]["q"])
+        assert (by_name(withmid, "East")["q"]
+                < by_name(without, "East")["q"])
 
     def test_beam_bending_utilization(self):
         b = _box_building()
@@ -61,14 +77,14 @@ class TestComputeLoads:
                      sill_height=2.05, name="Band")
         b.add_beam_over("GF", "Band", depth=0.5)
         loads = compute_loads(b)
-        beam = loads["IfcBeam_RB_Band"]
+        beam = by_name(loads, "RB Band")
         assert beam["kind"] == "beam"
         assert 0.0 < beam["u"] < 1.0
         assert beam["M"] > 0
 
     def test_roof_slab_gets_spanning_utilization(self):
         loads = compute_loads(_box_building())
-        roof = loads["IfcSlab_Roof"]
+        roof = by_name(loads, "Roof")
         assert roof["kind"] == "slab"
         # 6x4 box spanning x: governing span ~6m
         assert 0.0 < roof["u"] < 1.0
@@ -77,15 +93,15 @@ class TestComputeLoads:
     def test_mid_wall_cuts_the_roof_span(self):
         without = compute_loads(_box_building(with_mid_wall=False))
         withmid = compute_loads(_box_building(with_mid_wall=True))
-        assert (withmid["IfcSlab_Roof"]["span"]
-                < without["IfcSlab_Roof"]["span"])
+        assert (by_name(withmid, "Roof")["span"]
+                < by_name(without, "Roof")["span"])
 
     def test_roof_dead_load_capped_at_25cm(self):
         # a 0.45 "visual" roof must not weigh more than a 0.25 structural one
         thick = compute_loads(_box_building(roof_thickness=0.45))
         norm = compute_loads(_box_building(roof_thickness=0.25))
-        assert (thick["IfcWallStandardCase_South"]["q"]
-                == pytest.approx(norm["IfcWallStandardCase_South"]["q"]))
+        assert (by_name(thick, "South")["q"]
+                == pytest.approx(by_name(norm, "South")["q"]))
 
 
 class TestStructuralValidators:
@@ -122,8 +138,10 @@ class TestStructuralValidators:
         b = _box_building()
         b.get_story("GF").roofs[0].span_direction = None
         loads = compute_loads(b)
-        assert "IfcSlab_Roof" not in {k for k in loads if not k.startswith("_")}
-        assert "IfcSlab_Roof" in loads["_unresolved"]
+        assert not [v for k, v in loads.items()
+                    if not k.startswith("_") and isinstance(v, dict)
+                    and v.get("name") == "Roof"]
+        assert len(loads["_unresolved"]) == 1   # the roof, by gid
         assert [e for e in validate_structural_loads(b)
                 if "E065" in e.message] == []
 
@@ -134,13 +152,13 @@ class TestStructuralValidators:
         b.get_story("GF").roofs[0].outline.vertices[1].x = 10.0
         b.get_story("GF").roofs[0].outline.vertices[2].x = 10.0
         loads = compute_loads(b)
-        roof = loads["IfcSlab_Roof"]
+        roof = by_name(loads, "Roof")
         assert roof["cantilever"] is True
         assert roof["span"] == pytest.approx(4.0, abs=0.4)
 
     def test_load_conservation_on_simple_box(self):
         loads = compute_loads(_box_building())
-        assert loads["IfcSlab_Roof"]["balance"] == pytest.approx(1.0, abs=0.15)
+        assert by_name(loads, "Roof")["balance"] == pytest.approx(1.0, abs=0.15)
 
     def test_non_rc_beam_is_unresolved(self):
         b = _box_building()
@@ -149,7 +167,7 @@ class TestStructuralValidators:
         beam = b.add_beam_over("GF", "Band", depth=0.5)
         beam.material = "steel"
         loads = compute_loads(b)
-        assert "IfcBeam_RB_Band" in loads["_unresolved"]
+        assert len(loads["_unresolved"]) == 1   # the beam, by gid
 
     def test_beam_without_load_data_is_not_checked(self):
         # a beam not over any opening has no bending model in Phase B

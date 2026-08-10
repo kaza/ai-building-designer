@@ -154,7 +154,8 @@ class TestElementMetadata:
         meta = element_metadata(doc)
         gw = meta["IfcWallStandardCase_Garage_South_Wall"]
         assert gw == {"global_id": "g1", "kind": "wall",
-                      "name": "Garage South Wall", "load_bearing": True}
+                      "name": "Garage South Wall", "load_bearing": True,
+                      "tag": "W1"}
         assert meta["IfcWallStandardCase_Bath_Divider_Wall"][
             "load_bearing"] is False
         # roofs export as IfcSlab entities (export/ifc.py)

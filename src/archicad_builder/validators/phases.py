@@ -1536,7 +1536,9 @@ def validate_structural_loads(building) -> list[ValidationError]:
     for key, data in loads.items():
         if key.startswith("_"):
             continue
-        name = key.split("_", 1)[1].replace("_", " ")
+        # loads.json keys are GlobalIds; the name is a real field on the
+        # record (owner 2026-08-10 — attributes, not key parsing)
+        name = data.get("name", key)
         if data["kind"] == "beam" and data["u"] > 1.0:
             errors.append(ValidationError(
                 severity="error", element_type="Beam", element_id=key,

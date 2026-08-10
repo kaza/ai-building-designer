@@ -21,10 +21,6 @@ from pathlib import Path
 
 from . import FemResult
 
-IFC_PREFIX = {"wall": "IfcWallStandardCase_", "slab": "IfcSlab_",
-              "roof": "IfcSlab_", "beam": "IfcBeam_"}
-
-
 def building_digest(building_json: Path) -> str:
     return hashlib.sha256(building_json.read_bytes()).hexdigest()[:12]
 
@@ -68,7 +64,6 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     for gid, e in res.elements.items():
         entry = {k: (round(v, 3) if isinstance(v, float) else v)
                  for k, v in e.items()}
-        entry["ifc"] = IFC_PREFIX[e["kind"]] + e["name"].replace(" ", "_")
         loads[gid] = entry
     loads["_assumptions"] = res.assumptions + [f"balance {res.balance:.4f}"]
     loads["_unresolved"] = res.unresolved

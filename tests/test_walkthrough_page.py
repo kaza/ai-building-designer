@@ -101,9 +101,9 @@ class TestStructureView:
     def test_flag_set_parser_ignores_unknown_flags(self, template):
         assert "const flags = new Set(parts.slice(5));" in template
         assert "flags.has('xray')" in template
-        # legacy ,ghost links map onto the x-ray state
-        assert "(flags.has('struct') || flags.has('ghost')) ? 1 : 0" \
-            in template
+        # single flag, no legacy mapping (owner 2026-08-10)
+        assert "flags.has('struct') ? 1 : 0" in template
+        assert "flags.has('ghost')" not in template
         assert "parts.length !== 5 && !xray" not in template
 
     def test_struct_unwound_before_fem_fetch(self, template):

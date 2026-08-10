@@ -296,7 +296,7 @@ def compute_loads(building: Building, basis: DesignBasis | None = None) -> dict:
             (win, win.sill_height + win.height) for win in story.windows]
         for beam in story.beams:
             if beam.material != "rc":
-                unresolved["IfcBeam_" + beam.name.replace(" ", "_")] = (
+                unresolved[beam.global_id] = (
                     f"material {beam.material!r}: no capacity model in Phase B")
                 continue
             for opening, head in openings:
