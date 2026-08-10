@@ -1,5 +1,14 @@
 # ai-building-designer — project rules
 
+## Always publish (owner order, 2026-08-11)
+
+When work that changes a project's web deliverables (walkthrough, X-ray,
+field payloads, engineer report) is finished and committed: **push, run
+the pipeline, and `publish` — every time, without being asked.** The
+owner reviews on the live site; "done but only on your disk" is not
+done. The publish command's own gates (pushed HEAD, fresh pipeline
+ledger) are the safety net — never work around them.
+
 ## Spec tiers — keep them isolated (ADR 004)
 
 Two kinds of document are both called "spec". Never mix them:

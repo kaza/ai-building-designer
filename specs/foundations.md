@@ -79,8 +79,11 @@ capacity, checked for pressure, sliding and overturning.
 - EN 1998-5 foundation tie-beams: NOT validated. Strip footings under
   a full wall grid are inherently tied; the handoff report carries a
   standing note for the engineer instead of a fake check.
-- Footings don't render in the walkthrough/plans (underground);
-  they appear in IFC and the handoff report only.
+- Footings don't render in the 2D plans. They DO ride the IFC→GLB
+  visual pipeline and exist as real geometry below grade in the
+  walkthrough — visible only when flying underground, which is how
+  the owner reviews (amended 2026-08-11: hiding real structure from
+  a free-flight viewer served nobody).
 
 ## Decision log
 
