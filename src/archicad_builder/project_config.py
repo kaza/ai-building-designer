@@ -120,6 +120,33 @@ class Walkthrough(_Strict):
     start: Vec3 = (8.2, 1.7, 4.0)    # camera spawn (x, y=eye height, z)
 
 
+class Soil(_Strict):
+    """[site.soil] — from the project's geotechnical report. sigma_rd has
+    no default on purpose: soil strength varies 50-600 kPa across normal
+    sites, and a default would be an invented geotech report
+    (specs/foundations.md)."""
+
+    sigma_rd: float = Field(gt=0)    # design bearing resistance, kPa
+    friction_mu: float = Field(default=0.5, gt=0, le=1.0)
+
+
+class Site(_Strict):
+    """[site] — seismic context (specs/seismic-lateral.md). All three
+    countries are Eurocode 8; only National-Annex parameters differ, so
+    country selects a spectrum-type default and ag comes off the national
+    hazard map. No [site] at all -> seismic checks report unresolved."""
+
+    country: Literal["BA", "DE", "AT"]
+    ag: float = Field(gt=0, le=1.0)  # peak ground acceleration, units of g
+    ground_type: Literal["A", "B", "C", "D", "E"]
+    importance_class: Literal["I", "II", "III", "IV"] = "II"
+    spectrum_type: Literal[1, 2] | None = None   # default set by country
+    # top of the rigid basement / grade; None = max(0, lowest storey
+    # elevation). Diaphragms at or below it carry no lateral force.
+    seismic_base_elevation: float | None = None
+    soil: Soil | None = None
+
+
 class PolyhavenAsset(_Strict):
     source: Literal["polyhaven"]
     id: str
@@ -155,6 +182,7 @@ class ProjectConfig(_Strict):
     appearance: Appearance = Appearance()
     render: Render = Render()
     walkthrough: Walkthrough = Walkthrough()
+    site: Site | None = None
     assets: list[Asset] = Field(default=[], alias="asset")
 
     @field_validator("assets")

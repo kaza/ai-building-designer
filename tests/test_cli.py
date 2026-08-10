@@ -67,17 +67,20 @@ class TestValidateWaivers:
         v = data["validation"]
         assert v["errors"] == 0
         assert v["warnings"] == 0
-        # 17 findings waived: villa-vs-block noise incl. garage-storey core
+        # 26 findings waived: villa-vs-block noise incl. garage-storey core
         # rules (E011/E012/E013), the wide garage vehicle door (W060), the
         # REAL Roof West deck cantilever (E065) pending the owner's
-        # columns-vs-shorter-roof decision, and 7x E062 — the ring beams
+        # columns-vs-shorter-roof decision, 7x E062 — the ring beams
         # were removed deliberately (owner 2026-08-08 evening) so the FEM
-        # X-ray shows where Verstärkung belongs; final reinforcement
-        # decision pending.
-        assert v["waived_count"] == 17
+        # X-ray shows where Verstärkung belongs — and the seismic
+        # commission's REAL findings (E100 shear deficit, E101 URM beyond
+        # Table 9.3, E102 torsion): strengthening is an owner+engineer
+        # decision pending the actual hazard ag and geotech report
+        # (specs/seismic-lateral.md, project spec.md).
+        assert v["waived_count"] == 26
         assert {w["rule"] for w in v["waived"]} == {
             "W001", "W040", "W060", "E041b", "E011", "E012", "E013", "E065",
-            "E062",
+            "E062", "E100", "E101", "E102",
         }
         assert all(w["reason"] for w in v["waived"])
         assert v["stale_waivers"] == []

@@ -4,6 +4,17 @@ AI-generated apartment buildings. Give it a footprint, get back a multi-storey b
 
 Built in a weekend. By talking to a phone. With one functioning hand. [Here's the story.](docs/STORY.md)
 
+## Mission
+
+**Building-ready — with civil engineer validation.** Every design this
+tool emits is meant to be handed to a licensed civil engineer for
+verification and signature; nothing here goes straight to a
+construction site. The tool's job is to make that sign-off fast,
+complete and boring: every load path modeled, every assumption
+printed, every check computed, every gap declared (`not_modelled`).
+"Ready for building" means **ready for perfect validation** — the
+engineer verifies numbers instead of re-modeling the house.
+
 ---
 
 ## What This Does

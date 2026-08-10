@@ -51,14 +51,16 @@ def _save_building(building: Building, project: str) -> Path:
     return path
 
 
-def _validate_json(building: Building, waivers: WaiverConfig | None = None) -> dict:
+def _validate_json(building: Building, waivers: WaiverConfig | None = None,
+                   site=None) -> dict:
     """Run all validators and return structured results.
 
     With a WaiverConfig, waived findings move to 'waived' (with reasons),
     counts exclude them, and unmatched waivers are listed as 'stale_waivers'.
     Without one, output shape is unchanged (no waiver keys at all).
+    `site` is the project's [site] config; None skips seismic checks.
     """
-    errors = validate_all_phases(building)
+    errors = validate_all_phases(building, site=site)
 
     waived: list[dict] = []
     stale: list[dict] = []
@@ -78,6 +80,11 @@ def _validate_json(building: Building, waivers: WaiverConfig | None = None) -> d
         "optimizations": sum(1 for e in errors if e.severity == "optimization"),
         "details": details,
     }
+    if site is None:
+        # the spec's unresolved contract: no [site] means the seismic
+        # checks did not run — say so, never silently pass
+        result["seismic"] = ("unresolved: no [site] in project.toml — "
+                             "E100-E103 not evaluated")
     if waivers is not None:
         result["waived"] = waived
         result["waived_count"] = len(waived)
@@ -93,6 +100,18 @@ def _load_project_waivers(project: str) -> WaiverConfig | None:
         typer.echo(json.dumps({"ok": False, "error": str(e)}))
         raise typer.Exit(1) from e
 
+
+
+def _load_site(project: str):
+    """Project [site] config for the seismic validators; None (with all
+    seismic checks unresolved) when project.toml is missing or invalid —
+    apply/generate must not start failing on a config error that the
+    validate gate reports properly."""
+    from archicad_builder.project_config import ConfigError, ProjectConfig
+    try:
+        return ProjectConfig.load(PROJECTS_DIR / project).site
+    except ConfigError:
+        return None
 
 def _output(data: dict) -> None:
     """Print JSON output to stdout."""
@@ -116,13 +135,13 @@ def validate(
     # (specs/project-config.md)
     from archicad_builder.project_config import ConfigError, ProjectConfig
     try:
-        ProjectConfig.load(PROJECTS_DIR / project)
+        cfg = ProjectConfig.load(PROJECTS_DIR / project)
     except ConfigError as exc:
         typer.echo(f"project.toml invalid: {exc}", err=True)
         raise typer.Exit(1) from exc
     building = _load_building(project)
     waivers = _load_project_waivers(project)
-    result = _validate_json(building, waivers)
+    result = _validate_json(building, waivers, site=cfg.site)
     _output({"ok": True, "validation": result})
     # Without --strict this command has ALWAYS exited 0, which made the
     # "validate" step in the documented pipeline a gate that could never
@@ -135,9 +154,15 @@ def validate(
 @app.command()
 def assess(project: str = typer.Argument(..., help="Project directory name")):
     """Full assessment: validation + building summary + area stats."""
+    from archicad_builder.project_config import ConfigError, ProjectConfig
+    try:
+        cfg = ProjectConfig.load(PROJECTS_DIR / project)
+    except ConfigError as exc:
+        typer.echo(f"project.toml invalid: {exc}", err=True)
+        raise typer.Exit(1) from exc
     building = _load_building(project)
     waivers = _load_project_waivers(project)
-    validation = _validate_json(building, waivers)
+    validation = _validate_json(building, waivers, site=cfg.site)
 
     # Build summary
     stories_info = []
@@ -253,6 +278,52 @@ def fem_cmd(
         "unresolved": result.unresolved,
         "worst": [{"element": e["name"], "kind": e["kind"],
                    "u": round(e["u"], 2)} for e in worst],
+    })
+
+
+@app.command("seismic")
+def seismic_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    output: str | None = typer.Option(None, "--output", "-o"),
+):
+    """Seismic ELF analysis (specs/seismic-lateral.md S1) -> output/seismic.json."""
+    import json as _json
+
+    from archicad_builder.project_config import ConfigError, ProjectConfig
+    from archicad_builder.seismic import compute_seismic
+
+    try:
+        cfg = ProjectConfig.load(PROJECTS_DIR / project)
+    except ConfigError as exc:
+        typer.echo(f"project.toml invalid: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    building = _load_building(project)
+    out = (Path(output) if output
+           else PROJECTS_DIR / project / "output" / "seismic.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if cfg.site is None:
+        result = {"_unresolved": {
+            "site": "no [site] in project.toml — seismic not evaluated"}}
+        out.write_text(_json.dumps(result, indent=1, sort_keys=True))
+        _output({"ok": True, "written": str(out),
+                 "unresolved": result["_unresolved"]})
+        return
+    result = compute_seismic(building, cfg.site)
+    out.write_text(_json.dumps(result, indent=1, sort_keys=True))
+    _output({
+        "ok": True,
+        "written": str(out),
+        "T1_s": result["T1"],
+        "Sd_g": result["Sd"],
+        "Fb_kN": result["Fb"],
+        "unresolved": result["_unresolved"],
+        "storeys": [
+            {"story": st["story"], "V_kN": st["V"],
+             "x": {"capacity_kN": st["x"]["capacity"],
+                   "density_pct": st["x"]["density"]},
+             "y": {"capacity_kN": st["y"]["capacity"],
+                   "density_pct": st["y"]["density"]}}
+            for st in result["storeys"]],
     })
 
 
@@ -708,7 +779,8 @@ def apply(
     }
 
     if not no_validate:
-        output["validation"] = _validate_json(building)
+        output["validation"] = _validate_json(
+            building, site=_load_site(project))
 
     if render_story:
         out = PROJECTS_DIR / project / "output"
@@ -750,7 +822,7 @@ def generate(
         raise typer.Exit(1)
 
     _save_building(building, project)
-    validation = _validate_json(building)
+    validation = _validate_json(building, site=_load_site(project))
 
     _output({
         "ok": True,

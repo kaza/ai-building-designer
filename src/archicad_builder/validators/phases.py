@@ -58,8 +58,13 @@ MIN_BATHROOM_AREA = 5.0       # OIB adaptable housing requirement
 CORE_WALL_KEYWORDS = ["core", "elevator", "staircase", "divider"]  # Wall names indicating core
 
 
-def validate_all_phases(building: Building) -> list[ValidationError]:
-    """Run all phase validators (v2 + v3)."""
+def validate_all_phases(building: Building,
+                        site=None) -> list[ValidationError]:
+    """Run all phase validators (v2 + v3).
+
+    `site` is the project's [site] config (specs/seismic-lateral.md);
+    None -> the seismic validators report nothing (unresolved, never
+    guessed) so buildings without a site keep validating as before."""
     errors: list[ValidationError] = []
     errors.extend(validate_phase1_shell(building))
     errors.extend(validate_phase2_core(building))
@@ -70,6 +75,8 @@ def validate_all_phases(building: Building) -> list[ValidationError]:
     errors.extend(validate_phase6_vertical(building))
     # Phase B structural loads (specs/structural-plausibility.md)
     errors.extend(validate_structural_loads(building))
+    # S1 seismic (specs/seismic-lateral.md)
+    errors.extend(validate_seismic(building, site))
     # v3 additions
     errors.extend(validate_core_integrity(building))
     errors.extend(validate_interior_enclosure(building))
@@ -1558,6 +1565,103 @@ def validate_structural_loads(building) -> list[ValidationError]:
                 message=(f"E066: Bearing wall '{name}' at {data['u']:.2f} of "
                          f"gross axial capacity (q {data['q']} kN/m)."),
             ))
+    return errors
+
+
+def validate_seismic(building, site, basis=None) -> list[ValidationError]:
+    """S1 seismic plausibility (specs/seismic-lateral.md).
+
+    E100 storey seismic shear > wall shear capacity per direction (error)
+    E101 wall density below EN 1998-1 Table 9.3 minimum / URM not
+         acceptable at this seismicity (error)
+    E102 torsional irregularity e0 > 0.30*r or r < ls (warning)
+    E103 lateral discontinuity: bearing wall over the lower storey with
+         no bearing wall body under it — same geometry as E050, but a
+         gravity waiver (e.g. an engineered transfer beam) does NOT
+         restore the seismic shear path, so the codes are waived on
+         different grounds (spec decision log)
+
+    No [site] configured -> no findings (unresolved, never guessed).
+    """
+    if site is None or not building.stories:
+        return []
+    from archicad_builder.seismic import compute_seismic
+
+    errors: list[ValidationError] = []
+    res = compute_seismic(building, site, basis)
+    elf_ok = "elf" not in res["_unresolved"]
+
+    for st in res["storeys"]:
+        for d in ("x", "y"):
+            e = st[d]
+            if elf_ok and st["V"] > e["capacity"]:
+                errors.append(ValidationError(
+                    severity="error", element_type="Story",
+                    element_id=st["story_id"],
+                    message=(
+                        f"E100: Story '{st['story']}' direction {d}: "
+                        f"seismic shear demand {st['V']:.0f} kN exceeds "
+                        f"wall shear capacity {e['capacity']:.0f} kN — "
+                        f"add or lengthen {d}-direction bearing walls."),
+                ))
+            if not e["acceptable"]:
+                errors.append(ValidationError(
+                    severity="error", element_type="Story",
+                    element_id=st["story_id"],
+                    message=(
+                        f"E101: Story '{st['story']}' direction {d}: "
+                        "unreinforced masonry is not acceptable at this "
+                        "seismicity/storey count per EN 1998-1 Table 9.3 "
+                        "simple rules — full engineering verification "
+                        "required."),
+                ))
+            elif (e["density_min"] is not None
+                    and e["density"] < e["density_min"]):
+                errors.append(ValidationError(
+                    severity="error", element_type="Story",
+                    element_id=st["story_id"],
+                    message=(
+                        f"E101: Story '{st['story']}' direction {d}: "
+                        f"shear wall density {e['density']:.1f}% is below "
+                        f"the {e['density_min']:.1f}% minimum "
+                        "(EN 1998-1 Table 9.3)."),
+                ))
+            if (e["e0"] is not None and e["r"] is not None
+                    and not e["regular"]):
+                errors.append(ValidationError(
+                    severity="warning", element_type="Story",
+                    element_id=st["story_id"],
+                    message=(
+                        f"E102: Story '{st['story']}' direction {d} is "
+                        f"torsionally irregular: e0 {e['e0']:.2f} m vs "
+                        f"0.30*r {0.30 * e['r']:.2f} m, r {e['r']:.2f} m "
+                        f"vs ls {e['ls']:.2f} m (EN 1998-1 4.2.3.2) — "
+                        "the earthquake will twist this storey."),
+                ))
+
+    # E103 — lateral continuity (pure geometry, E050's own helpers)
+    stories = sorted(building.stories, key=lambda s: s.elevation)
+    for i in range(1, len(stories)):
+        upper, lower = stories[i], stories[i - 1]
+        lower_bearing = [w for w in lower.walls if w.load_bearing]
+        footprint = _storey_footprint(lower)
+        if footprint is None:
+            continue        # no slab geometry: E050's legacy check owns it
+        for wall in upper.walls:
+            if not wall.load_bearing:
+                continue
+            unsupported = _unsupported_length(wall, footprint, lower_bearing)
+            if unsupported >= 0.1:
+                errors.append(ValidationError(
+                    severity="error", element_type="Wall",
+                    element_id=wall.global_id,
+                    message=(
+                        f"E103: Bearing wall '{wall.name}' on "
+                        f"'{upper.name}' interrupts the lateral load path "
+                        f"({unsupported:.2f}m has no wall below on "
+                        f"'{lower.name}') — seismic shear collected above "
+                        "cannot reach the ground here."),
+                ))
     return errors
 
 

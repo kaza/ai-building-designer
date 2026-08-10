@@ -156,3 +156,15 @@ models = [
     "kitchenSink", "kitchenStove", "kitchenFridgeLarge",
     "loungeChairRelax",
 ]
+
+# Seismic context (specs/seismic-lateral.md). PLACEHOLDERS pending the
+# real hazard-map lookup and geotech report — flagged in spec.md:
+# ag from the BAS EN 1998-1 map for the actual site, ground type and
+# sigma_rd from a geotechnical report.
+[site]
+country = "BA"
+ag = 0.15
+ground_type = "B"
+
+[site.soil]
+sigma_rd = 200.0

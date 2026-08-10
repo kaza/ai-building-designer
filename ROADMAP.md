@@ -3,7 +3,11 @@
 Single source of truth for **where we are and what's left**. Status only — the *what* and *why*
 live in [`specs/`](specs/), architectural choices in [`specs/decisions/`](specs/decisions/).
 
-Last updated: 2026-08-05
+Last updated: 2026-08-10
+
+**Mission: building-ready, with civil engineer validation** — the
+output is optimized for perfect verifiability by a licensed engineer,
+never for skipping one (README §Mission).
 
 ## Where we are
 
@@ -18,8 +22,11 @@ Last updated: 2026-08-05
 
 ## In flight
 
-Nothing open. Last landed: walkthrough measurement tools (I = object info, M = ruler)
-— [spec](specs/walkthrough-measurement.md).
+Seismic commission (owner, 2026-08-10) — all four phases commissioned:
+- S1 ELF plausibility validators E100–E103 — [spec](specs/seismic-lateral.md)
+- S2 FEM lateral load cases + combo envelope — [spec](specs/seismic-lateral.md)
+- S3 foundations: footing element, soil, E104–E107 — [spec](specs/foundations.md)
+- S4 engineer handoff report — [spec](specs/engineer-handoff.md)
 
 ## Next (not commissioned)
 
