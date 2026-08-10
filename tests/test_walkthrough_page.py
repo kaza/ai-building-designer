@@ -130,3 +130,8 @@ class TestStructureView:
         assert "AdditiveBlending" in template
         assert "scene.background = new THREE.Color(0x04070d);" in template
         assert "_structEdges" in template
+
+    def test_split_mesh_suffix_is_stripped_for_bearing_lookup(self, template):
+        # stone walls become two GLB nodes (_1/_2) — the garage rendered
+        # non-bearing until the suffix strip (owner catch 2026-08-10)
+        assert template.count(".replace(/_\\d+$/, '')") >= 2

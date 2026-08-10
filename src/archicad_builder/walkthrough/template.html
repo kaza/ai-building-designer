@@ -626,7 +626,10 @@ function _applyStruct(mode) {
       n.visible = false;
       continue;
     }
-    const clean = base.replace(/^Ifc\w+?_/, '');
+    // split meshes carry _1/_2 suffixes (stone walls become two GLB
+    // nodes) — strip a trailing _<digits> or the bearing lookup misses
+    // them and the garage renders as non-bearing (owner catch 2026-08-10)
+    const clean = base.replace(/^Ifc\w+?_/, '').replace(/_\d+$/, '');
     const isWall = base.startsWith('IfcWall');
     const bearing = isWall && BEARING[clean];
     _structSaved.set(n.uuid, { material: n.material });
@@ -1471,6 +1474,18 @@ if (location.hash.startsWith('#debug') && ready) {
   window.__ab = {
     cycleStruct, setStructuralMode,
     state: () => ({ mode: structuralMode, structWanted, structApplied }),
+    find: (substr) => {
+      const out = [];
+      modelRoot.traverse((n) => {
+        if (n.isMesh && (n.name || '').includes(substr)) {
+          out.push({ name: n.name,
+                     color: n.material.color
+                       ? n.material.color.getHexString() : null,
+                     visible: n.visible });
+        }
+      });
+      return out;
+    },
     structProbe: () => {
       let bearing = null, partition = null, furn = null,
           hidden = 0, meshes = 0;
@@ -1480,7 +1495,8 @@ if (location.hash.startsWith('#debug') && ready) {
         if (!n.visible) hidden++;
         const base = _ifcBase(n);
         if (!base) { furn = furn || n; return; }
-        const clean = base.replace(/^Ifc\w+?_/, '');
+        const clean = base.replace(/^Ifc\w+?_/, '')
+          .replace(/_\d+$/, '');
         if (base.startsWith('IfcWall')) {
           if (BEARING[clean]) bearing = bearing || n;
           else partition = partition || n;
