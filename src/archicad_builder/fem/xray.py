@@ -77,7 +77,7 @@ try {
   const resp = await fetch('__FIELD_URL__');
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   env = await resp.json();
-  if (env.schema !== 1) throw new Error('unknown field schema ' + env.schema);
+  if (env.schema !== 2) throw new Error('unknown field schema ' + env.schema);
 } catch (err) {
   document.getElementById('load').textContent =
     'could not load the structural field: ' + err.message;
@@ -86,6 +86,8 @@ try {
 document.getElementById('load').remove();
 document.getElementById('meta').innerHTML =
   '<b>assumptions</b><br>' + env.assumptions.join('<br>') +
+  ((env.combos || []).length > 1
+    ? '<br><b>combinations</b> ' + env.combos.join(', ') : '') +
   '<br>load balance ' + env.balance +
   (env.unresolved.length ? '<br><b>unresolved</b><br>'
     + env.unresolved.join('<br>') : '') +
@@ -215,14 +217,23 @@ addEventListener('mousemove', ev => {
                    'diagonal tension (shear)'];
     const g = (env.quads.g || [])[q];
     const s = (env.quads.s || [])[q];
+    const qc = (env.quads.cmb || [])[q];
+    const combo = (env.combos || []).length > 1 && qc !== undefined
+      ? ` · ${env.combos[qc]}` : '';
+    const elCombo = (env.combos || []).length > 1 && el.combo
+      ? ` @ ${el.combo}` : '';
     tip.textContent =
-      `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%` +
+      `${el.name} — this fragment ${(u[q] * 100).toFixed(0)}%${combo}` +
       (g === undefined ? '' :
         ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
-      ` (element design value ${(el.u * 100).toFixed(0)}%` +
+      ` (element design value ${(el.u * 100).toFixed(0)}%${elCombo}` +
       (el.peak ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
       ((el.p || []).length
-        ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : '');
+        ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : '') +
+      ((el.combos && Object.keys(el.combos).length > 1)
+        ? '\n' + Object.entries(el.combos)
+            .map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join('  ·  ')
+        : '');
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';

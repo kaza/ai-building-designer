@@ -221,6 +221,30 @@ class Beam(BaseModel):
         return self
 
 
+class StripFooting(BaseModel):
+    """A strip footing under a bearing wall (specs/foundations.md).
+
+    Centerline start→end like Wall; rectangular section width (horizontal,
+    ⊥ axis) × height (vertical), top at the storey elevation, extending
+    down. Lowest storey only (validator-enforced, not schema). rc.
+    """
+
+    global_id: str = Field(default_factory=generate_ifc_id, description="IFC GlobalId")
+    name: str = ""
+    description: str = ""
+    start: Point2D
+    end: Point2D
+    width: float = Field(gt=0, description="Horizontal width ⊥ to the axis (m)")
+    height: float = Field(gt=0, description="Vertical height (m), extends below storey elevation")
+
+    @model_validator(mode="after")
+    def _non_degenerate(self) -> StripFooting:
+        if (abs(self.end.x - self.start.x) < 1e-6
+                and abs(self.end.y - self.start.y) < 1e-6):
+            raise ValueError("footing start and end coincide (zero length)")
+        return self
+
+
 class RoofType(str, Enum):
     """Supported roof types."""
 

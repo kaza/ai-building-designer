@@ -314,8 +314,42 @@ Viewers:
   didn't). export_glb.py now applies helper-dependent modifiers before pruning, and
   verification counts vertices instead of eyeballing.
 
+## Seismic & foundations (2026-08-10, S1–S4 commission)
+
+Framework specs: [seismic-lateral.md](../../specs/seismic-lateral.md) ·
+[foundations.md](../../specs/foundations.md) ·
+[engineer-handoff.md](../../specs/engineer-handoff.md).
+
+**Site (PLACEHOLDERS, flagged in project.toml):** Bosnia, `ag = 0.15 g`,
+ground type B, importance II, `sigma_rd = 200 kPa`, `mu = 0.5`. The real
+values come from the BAS EN 1998-1 hazard map for the actual parcel and a
+geotechnical report — both pending the owner. Every seismic number below
+moves when they land.
+
+**Findings (real, documented, waived pending owner+engineer):**
+
+| Finding | Number | Meaning |
+|---|---|---|
+| E100 x-direction shear | GF capacity 272 kN vs demand 581 kN | the band windows ate the x-direction shear walls — strengthening (RC upgrade / confined masonry) is a design decision |
+| E101 URM acceptability | ag·S = 0.18 g beyond Table 9.3 | the villa will not be built as plain unreinforced masonry; structure type to be fixed with the engineer |
+| E102 torsion (GF) | e0 = 3.57 m vs 0.30·r = 2.11 m | stair tower half outside + one-sided garage wing; engineer runs a spatial model (the FEM X-ray is one) |
+| E105 (fixed in model) | Garage West footing 215 kPa @ 0.6 m | widened to 0.8 m — x=4.5 is the roof's bearing line |
+
+**Footings:** 0.6 × 0.5 m rc strips under the garage bearing grid, west
+line 0.8 m (E105-sized). Exported as IfcFooting STRIP_FOOTING.
+
+**FEM:** seismic combos SEIS_X±/SEIS_Y± enveloped with ULS; 4 villa
+elements are seismic-governed; X-ray tooltips name the governing combo.
+ULS numbers unchanged vs the pre-seismic engine (< 0.4 % = rounding).
+
+**Handoff:** `output/engineer-report.html` (pipeline step `report`) —
+mission banner, full basis dump, ELF table, footing schedule, waivers
+with reasons, honest-gaps list.
+
 ## Accepted validation results
 
-**0 errors, 0 warnings, 5 waived, 0 stale.** The E044 false positives were fixed in
-the framework (specs/facade-detection.md); the remaining villa-vs-block noise is
-waived with reasons in `validation.json` (specs/validation-waivers.md).
+**0 errors, 0 warnings, 26 waived, 0 stale.** The E044 false positives were fixed in
+the framework (specs/facade-detection.md); the villa-vs-block noise, the deliberate
+beam-less bands (E062), the deck cantilever (E065) and the seismic commission's real
+findings (E100/E101/E102 — see the seismic section above) are waived with reasons in
+`validation.json` (specs/validation-waivers.md).

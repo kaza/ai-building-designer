@@ -30,25 +30,31 @@ capacity, checked for pressure, sliding and overturning.
    not guessable), `friction_mu` (base friction coefficient, default
    0.5). No `[site.soil]` → foundation checks `unresolved`.
 3. **E104 — bearing wall without a footing** (error): every
-   load-bearing wall on the lowest storey must be covered by a
-   footing whose centerline is parallel (±15°) and laterally within
-   `min(0.15, wall.thickness/2)`, covering the wall extent with
-   ≥ 0.10 m projection past each end, and `width ≥ wall.thickness`
-   (same geometric contract as E062's beam-over-opening, pointed
-   down). Walls standing on a BASESLAB (slab-on-grade footprint
-   containment) are exempt — the slab grounds them, as the FEM
-   already assumes.
+   load-bearing wall on the lowest storey must be covered by ONE
+   footing that is parallel (±15°), covers the full wall extent, and
+   CONTAINS the wall transversely: `offset + t/2 ≤ width/2` (a
+   centerline-offset rule alone can leave the wall edge hanging off
+   an equal-width footing — Codex plan review). End projection past
+   the wall is NOT required: footings meet at corners, unlike beams
+   over openings (amended 2026-08-10). Walls standing on a BASESLAB
+   (slab-on-grade coverage) are exempt — the slab grounds them, as
+   the FEM already assumes.
 4. **E105 — soil bearing pressure exceeded** (error): per footing,
    `(worst wall base line load from the strip engine + footing
    self-weight) / width > sigma_rd`. Uses the strip engine's
    station-sampled wall profiles — peaks, not averages.
 5. **E106 — sliding under base shear** (error, per direction):
-   `Fb > friction_mu · N_total` where N is the unfactored gravity
-   weight (G + ψE·Q, consistent with the seismic mass). Passive earth
-   pressure is ignored (conservative, logged).
+   `Fb > friction_mu · G` where G is the unfactored DEAD weight only
+   (building + footings). Live load is never credited as favorable
+   friction — ψE is a mass participation factor, not a resistance
+   factor (Codex plan review). Passive earth pressure is ignored
+   (conservative, logged).
 6. **E107 — seismic overturning** (error, per direction): rigid-body
-   check about each plan edge: `M_overturning = Σ Fi·zi` vs
-   `M_stabilizing = N · d_edge`, require ratio ≥ 1.1. Crude and
+   check `M_stab / M_ot ≥ 1.1` with `M_ot = Σ Fi·(zi − base)` and
+   `M_stab = G_dead · arm`, arm measured from the dead-weight
+   resultant to the nearer toe of the FOUNDATION footprint (union of
+   footing bodies + base slabs — not the building bounding box, which
+   overstates resistance for L-shapes; Codex plan review). Crude and
    global by design — a villa that fails a rigid-body overturn is
    news the owner wants before the engineer does.
 7. **FEM**: footings are NOT meshed; wall-base clamps stay. The

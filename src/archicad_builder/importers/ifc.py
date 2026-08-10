@@ -25,6 +25,7 @@ from archicad_builder.models.elements import (
     Roof,
     Slab,
     Staircase,
+    StripFooting,
     VirtualElement,
     Wall,
     Window,
@@ -41,6 +42,7 @@ _KIND_MAP = {
     "IfcRoof": (Roof, "roofs"),
     "IfcStair": (Staircase, "staircases"),
     "IfcBeam": (Beam, "beams"),
+    "IfcFooting": (StripFooting, "footings"),
     "IfcVirtualElement": (VirtualElement, "virtual_elements"),
 }
 

@@ -31,6 +31,8 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     # the peak only as a local-detailing hint, so both travel together.
     elems = [dict(id=gid, name=e["name"], kind=e["kind"], story=e["story"],
                   u=round(e["u"], 3), peak=round(e.get("u_peak", 0.0), 3),
+                  combo=e.get("combo", "ULS"),
+                  combos=e.get("combos", {}),
                   p=e.get("parts", []))
              for gid, e in res.elements.items()]
     index = {e["id"]: i for i, e in enumerate(elems)}
@@ -39,24 +41,27 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     u_arr: list[float] = []
     g_arr: list[int] = []      # governing component: 0 vert compression,
     s_arr: list[float] = []    # 1 horiz tension, 2 vert tension, 3 bending,
-    #                            4 diagonal tension (in-plane shear).
+    c_arr: list[int] = []      # 4 diagonal tension (in-plane shear).
     # s_arr carries a STRESS in kN/m2 for wall codes and 0 for plates, so a
     # decoder can render MPa without unit metadata (Codex review).
+    # c_arr indexes the governing combination into envelope.combos.
     for q in res.field["quads"]:
         e_idx.append(index[q["e"]])
         u_arr.append(q["u"])
         g_arr.append(q.get("g", 3))
         s_arr.append(q.get("s", 0))
+        c_arr.append(q.get("cmb", 0))
         for corner in q["c"]:
             pos.extend(corner)
     envelope = dict(
-        schema=1, coords=res.field["coords"], mesh=res.field["mesh"],
+        schema=2, coords=res.field["coords"], mesh=res.field["mesh"],
         digest=digest, balance=round(res.balance, 4),
+        combos=res.combos, case_balance=res.case_balance,
         assumptions=res.assumptions, unresolved=res.unresolved,
         not_modelled=res.not_modelled,
         elems=elems,
         quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
-                   pos=pos))
+                   cmb=c_arr, pos=pos))
     (out_dir / "fem-field.json").write_text(
         json.dumps(envelope, separators=(",", ":")))
 

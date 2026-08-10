@@ -788,7 +788,7 @@ function setStructuralMode(mode) {
         .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then((env) => {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;  // stale
-          if (env.schema !== 1) throw new Error('field schema ' + env.schema);
+          if (env.schema !== 2) throw new Error('field schema ' + env.schema);
           femEnv = env;
           femGroup = _buildFemGroup(env);
           scene.add(femGroup);
@@ -868,9 +868,14 @@ function femInfo() {
   const comp = g === undefined ? '' :
     '\ngoverned by ' + FEM_COMPONENT[g] +
     (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
+  const multi = (femEnv.combos || []).length > 1;
+  const qCombo = multi && femEnv.quads.cmb
+    ? ' @ ' + femEnv.combos[femEnv.quads.cmb[q]] : '';
+  const eCombo = multi && el.combo ? ' @ ' + el.combo : '';
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\n' +
     'this fragment ' + Math.round(femEnv.quads.u[q] * 100) + '% of capacity' +
-    comp + '\nelement design value ' + Math.round(el.u * 100) + '%' +
+    qCombo + comp +
+    '\nelement design value ' + Math.round(el.u * 100) + '%' + eCombo +
     (el.peak ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
     '\n(sized on the design value — standard practice; the peak sits at a' +
     ' corner and flags local detailing, not the member size)' +

@@ -20,7 +20,7 @@ from archicad_builder.models.ifc_id import is_valid_ifc_id
 # every flat Story collection whose members carry a global_id; spaces and
 # apartments are handled separately because apartment spaces are nested
 KINDS = ("walls", "slabs", "doors", "windows", "roofs", "staircases",
-         "beams", "virtual_elements")
+         "beams", "footings", "virtual_elements")
 
 Key = tuple[str, str, str]          # (story, kind, name)
 

@@ -1238,6 +1238,7 @@
         }
       ],
       "beams": [],
+      "footings": [],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [
@@ -3124,6 +3125,7 @@
         }
       ],
       "beams": [],
+      "footings": [],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [

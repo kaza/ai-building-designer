@@ -335,8 +335,16 @@ def compute_seismic(building: Building, site: Site,
                 ls=round(ls, 2), regular=regular)
         storeys_out.append(entry)
 
+    dead_total = sum(lv["dead"] for lv in levels)
+    all_items = [it for lv in levels for it in lv["items"]]
+    dead_w = sum(i[0] for i in all_items)
+    com_global = ([round(sum(i[0] * i[1] for i in all_items) / dead_w, 3),
+                   round(sum(i[0] * i[2] for i in all_items) / dead_w, 3)]
+                  if dead_w > 0 else [0.0, 0.0])
+
     return {
         "W": round(w_active, 1), "W_model": round(total_w, 1),
+        "dead_total": round(dead_total, 1), "com": com_global,
         "base": base_elev, "H": round(h_total, 3),
         "T1": round(t1, 4), "Sd": round(sd, 4),
         "lambda": lam, "Fb": round(fb, 1),

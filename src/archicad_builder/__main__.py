@@ -262,7 +262,8 @@ def fem_cmd(
     from archicad_builder.fem.xray import write_xray_page
 
     building = _load_building(project)
-    result = compute_fem(building, mesh=mesh)
+    # [site] adds the seismic combos (specs/seismic-lateral.md S2)
+    result = compute_fem(building, mesh=mesh, site=_load_site(project))
     out = PROJECTS_DIR / project / "output"
     out.mkdir(parents=True, exist_ok=True)
     digest = building_digest(PROJECTS_DIR / project / "building.json")
@@ -325,6 +326,28 @@ def seismic_cmd(
                    "density_pct": st["y"]["density"]}}
             for st in result["storeys"]],
     })
+
+
+@app.command("report")
+def report_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    output: str | None = typer.Option(None, "--output", "-o"),
+):
+    """Engineer handoff report (specs/engineer-handoff.md) -> output/engineer-report.html."""
+    from archicad_builder.report import build_report
+
+    proj_dir = PROJECTS_DIR / project
+    if not (proj_dir / "building.json").exists():
+        typer.echo(json.dumps({"ok": False,
+                               "error": f"Project not found: {proj_dir}"}))
+        raise typer.Exit(1)
+    html = build_report(proj_dir)
+    out = (Path(output) if output
+           else proj_dir / "output" / "engineer-report.html")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html)
+    _output({"ok": True, "written": str(out),
+             "incomplete_sections": html.count("NOT RUN")})
 
 
 @app.command("list")

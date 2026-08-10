@@ -77,6 +77,8 @@ def validate_all_phases(building: Building,
     errors.extend(validate_structural_loads(building))
     # S1 seismic (specs/seismic-lateral.md)
     errors.extend(validate_seismic(building, site))
+    # S3 foundations (specs/foundations.md)
+    errors.extend(validate_foundations(building, site))
     # v3 additions
     errors.extend(validate_core_integrity(building))
     errors.extend(validate_interior_enclosure(building))
@@ -1662,6 +1664,164 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
                         f"'{lower.name}') — seismic shear collected above "
                         "cannot reach the ground here."),
                 ))
+    return errors
+
+
+def _covering_footing(wall, footings):
+    """The footing that carries `wall`: parallel (±15°), transverse
+    containment offset + t/2 <= width/2 (Codex plan review — a
+    centerline-offset rule alone can leave the wall edge hanging off an
+    equal-width footing), and covering the full wall extent. End
+    projection past the wall is NOT required — footings meet at corners
+    (spec amendment 2026-08-10)."""
+    wl = math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y)
+    if wl < 1e-6:
+        return None
+    for f in footings:
+        fdx, fdy = f.end.x - f.start.x, f.end.y - f.start.y
+        flen = math.hypot(fdx, fdy)
+        if flen < 1e-6:
+            continue
+        ux, uy = fdx / flen, fdy / flen
+        wux = (wall.end.x - wall.start.x) / wl
+        wuy = (wall.end.y - wall.start.y) / wl
+        if abs(ux * wuy - uy * wux) > 0.26:      # ~15 degrees
+            continue
+        ok = True
+        for px, py in ((wall.start.x, wall.start.y),
+                       (wall.end.x, wall.end.y)):
+            rx, ry = px - f.start.x, py - f.start.y
+            along = rx * ux + ry * uy
+            offset = abs(-rx * uy + ry * ux)
+            if (offset + wall.thickness / 2 > f.width / 2 + 0.01
+                    or along < -0.05 or along > flen + 0.05):
+                ok = False
+                break
+        if ok:
+            return f
+    return None
+
+
+def validate_foundations(building, site, basis=None) -> list[ValidationError]:
+    """S3 foundations (specs/foundations.md). E104 coverage, E105 bearing
+    pressure (factored ULS action vs design resistance, DA2-style), E106
+    sliding (dead weight only credited as friction), E107 rigid-body
+    overturning about the foundation footprint toe. No [site.soil] ->
+    unresolved, no findings."""
+    if site is None or site.soil is None or not building.stories:
+        return []
+    from archicad_builder.models.elements import SlabType
+    from archicad_builder.seismic import compute_seismic
+    from archicad_builder.structural import DesignBasis, compute_loads
+
+    errors: list[ValidationError] = []
+    db = DesignBasis()
+    stories = sorted(building.stories, key=lambda s: s.elevation)
+    lowest = stories[0]
+    bearing = [w for w in lowest.walls if w.load_bearing]
+
+    base_polys = []
+    for sl in lowest.slabs:
+        if sl.slab_type == SlabType.BASESLAB and len(sl.outline.vertices) >= 3:
+            p = ShapelyPolygon([(v.x, v.y) for v in sl.outline.vertices])
+            base_polys.append(make_valid(p) if not p.is_valid else p)
+    base_union = unary_union(base_polys).buffer(0.05) if base_polys else None
+
+    # E104 — every bearing wall on the lowest storey needs a footing
+    covered: dict[str, object] = {}
+    for w in bearing:
+        line = ShapelyLine([(w.start.x, w.start.y), (w.end.x, w.end.y)])
+        if base_union is not None and base_union.covers(line):
+            continue        # slab-on-grade grounds it, as the FEM assumes
+        f = _covering_footing(w, lowest.footings)
+        if f is None:
+            errors.append(ValidationError(
+                severity="error", element_type="Wall",
+                element_id=w.global_id,
+                message=(
+                    f"E104: Bearing wall '{w.name}' on '{lowest.name}' has "
+                    "no covering strip footing (and no base slab under "
+                    "it) — its load ends in nothing."),
+            ))
+        else:
+            covered.setdefault(f.global_id, []).append(w)
+
+    # E105 — factored bearing pressure vs design resistance
+    loads = compute_loads(building)
+    wall_cap = {w.global_id: w.thickness * db.wall_phi * db.wall_fd
+                for w in bearing}
+    for f in lowest.footings:
+        walls = covered.get(f.global_id, [])
+        q_max = 0.0
+        for w in walls:
+            rec = loads.get(w.global_id)
+            if rec and rec.get("profile"):
+                q_max = max(q_max,
+                            max(rec["profile"]) * wall_cap[w.global_id])
+        self_w = db.gamma_g * f.width * f.height * db.rc_density  # kN/m
+        pressure = (q_max + self_w) / f.width
+        if pressure > site.soil.sigma_rd:
+            errors.append(ValidationError(
+                severity="error", element_type="Footing",
+                element_id=f.global_id,
+                message=(
+                    f"E105: Footing '{f.name}' bears {pressure:.0f} kPa "
+                    f"(worst station, ULS) > sigma_rd "
+                    f"{site.soil.sigma_rd:.0f} kPa — widen the footing "
+                    "or confirm better soil."),
+            ))
+
+    # E106/E107 — base shear into the ground
+    seis = compute_seismic(building, site, basis)
+    foot_dead = sum(
+        math.hypot(f.end.x - f.start.x, f.end.y - f.start.y)
+        * f.width * f.height * db.rc_density for f in lowest.footings)
+    n_dead = seis["dead_total"] + foot_dead
+    fb = seis["Fb"]
+    mu = site.soil.friction_mu
+    for d in ("x", "y"):
+        if fb > mu * n_dead:
+            errors.append(ValidationError(
+                severity="error", element_type="Building",
+                element_id=lowest.global_id,
+                message=(
+                    f"E106: direction {d}: seismic base shear {fb:.0f} kN "
+                    f"exceeds sliding friction mu*G = {mu:.2f} * "
+                    f"{n_dead:.0f} = {mu * n_dead:.0f} kN (dead weight "
+                    "only credited; passive earth pressure ignored)."),
+            ))
+
+    geoms = [ShapelyLine([(f.start.x, f.start.y), (f.end.x, f.end.y)])
+             .buffer(f.width / 2, cap_style=2) for f in lowest.footings]
+    if base_union is not None:
+        geoms.append(base_union)
+    if geoms:
+        hull = unary_union(geoms)
+        minx, miny, maxx, maxy = hull.bounds
+        m_ot = sum(frc["F"] * (frc["z"] - seis["base"])
+                   for frc in seis["forces"])
+        com = seis["com"]
+        for d, lo, hi, c in (("x", minx, maxx, com[0]),
+                             ("y", miny, maxy, com[1])):
+            arm = min(c - lo, hi - c)
+            if arm <= 0 or m_ot <= 0:
+                continue
+            ratio = n_dead * arm / m_ot
+            if ratio < 1.1:
+                errors.append(ValidationError(
+                    severity="error", element_type="Building",
+                    element_id=lowest.global_id,
+                    message=(
+                        f"E107: direction {d}: rigid-body overturning "
+                        f"ratio {ratio:.2f} < 1.1 (stabilizing "
+                        f"{n_dead:.0f} kN x {arm:.2f} m vs overturning "
+                        f"{m_ot:.0f} kNm) — the building tips before it "
+                        "slides."),
+                ))
+    elif bearing:
+        # no footings and no base slab: E104 already fired per wall;
+        # sliding was still checkable, overturning was not
+        pass
     return errors
 
 

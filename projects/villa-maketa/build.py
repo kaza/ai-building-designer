@@ -60,6 +60,21 @@ b.add_staircase(GAR, [(6.1, -0.75), (7.6, -0.75), (7.6, 0.75), (6.1, 0.75)],
                 width=0.7, stair_type=StaircaseType.SPIRAL_STAIR,
                 name="Garage Stair Lower")
 
+# ── Strip footings under the garage bearing grid (specs/foundations.md).
+# 0.6 × 0.5 m rc strips, top flush with the garage floor; sized against the
+# placeholder sigma_rd=200 kPa pending the real geotech report (spec.md).
+for fname, fs, fe in [
+    ("Footing Garage South", (4.5, 0.6), (6.1, 0.6)),
+    ("Footing Garage South East", (7.6, 0.6), (9.5, 0.6)),
+    ("Footing Garage East", (9.5, 0), (9.5, 8)),
+    ("Footing Garage North", (9.5, 8), (4.5, 8)),
+]:
+    b.add_footing(GAR, fs, fe, width=0.6, height=0.5, name=fname)
+# x=4.5 is the real bearing line for the roof (load-takedown 2026-08-08):
+# 0.6 m bears 215 kPa > sigma_rd — E105 sized this one up to 0.8 m
+b.add_footing(GAR, (4.5, 8), (4.5, 0), width=0.8, height=0.5,
+              name="Footing Garage West")
+
 b.add_story(GF, height=H, elevation=0.0)
 
 

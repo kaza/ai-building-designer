@@ -22,11 +22,15 @@ never for skipping one (README §Mission).
 
 ## In flight
 
-Seismic commission (owner, 2026-08-10) — all four phases commissioned:
-- S1 ELF plausibility validators E100–E103 — [spec](specs/seismic-lateral.md)
-- S2 FEM lateral load cases + combo envelope — [spec](specs/seismic-lateral.md)
-- S3 foundations: footing element, soil, E104–E107 — [spec](specs/foundations.md)
-- S4 engineer handoff report — [spec](specs/engineer-handoff.md)
+Seismic commission (owner, 2026-08-10) — all four phases landed same day:
+- ✅ S1 ELF plausibility validators E100–E103 — [spec](specs/seismic-lateral.md)
+- ✅ S2 FEM lateral load cases + combo envelope (field schema 2) — [spec](specs/seismic-lateral.md)
+- ✅ S3 foundations: StripFooting element, [site.soil], E104–E107, IfcFooting — [spec](specs/foundations.md)
+- ✅ S4 engineer handoff report (`report` CLI + pipeline step) — [spec](specs/engineer-handoff.md)
+
+Open follow-ups from the commission (not commissioned): masonry-vs-concrete
+FEM wall stiffness, accidental torsional eccentricity in the FEM, seismic
+bearing eccentricity (M/W) — all declared in `not_modelled`, never silent.
 
 ## Next (not commissioned)
 

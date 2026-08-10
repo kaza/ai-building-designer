@@ -19,6 +19,7 @@ from archicad_builder.models.elements import (
     RoofType,
     Slab,
     Staircase,
+    StripFooting,
     StaircaseType,
     VirtualElement,
     Wall,
@@ -52,6 +53,7 @@ class Story(BaseModel):
     roofs: list[Roof] = Field(default_factory=list)
     staircases: list[Staircase] = Field(default_factory=list)
     beams: list[Beam] = Field(default_factory=list)
+    footings: list[StripFooting] = Field(default_factory=list)
     virtual_elements: list[VirtualElement] = Field(default_factory=list)
     spaces: list[Space] = Field(default_factory=list)
     apartments: list[Apartment] = Field(default_factory=list)
@@ -336,6 +338,7 @@ class Building(BaseModel):
         description: str = "",
         *,
         finish: str | None = None,
+        slab_type: str | None = None,
     ) -> Slab:
         """Add a slab to a story. Vertices as list of (x, y) tuples."""
         story = self._require_story(story_name)
@@ -348,9 +351,34 @@ class Building(BaseModel):
             thickness=thickness,
             is_floor=is_floor,
             finish=finish,
+            **({"slab_type": slab_type} if slab_type is not None else {}),
         )
         story.slabs.append(slab)
         return slab
+
+    def add_footing(
+        self,
+        story_name: str,
+        start: tuple[float, float],
+        end: tuple[float, float],
+        width: float,
+        height: float,
+        name: str = "",
+        description: str = "",
+    ) -> StripFooting:
+        """Add a strip footing (specs/foundations.md). Top sits at the
+        storey elevation; the body extends `height` m down."""
+        story = self._require_story(story_name)
+        footing = StripFooting(
+            name=name,
+            description=description,
+            start=Point2D(x=start[0], y=start[1]),
+            end=Point2D(x=end[0], y=end[1]),
+            width=width,
+            height=height,
+        )
+        story.footings.append(footing)
+        return footing
 
     def add_beam(
         self,

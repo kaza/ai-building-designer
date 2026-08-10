@@ -104,11 +104,25 @@ inputs = ["building.json"]
 outputs = ["output/loads.json"]
 
 [[step]]
-name = "fem"             # plate FEM (~104 s) + standalone X-ray page
-profile = "fem"
+name = "seismic"         # ELF analysis (specs/seismic-lateral.md)
+run = ["{python}", "-m", "archicad_builder", "seismic", "{project}"]
+inputs = ["building.json", "project.toml"]
+outputs = ["output/seismic.json"]
+
+[[step]]
+name = "fem"             # plate FEM + seismic combos + X-ray page
+profile = "fem"          # slower since S2: 5 combos + equilibrium audits
 run = ["{python}", "-m", "archicad_builder", "fem", "{project}"]
-inputs = ["building.json"]
+inputs = ["building.json", "project.toml"]
 outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]
+
+[[step]]
+name = "report"          # engineer handoff (specs/engineer-handoff.md)
+run = ["{python}", "-m", "archicad_builder", "report", "{project}"]
+inputs = ["building.json", "project.toml", "validation.json",
+          "output/loads.json", "output/seismic.json"]
+optional_outputs = []
+outputs = ["output/engineer-report.html"]
 
 [[step]]
 name = "walkthrough"     # the browser deliverable; embeds loads.json

@@ -523,6 +523,13 @@ class IFCExporter:
                 mode="json", exclude_none=True))
             products.append(ifc_beam)
 
+        # Export strip footings (specs/foundations.md)
+        for footing in story.footings:
+            ifc_footing = self._create_footing(footing, story.elevation)
+            self._attach_parametric(ifc_footing, footing.model_dump(
+                mode="json", exclude_none=True))
+            products.append(ifc_footing)
+
         # Export roofs
         for roof in story.roofs:
             ifc_roof = self._create_roof(roof, story.elevation + story.height)
@@ -894,6 +901,58 @@ class IFCExporter:
             Representation=self.file.createIfcProductDefinitionShape(
                 Representations=[shape],
             ),
+        )
+
+    def _create_footing(
+        self, footing, elevation: float
+    ) -> ifcopenshell.entity_instance:
+        """IfcFooting FOOTING_BEAM: rectangle along the centerline extruded
+        up by height from (elevation − height) — top flush with the storey
+        datum (specs/foundations.md)."""
+        import math as _math
+
+        dx = footing.end.x - footing.start.x
+        dy = footing.end.y - footing.start.y
+        length = _math.hypot(dx, dy)
+        ux, uy = dx / length, dy / length
+        nx, ny = -uy * footing.width / 2, ux * footing.width / 2
+        corners = [
+            (footing.start.x + nx, footing.start.y + ny),
+            (footing.end.x + nx, footing.end.y + ny),
+            (footing.end.x - nx, footing.end.y - ny),
+            (footing.start.x - nx, footing.start.y - ny),
+        ]
+        ifc_points = [self.file.createIfcCartesianPoint(c) for c in corners]
+        ifc_points.append(ifc_points[0])
+        profile = self.file.createIfcArbitraryClosedProfileDef(
+            ProfileType="AREA",
+            OuterCurve=self.file.createIfcPolyline(Points=ifc_points),
+        )
+        placement = self._create_local_placement(
+            origin=(0.0, 0.0, elevation - footing.height),
+        )
+        solid = self.file.createIfcExtrudedAreaSolid(
+            SweptArea=profile,
+            Position=self.file.createIfcAxis2Placement3D(
+                Location=self.file.createIfcCartesianPoint((0.0, 0.0, 0.0)),
+            ),
+            ExtrudedDirection=self.file.createIfcDirection((0.0, 0.0, 1.0)),
+            Depth=footing.height,
+        )
+        shape = self.file.createIfcShapeRepresentation(
+            ContextOfItems=self._body_context,
+            RepresentationIdentifier="Body",
+            RepresentationType="SweptSolid",
+            Items=[solid],
+        )
+        return self.file.createIfcFooting(
+            GlobalId=footing.global_id,
+            Name=footing.name or "Footing",
+            ObjectPlacement=placement,
+            Representation=self.file.createIfcProductDefinitionShape(
+                Representations=[shape],
+            ),
+            PredefinedType="STRIP_FOOTING",
         )
 
     def _create_roof(

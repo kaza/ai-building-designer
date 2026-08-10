@@ -186,6 +186,83 @@
         }
       ],
       "beams": [],
+      "footings": [
+        {
+          "global_id": "2eAtLDTcD8bAp5la2udAeF",
+          "name": "Footing Garage South",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 0.6
+          },
+          "end": {
+            "x": 6.1,
+            "y": 0.6
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1_MNuh1xP8IPTdLHjTs6rt",
+          "name": "Footing Garage South East",
+          "description": "",
+          "start": {
+            "x": 7.6,
+            "y": 0.6
+          },
+          "end": {
+            "x": 9.5,
+            "y": 0.6
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "07C3MHncP6$PIa7FfFpUM_",
+          "name": "Footing Garage East",
+          "description": "",
+          "start": {
+            "x": 9.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 9.5,
+            "y": 8.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1ZiAgzgk53L8bMLxTM9auI",
+          "name": "Footing Garage North",
+          "description": "",
+          "start": {
+            "x": 9.5,
+            "y": 8.0
+          },
+          "end": {
+            "x": 4.5,
+            "y": 8.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1LdZ0ynFLCVwZI9Lx4jWxM",
+          "name": "Footing Garage West",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 8.0
+          },
+          "end": {
+            "x": 4.5,
+            "y": 0.0
+          },
+          "width": 0.8,
+          "height": 0.5
+        }
+      ],
       "virtual_elements": [],
       "spaces": [
         {
@@ -1043,6 +1120,7 @@
         }
       ],
       "beams": [],
+      "footings": [],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [

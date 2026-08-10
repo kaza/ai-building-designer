@@ -48,14 +48,21 @@ class DesignBasis:
     span_over_depth_limit: float = 30.0    # deflection proxy, supported spans
     cantilever_over_depth_limit: float = 10.0
 
-    def roof_area_load(self, thickness: float) -> float:
+    def roof_dead(self, thickness: float) -> float:
+        """Unfactored dead area load, kN/m2 (structure + finishes)."""
         t = min(thickness, self.cap_thickness)
-        return (self.gamma_g * (t * self.rc_density + self.roof_finishes)
+        return t * self.rc_density + self.roof_finishes
+
+    def floor_dead(self, thickness: float) -> float:
+        t = min(thickness, self.cap_thickness)
+        return t * self.rc_density + self.floor_finishes
+
+    def roof_area_load(self, thickness: float) -> float:
+        return (self.gamma_g * self.roof_dead(thickness)
                 + self.gamma_q * self.snow)
 
     def floor_area_load(self, thickness: float) -> float:
-        t = min(thickness, self.cap_thickness)
-        return (self.gamma_g * (t * self.rc_density + self.floor_finishes)
+        return (self.gamma_g * self.floor_dead(thickness)
                 + self.gamma_q * self.floor_live)
 
     def strip_moment_capacity(self, thickness: float) -> float:

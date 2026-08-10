@@ -65,6 +65,12 @@ class FemResult:
     unresolved: list[str] = dc_field(default_factory=list)
     assumptions: list[str] = dc_field(default_factory=list)
     not_modelled: list[str] = dc_field(default_factory=list)
+    combos: list[str] = dc_field(default_factory=lambda: ["ULS"])
+    # per-case equilibrium ledgers: gravity cases carry intended/attached/
+    # reacted (vertical), lateral cases applied/reacted (horizontal) — a
+    # single scalar balance can hide one case over-reacting while another
+    # under-reacts (Codex plan review 2026-08-10)
+    case_balance: dict = dc_field(default_factory=dict)
 
     @property
     def balance(self) -> float:
@@ -223,11 +229,25 @@ def _band_max(samples, band):
 
 
 def compute_fem(building: Building, mesh: float = 0.25,
-                max_quads: int = 60_000) -> FemResult:
+                max_quads: int = 60_000, site=None,
+                seismic_basis=None) -> FemResult:
+    """site: project [site] config — adds EQX/EQY lateral cases scaled to
+    the ELF storey forces and four seismic combos (specs/seismic-lateral.md
+    S2). None keeps the gravity-only ULS behavior bit-identical."""
     db = DesignBasis()
     stories = sorted(building.stories, key=lambda s: s.elevation)
     problems: list[str] = []
     unresolved: list[str] = []
+
+    elf = None
+    sbasis = None
+    if site is not None:
+        from archicad_builder.seismic import SeismicBasis, compute_seismic
+        sbasis = seismic_basis or SeismicBasis()
+        elf = compute_seismic(building, site, sbasis)
+        if "elf" in elf["_unresolved"]:
+            raise FemPreflightError(
+                "seismic requested but " + elf["_unresolved"]["elf"])
 
     # ---------- preflight ----------
     meta = {}      # story name -> per-story derived data
@@ -317,14 +337,14 @@ def compute_fem(building: Building, mesh: float = 0.25,
             panels.append((r.global_id, "roof", r.name, s,
                            s.elevation + s.height,
                            min(r.thickness, db.cap_thickness), p,
-                           db.roof_area_load(r.thickness)))
+                           db.roof_dead(r.thickness), db.snow))
         for sl in s.slabs:
             p = _poly(sl.outline)
             xs.update(c[0] for c in p.exterior.coords)
             ys.update(c[1] for c in p.exterior.coords)
             panels.append((sl.global_id, "slab", sl.name, s, s.elevation,
                            min(sl.thickness, db.cap_thickness), p,
-                           db.floor_area_load(sl.thickness)))
+                           db.floor_dead(sl.thickness), db.floor_live))
     gx, gy, gz = _subdivide(xs, mesh), _subdivide(ys, mesh), _subdivide(zs, mesh)
 
     # ---------- size estimate ----------
@@ -339,7 +359,7 @@ def compute_fem(building: Building, mesh: float = 0.25,
             horiz, _c, lo, hi = _axis(w, "wall", [])
             est += (_count(lo, hi, gx if horiz else gy)
                     * _count(s.elevation, s.elevation + w.height, gz))
-    for _gid, _kind, _n, _s, _z, _t, poly, _q in panels:
+    for _gid, _kind, _n, _s, _z, _t, poly, _qd, _ql in panels:
         bx = poly.bounds
         est += _count(bx[0], bx[2], gx) * _count(bx[1], bx[3], gy)
     if est > max_quads:
@@ -422,12 +442,29 @@ def compute_fem(building: Building, mesh: float = 0.25,
                        "beam", gid)
 
     # ---------- horizontal panels + pressures ----------
-    intended = attached = 0.0
-    for gid, kind, name, s, z, t, poly, q in panels:
+    # unfactored cases G (dead) and Q (live); QE is the storey-weighted
+    # seismic live (phi * psi2 — a flat 0.3Q would overstate lower-storey
+    # live mass, Codex plan review). Ledgers are per case.
+    intended: dict[str, float] = defaultdict(float)
+    attached: dict[str, float] = defaultdict(float)
+    # lateral mass ledger: diaphragm z -> node name -> tributary weight
+    lateral_ledger: dict[float, dict[str, float]] = defaultdict(
+        lambda: defaultdict(float))
+    top_z = max(s.elevation + s.height for s in stories)
+    seismic_base = elf["base"] if elf is not None else 0.0
+    for gid, kind, name, s, z, t, poly, q_dead, q_live in panels:
         # intended is the panel's TRUE load (q x area); attached only what
         # meshed cells carry — a non-rectilinear outline whose boundary
         # cells fall outside must show up as a drop, never as balance 1.0
-        intended += q * poly.area
+        intended["G"] += q_dead * poly.area
+        intended["Q"] += q_live * poly.area
+        qe_f = 0.0
+        elevated = z > seismic_base + GROUND_EPS
+        if elf is not None and kind == "slab" and elevated:
+            phi = (sbasis.phi_top if abs(z - top_z) < 0.02
+                   else sbasis.phi_other)
+            qe_f = phi * sbasis.psi2      # roofs: psi2(snow)=0, dead only
+            intended["QE"] += qe_f * q_live * poly.area
         made = False
         for x, x2 in zip(gx, gx[1:]):
             for y, y2 in zip(gy, gy[1:]):
@@ -435,14 +472,47 @@ def compute_fem(building: Building, mesh: float = 0.25,
                     continue
                 qn = m.quad([(x, y, z), (x2, y, z), (x2, y2, z), (x, y2, z)],
                             t, "Z", kind, gid)
-                m.model.add_quad_surface_pressure(qn, -q, case="U")
-                attached += q * (x2 - x) * (y2 - y)
+                cell = (x2 - x) * (y2 - y)
+                m.model.add_quad_surface_pressure(qn, -q_dead, case="G")
+                attached["G"] += q_dead * cell
+                if q_live:
+                    m.model.add_quad_surface_pressure(qn, -q_live, case="Q")
+                    attached["Q"] += q_live * cell
+                if qe_f:
+                    m.model.add_quad_surface_pressure(
+                        qn, -qe_f * q_live, case="QE")
+                    attached["QE"] += qe_f * q_live * cell
+                if elf is not None and elevated:
+                    w_cell = (q_dead + qe_f * q_live) * cell
+                    for cx, cy in ((x, y), (x2, y), (x2, y2), (x, y2)):
+                        nname = m.nodes[(_k(cx), _k(cy), _k(z))]
+                        lateral_ledger[_k(z)][nname] += w_cell / 4
                 made = True
         if not made:
             unresolved.append(f"{kind} '{name}': no mesh cell fits inside "
                               "its outline")
 
     # ---------- self-weight + partitions ----------
+    # wall/beam mass lumps at its storey's diaphragm for the lateral
+    # ledger (EC8 applies Fi at diaphragm levels — spreading it over the
+    # wall height was Codex plan-review finding #10)
+    dia_by_gid: dict[str, float] = {}
+    for s in stories:
+        for w in s.walls:
+            dia_by_gid[w.global_id] = s.elevation + s.height
+        for bm in s.beams:
+            dia_by_gid[bm.global_id] = s.elevation + s.height
+    plan_zs: dict[tuple, list] = defaultdict(list)
+    for (nx, ny, nz), nname in m.nodes.items():
+        plan_zs[(nx, ny)].append((nz, nname))
+    for v in plan_zs.values():
+        v.sort()
+
+    def _top_node(nx, ny, dia):
+        cands = [nn for nz, nn in plan_zs[(_k(nx), _k(ny))]
+                 if nz <= dia + 0.02]
+        return cands[-1] if cands else None
+
     for qname, (kind, gid) in m.quad_meta.items():
         if kind not in ("wall", "beam"):
             continue
@@ -452,11 +522,19 @@ def compute_fem(building: Building, mesh: float = 0.25,
         zs_ = [n.Z for n in nds]
         area = ((max(xs_) - min(xs_)) + (max(ys_) - min(ys_))) \
             * (max(zs_) - min(zs_))
-        f = area * quad.t * db.rc_density * db.gamma_g
-        intended += f
-        attached += f
+        f = area * quad.t * db.rc_density
+        intended["G"] += f
+        attached["G"] += f
         for n in nds:
-            m.model.add_node_load(n.name, "FZ", -f / 4, case="U")
+            m.model.add_node_load(n.name, "FZ", -f / 4, case="G")
+        if elf is not None:
+            dia = dia_by_gid.get(gid)
+            if dia is not None and dia > seismic_base + GROUND_EPS:
+                plan = {(n.X, n.Y) for n in nds}
+                for px, py in plan:
+                    nn = _top_node(px, py, dia)
+                    if nn is not None:
+                        lateral_ledger[_k(dia)][nn] += f / len(plan)
 
     for s in stories:
         for w in s.walls:
@@ -468,8 +546,8 @@ def compute_fem(building: Building, mesh: float = 0.25,
             horiz, const, a_lo, a_hi = ax
             grid_a = [a for a in (gx if horiz else gy)
                       if a_lo - TOL <= a <= a_hi + TOL]
-            qline = w.thickness * w.height * db.rc_density * db.gamma_g
-            intended += qline * max(0.0, a_hi - a_lo)
+            qline = w.thickness * w.height * db.rc_density
+            intended["G"] += qline * max(0.0, a_hi - a_lo)
             dropped = 0.0
             for i, a in enumerate(grid_a):
                 trib = (grid_a[min(i + 1, len(grid_a) - 1)]
@@ -478,18 +556,47 @@ def compute_fem(building: Building, mesh: float = 0.25,
                 nkey = (key[0], key[1], _k(s.elevation))
                 if nkey in m.nodes:
                     m.model.add_node_load(m.nodes[nkey], "FZ",
-                                          -qline * trib, case="U")
-                    attached += qline * trib
+                                          -qline * trib, case="G")
+                    attached["G"] += qline * trib
+                    # partition mass sits ON the diaphragm at its floor
+                    # level — ground-level partitions shake the soil, not
+                    # the structure
+                    if (elf is not None
+                            and s.elevation > seismic_base + GROUND_EPS):
+                        lateral_ledger[_k(s.elevation)][m.nodes[nkey]] += \
+                            qline * trib
                 else:
                     dropped += qline * trib
             if dropped > TOL:
                 unresolved.append(
                     f"partition '{w.name}': {dropped:.1f} kN had no node "
                     "to land on and was dropped")
-    if intended and (intended - attached) / intended > 0.01:
+    tot_intended = db.gamma_g * intended["G"] + db.gamma_q * intended["Q"]
+    tot_attached = db.gamma_g * attached["G"] + db.gamma_q * attached["Q"]
+    if tot_intended and (tot_intended - tot_attached) / tot_intended > 0.01:
         raise FemLoadDropError(
-            f"{intended - attached:.1f} kN of {intended:.1f} kN intended "
-            f"load could not be attached (> 1%)")
+            f"{tot_intended - tot_attached:.1f} kN of {tot_intended:.1f} kN "
+            f"intended load could not be attached (> 1%)")
+
+    # ---------- lateral storey forces (ELF) ----------
+    applied_lat: dict[str, float] = defaultdict(float)
+    if elf is not None:
+        for frc in elf["forces"]:
+            if frc["F"] <= 0:
+                continue
+            bucket = lateral_ledger.get(_k(frc["z"]))
+            if not bucket:
+                raise FemPreflightError(
+                    f"no FEM mass at diaphragm z={frc['z']} for storey "
+                    f"'{frc['story']}' — cannot apply its seismic force")
+            wsum = sum(bucket.values())
+            for nname, wgt in bucket.items():
+                m.model.add_node_load(nname, "FX", frc["F"] * wgt / wsum,
+                                      case="EQX")
+                m.model.add_node_load(nname, "FY", frc["F"] * wgt / wsum,
+                                      case="EQY")
+            applied_lat["EQX"] += frc["F"]
+            applied_lat["EQY"] += frc["F"]
 
     # ---------- supports ----------
     voids = {s.name: below_footprint(s) for s in stories}
@@ -521,7 +628,20 @@ def compute_fem(building: Building, mesh: float = 0.25,
             m.model.def_support(name, False, False, False, True, False, False)
 
     # ---------- solve ----------
-    m.model.add_load_combo("ULS", {"U": 1.0})
+    m.model.add_load_combo("ULS", {"G": db.gamma_g, "Q": db.gamma_q})
+    display_combos = ["ULS"]
+    if elf is not None:
+        for cname, fac in (
+                ("SEIS_X+", {"G": 1.0, "QE": 1.0, "EQX": 1.0}),
+                ("SEIS_X-", {"G": 1.0, "QE": 1.0, "EQX": -1.0}),
+                ("SEIS_Y+", {"G": 1.0, "QE": 1.0, "EQY": 1.0}),
+                ("SEIS_Y-", {"G": 1.0, "QE": 1.0, "EQY": -1.0})):
+            m.model.add_load_combo(cname, fac)
+            display_combos.append(cname)
+    audit_cases = ["G", "Q"] + (["QE", "EQX", "EQY"]
+                                if elf is not None else [])
+    for case in audit_cases:
+        m.model.add_load_combo(f"_{case}", {case: 1.0})
     m.model.analyze_linear(log=False, check_statics=False, sparse=True)
 
     # ---------- harvest ----------
@@ -534,163 +654,203 @@ def compute_fem(building: Building, mesh: float = 0.25,
     for qname, tag in m.quad_meta.items():
         by_elem[tag].append(m.model.quads[qname])
 
-    elements: dict[str, dict] = {}
-    quad_u: dict[str, float] = {}
-    quad_g: dict[str, int] = {}    # 0 vert compression, 1 horiz tension,
-    quad_s: dict[str, float] = {}  # 2 vert tension, 3 plate bending
     wall_cap = db.wall_phi * db.wall_fd
     panel_by_gid = {p[0]: p for p in panels}
 
-    for (kind, gid), quads in sorted(by_elem.items()):
-        if kind == "beam":
-            b = beam_meta[gid]
-            z_mid = (b["z_lo"] + b["z_hi"]) / 2
-            stations = defaultdict(list)
-            for q in quads:
-                xc, yc, zc = centers(q)
-                nds = (q.i_node, q.j_node, q.m_node, q.n_node)
-                h = max(n.Z for n in nds) - min(n.Z for n in nds)
-                sx = float(q.membrane(0, 0, combo_name="ULS")[0][0])
-                stations[round(xc if b["horiz"] else yc, 3)].append(
-                    (q, sx, zc, h))
-            cap = db.beam_moment_capacity(b["width"], b["depth"])
-            m_best = 0.0
-            for sams in stations.values():
-                mom = sum(sx * b["width"] * h * (zc - z_mid)
-                          for _, sx, zc, h in sams)
-                m_best = max(m_best, abs(mom))
-                for q, *_ in sams:
-                    quad_u[q.name] = abs(mom) / cap
-            elements[gid] = dict(kind="beam", name=b["name"],
-                                 story=b["story"], M=m_best, cap=cap,
-                                 u=m_best / cap,
-                                 # beams carry bending only here; shear,
-                                 # torsion and axial are in not_modelled
-                                 parts=[["bending",
-                                         f"{m_best / cap * 100:.0f}%"]])
-        elif kind == "wall":
-            w = wall_meta[gid]
-            bz = min(centers(q)[2] for q in quads)
-            stations = []
-            tension_rows = defaultdict(list)   # z row -> (along, s1_tension, width)
-            shear_rows = defaultdict(list)     # z row -> (along, |txy|, width)
-            for q in quads:
-                xc, yc, zc = centers(q)
-                nds = (q.i_node, q.j_node, q.m_node, q.n_node)
-                width = (max(n.X for n in nds) - min(n.X for n in nds)
-                         + max(n.Y for n in nds) - min(n.Y for n in nds))
-                along = xc if w["horiz"] else yc
-                if abs(zc - bz) <= 0.05:
-                    sig = float(q.membrane(0, -0.9, combo_name="ULS")[1][0])
-                    stations.append((along, sig, width))
-                s_ = q.membrane(0, 0, combo_name="ULS")
-                sx, sy = float(s_[0][0]), float(s_[1][0])
-                txy = float(s_[2][0])
-                s1, _s2, theta = _principal(sx, sy, txy)
-                # design values average the per-quad PRINCIPAL tension, not
-                # the components: averaging sx/sy/txy first lets a rotating
-                # shear field cancel itself and report false calm, which is
-                # the exact failure this channel exists to catch (Codex plan
-                # review; Gemini argued the other way — correct for a section
-                # resultant, wrong for a crack screen).
-                tension_rows[round(zc, 3)].append(
-                    (along, max(0.0, s1), width))
-                shear_rows[round(zc, 3)].append((along, abs(txy), width))
-                # per-quad governing: vertical compression vs axial cap, or
-                # principal tension vs fctd (concrete cracks long before it
-                # crushes). Compression stays axis-aligned on purpose — the
-                # wall capacity carries a slenderness factor for VERTICAL
-                # load and means nothing applied to a diagonal strut.
-                u_c = max(0.0, -sy) / wall_cap
-                u_t = max(0.0, s1) / db.fctd
-                if u_t >= u_c:
-                    quad_u[q.name] = u_t
-                    quad_g[q.name] = _tension_component(theta)
-                    quad_s[q.name] = s1
-                else:
-                    quad_u[q.name] = u_c
-                    quad_g[q.name] = 0
-                    quad_s[q.name] = sy
-            avg = _band_max(stations, 0.5)
-            u_tension = max(
-                (_band_max(row, 0.5) / db.fctd
-                 for row in tension_rows.values()), default=0.0)
-            # reported as a STRESS, not a utilization: |txy| over fctd would
-            # read alarmingly high on a wall in heavy compression whose
-            # cracks are held shut, while the principal tension — the thing
-            # that actually governs — is zero (Gemini review).
-            tau_max = max(
-                (_band_max(row, 0.5) for row in shear_rows.values()),
-                default=0.0)
-            lo = min(w["a"][0 if w["horiz"] else 1],
-                     w["b"][0 if w["horiz"] else 1])
-            length = (abs(w["b"][0] - w["a"][0])
-                      + abs(w["b"][1] - w["a"][1]))
-            profile = []
-            for i in range(8):
-                cmid = lo + length * (i + 0.5) / 8
-                profile.append(round(abs(_wavg(stations, cmid,
-                                               length / 8 + 0.1))
-                                     / wall_cap, 3))
-            u_axial = avg / wall_cap
-            elements[gid] = dict(
-                kind="wall", name=w["name"], story=w["story"],
-                sigma=avg, u=max(u_axial, u_tension), u_axial=u_axial,
-                u_tension=u_tension, tau_max=tau_max, profile=profile,
-                # every channel we compute, not just whichever one governs.
-                # (label, value) pairs, not sentences — the viewer lays
-                # them out in aligned columns and owns the layout; the
-                # engine owns the units.
-                parts=[["axial", f"{u_axial * 100:.0f}%"],
-                       ["tension", f"{u_tension * 100:.0f}%"],
-                       ["shear", f"{tau_max / 1000:.2f} MPa"]],
-                q=round(avg * w["t"], 1), a=list(w["a"]), b=list(w["b"]))
-        else:
-            _gid, pkind, pname, ps, _z, t, _ppoly, _q = panel_by_gid[gid]
-            cap = db.strip_moment_capacity(t)
-            mx_by_x, my_by_y = defaultdict(list), defaultdict(list)
-            mp_by_x, mp_by_y = defaultdict(list), defaultdict(list)
-            for q in quads:
-                xc, yc, _zc = centers(q)
-                nds = (q.i_node, q.j_node, q.m_node, q.n_node)
-                wx = max(n.X for n in nds) - min(n.X for n in nds)
-                wy = max(n.Y for n in nds) - min(n.Y for n in nds)
-                mom = q.moment(0, 0, combo_name="ULS")
-                mx, my = float(mom[0][0]), float(mom[1][0])
-                mxy = float(mom[2][0])
-                # twist counts: a plate region in pure twist (mx = my = 0,
-                # mxy != 0) bends at 45 deg and used to paint 0%. The strip
-                # capacity is isotropic here, so the principal moment — not
-                # Wood-Armer, which sizes an orthogonal rebar grid — is the
-                # honest measure (both plan reviews agreed).
-                m1, m2, _th = _principal(mx, my, mxy)
-                m_princ = max(abs(m1), abs(m2))
-                quad_u[q.name] = m_princ / cap
-                mx_by_x[round(xc, 2)].append((yc, mx, wy))
-                my_by_y[round(yc, 2)].append((xc, my, wx))
-                mp_by_x[round(xc, 2)].append((yc, m_princ, wy))
-                mp_by_y[round(yc, 2)].append((xc, m_princ, wx))
-            mxd = max((_band_max(s_, 1.0) for s_ in mx_by_x.values()),
-                      default=0.0)
-            myd = max((_band_max(s_, 1.0) for s_ in my_by_y.values()),
-                      default=0.0)
-            # the element value must see what the fragments see: a
-            # twisting panel would otherwise paint hot while its number
-            # stayed at the strip value. Averaged along BOTH strip
-            # directions — a one-direction average can land below the
-            # other direction's design moment, which would let the element
-            # number under-report its own strips.
-            mpd = max((_band_max(s_, 1.0)
-                       for s_ in (*mp_by_x.values(), *mp_by_y.values())),
-                      default=0.0)
-            gov = max(mxd, myd, mpd)
-            elements[gid] = dict(
-                kind=pkind, name=pname, story=ps.name,
-                mx_design=mxd, my_design=myd, m_principal_design=mpd,
-                cap=cap, M=gov, u=gov / cap,
-                parts=[["Mx", f"{mxd / cap * 100:.0f}%"],
-                       ["My", f"{myd / cap * 100:.0f}%"],
-                       ["principal", f"{mpd / cap * 100:.0f}%"]])
+    def _harvest(combo: str):
+        """Design values + per-quad field for ONE combination. The
+        envelope over combos is built by the caller — element numbers
+        and fragments must come from the same combination or they would
+        contradict each other."""
+        elements: dict[str, dict] = {}
+        quad_u: dict[str, float] = {}
+        quad_g: dict[str, int] = {}    # 0 vert compression, 1 horiz tension,
+        quad_s: dict[str, float] = {}  # 2 vert tension, 3 plate bending
+        _harvest_body(combo, elements, quad_u, quad_g, quad_s)
+        return elements, quad_u, quad_g, quad_s
+
+    def _harvest_body(combo, elements, quad_u, quad_g, quad_s):
+        for (kind, gid), quads in sorted(by_elem.items()):
+            if kind == "beam":
+                b = beam_meta[gid]
+                z_mid = (b["z_lo"] + b["z_hi"]) / 2
+                stations = defaultdict(list)
+                for q in quads:
+                    xc, yc, zc = centers(q)
+                    nds = (q.i_node, q.j_node, q.m_node, q.n_node)
+                    h = max(n.Z for n in nds) - min(n.Z for n in nds)
+                    sx = float(q.membrane(0, 0, combo_name=combo)[0][0])
+                    stations[round(xc if b["horiz"] else yc, 3)].append(
+                        (q, sx, zc, h))
+                cap = db.beam_moment_capacity(b["width"], b["depth"])
+                m_best = 0.0
+                for sams in stations.values():
+                    mom = sum(sx * b["width"] * h * (zc - z_mid)
+                              for _, sx, zc, h in sams)
+                    m_best = max(m_best, abs(mom))
+                    for q, *_ in sams:
+                        quad_u[q.name] = abs(mom) / cap
+                elements[gid] = dict(kind="beam", name=b["name"],
+                                     story=b["story"], M=m_best, cap=cap,
+                                     u=m_best / cap,
+                                     # beams carry bending only here; shear,
+                                     # torsion and axial are in not_modelled
+                                     parts=[["bending",
+                                             f"{m_best / cap * 100:.0f}%"]])
+            elif kind == "wall":
+                w = wall_meta[gid]
+                bz = min(centers(q)[2] for q in quads)
+                stations = []
+                tension_rows = defaultdict(list)   # z row -> (along, s1_tension, width)
+                shear_rows = defaultdict(list)     # z row -> (along, |txy|, width)
+                for q in quads:
+                    xc, yc, zc = centers(q)
+                    nds = (q.i_node, q.j_node, q.m_node, q.n_node)
+                    width = (max(n.X for n in nds) - min(n.X for n in nds)
+                             + max(n.Y for n in nds) - min(n.Y for n in nds))
+                    along = xc if w["horiz"] else yc
+                    if abs(zc - bz) <= 0.05:
+                        sig = float(q.membrane(0, -0.9, combo_name=combo)[1][0])
+                        stations.append((along, sig, width))
+                    s_ = q.membrane(0, 0, combo_name=combo)
+                    sx, sy = float(s_[0][0]), float(s_[1][0])
+                    txy = float(s_[2][0])
+                    s1, _s2, theta = _principal(sx, sy, txy)
+                    # design values average the per-quad PRINCIPAL tension, not
+                    # the components: averaging sx/sy/txy first lets a rotating
+                    # shear field cancel itself and report false calm, which is
+                    # the exact failure this channel exists to catch (Codex plan
+                    # review; Gemini argued the other way — correct for a section
+                    # resultant, wrong for a crack screen).
+                    tension_rows[round(zc, 3)].append(
+                        (along, max(0.0, s1), width))
+                    shear_rows[round(zc, 3)].append((along, abs(txy), width))
+                    # per-quad governing: vertical compression vs axial cap, or
+                    # principal tension vs fctd (concrete cracks long before it
+                    # crushes). Compression stays axis-aligned on purpose — the
+                    # wall capacity carries a slenderness factor for VERTICAL
+                    # load and means nothing applied to a diagonal strut.
+                    u_c = max(0.0, -sy) / wall_cap
+                    u_t = max(0.0, s1) / db.fctd
+                    if u_t >= u_c:
+                        quad_u[q.name] = u_t
+                        quad_g[q.name] = _tension_component(theta)
+                        quad_s[q.name] = s1
+                    else:
+                        quad_u[q.name] = u_c
+                        quad_g[q.name] = 0
+                        quad_s[q.name] = sy
+                avg = _band_max(stations, 0.5)
+                u_tension = max(
+                    (_band_max(row, 0.5) / db.fctd
+                     for row in tension_rows.values()), default=0.0)
+                # reported as a STRESS, not a utilization: |txy| over fctd would
+                # read alarmingly high on a wall in heavy compression whose
+                # cracks are held shut, while the principal tension — the thing
+                # that actually governs — is zero (Gemini review).
+                tau_max = max(
+                    (_band_max(row, 0.5) for row in shear_rows.values()),
+                    default=0.0)
+                lo = min(w["a"][0 if w["horiz"] else 1],
+                         w["b"][0 if w["horiz"] else 1])
+                length = (abs(w["b"][0] - w["a"][0])
+                          + abs(w["b"][1] - w["a"][1]))
+                profile = []
+                for i in range(8):
+                    cmid = lo + length * (i + 0.5) / 8
+                    profile.append(round(abs(_wavg(stations, cmid,
+                                                   length / 8 + 0.1))
+                                         / wall_cap, 3))
+                u_axial = avg / wall_cap
+                elements[gid] = dict(
+                    kind="wall", name=w["name"], story=w["story"],
+                    sigma=avg, u=max(u_axial, u_tension), u_axial=u_axial,
+                    u_tension=u_tension, tau_max=tau_max, profile=profile,
+                    # every channel we compute, not just whichever one governs.
+                    # (label, value) pairs, not sentences — the viewer lays
+                    # them out in aligned columns and owns the layout; the
+                    # engine owns the units.
+                    parts=[["axial", f"{u_axial * 100:.0f}%"],
+                           ["tension", f"{u_tension * 100:.0f}%"],
+                           ["shear", f"{tau_max / 1000:.2f} MPa"]],
+                    q=round(avg * w["t"], 1), a=list(w["a"]), b=list(w["b"]))
+            else:
+                _gid, pkind, pname, ps, _z, t, _ppoly, _qd, _ql = \
+                panel_by_gid[gid]
+                cap = db.strip_moment_capacity(t)
+                mx_by_x, my_by_y = defaultdict(list), defaultdict(list)
+                mp_by_x, mp_by_y = defaultdict(list), defaultdict(list)
+                for q in quads:
+                    xc, yc, _zc = centers(q)
+                    nds = (q.i_node, q.j_node, q.m_node, q.n_node)
+                    wx = max(n.X for n in nds) - min(n.X for n in nds)
+                    wy = max(n.Y for n in nds) - min(n.Y for n in nds)
+                    mom = q.moment(0, 0, combo_name=combo)
+                    mx, my = float(mom[0][0]), float(mom[1][0])
+                    mxy = float(mom[2][0])
+                    # twist counts: a plate region in pure twist (mx = my = 0,
+                    # mxy != 0) bends at 45 deg and used to paint 0%. The strip
+                    # capacity is isotropic here, so the principal moment — not
+                    # Wood-Armer, which sizes an orthogonal rebar grid — is the
+                    # honest measure (both plan reviews agreed).
+                    m1, m2, _th = _principal(mx, my, mxy)
+                    m_princ = max(abs(m1), abs(m2))
+                    quad_u[q.name] = m_princ / cap
+                    mx_by_x[round(xc, 2)].append((yc, mx, wy))
+                    my_by_y[round(yc, 2)].append((xc, my, wx))
+                    mp_by_x[round(xc, 2)].append((yc, m_princ, wy))
+                    mp_by_y[round(yc, 2)].append((xc, m_princ, wx))
+                mxd = max((_band_max(s_, 1.0) for s_ in mx_by_x.values()),
+                          default=0.0)
+                myd = max((_band_max(s_, 1.0) for s_ in my_by_y.values()),
+                          default=0.0)
+                # the element value must see what the fragments see: a
+                # twisting panel would otherwise paint hot while its number
+                # stayed at the strip value. Averaged along BOTH strip
+                # directions — a one-direction average can land below the
+                # other direction's design moment, which would let the element
+                # number under-report its own strips.
+                mpd = max((_band_max(s_, 1.0)
+                           for s_ in (*mp_by_x.values(), *mp_by_y.values())),
+                          default=0.0)
+                gov = max(mxd, myd, mpd)
+                elements[gid] = dict(
+                    kind=pkind, name=pname, story=ps.name,
+                    mx_design=mxd, my_design=myd, m_principal_design=mpd,
+                    cap=cap, M=gov, u=gov / cap,
+                    parts=[["Mx", f"{mxd / cap * 100:.0f}%"],
+                           ["My", f"{myd / cap * 100:.0f}%"],
+                           ["principal", f"{mpd / cap * 100:.0f}%"]])
+
+    # ---------- combination envelope ----------
+    # element numbers and fragments always come from the same combo; the
+    # ENVELOPE stores the worst combo per element/fragment plus per-combo
+    # element values so an engineer can isolate what drives a number
+    # (Gemini plan review: enveloping must not destroy diagnostics)
+    elements: dict[str, dict] = {}
+    quad_u: dict[str, float] = {}
+    quad_g: dict[str, int] = {}
+    quad_s: dict[str, float] = {}
+    quad_cmb: dict[str, int] = {}
+    for ci, cname in enumerate(display_combos):
+        els, qu, qg, qs = _harvest(cname)
+        for gid, e in els.items():
+            if gid not in elements:
+                elements[gid] = {**e, "combo": cname,
+                                 "combos": {cname: round(e["u"], 4)}}
+            else:
+                rec = elements[gid]
+                rec["combos"][cname] = round(e["u"], 4)
+                if e["u"] > rec["u"]:
+                    combos_map = rec["combos"]
+                    elements[gid] = {**e, "combo": cname,
+                                     "combos": combos_map}
+        for qn, uv in qu.items():
+            if uv > quad_u.get(qn, -1.0):
+                quad_u[qn] = uv
+                quad_g[qn] = qg.get(qn, 3)
+                quad_s[qn] = qs.get(qn, 0.0)
+                quad_cmb[qn] = ci
 
     # A fragment legitimately reads higher than its element: the element
     # number is a window-averaged DESIGN value, the fragment is a raw
@@ -704,6 +864,23 @@ def compute_fem(building: Building, mesh: float = 0.25,
 
     reactions = sum(n.RxnFZ["ULS"] for n in m.model.nodes.values()
                     if n.support_DZ)
+    case_balance: dict[str, dict] = {}
+    for case in ("G", "Q") + (("QE",) if elf is not None else ()):
+        reacted = sum(n.RxnFZ[f"_{case}"] for n in m.model.nodes.values()
+                      if n.support_DZ)
+        case_balance[case] = dict(
+            intended=round(intended[case], 1),
+            attached=round(attached[case], 1),
+            reacted=round(float(abs(reacted)), 1))
+    if elf is not None:
+        for case, comp, flag in (("EQX", "RxnFX", "support_DX"),
+                                 ("EQY", "RxnFY", "support_DY")):
+            reacted = sum(getattr(n, comp)[f"_{case}"]
+                          for n in m.model.nodes.values()
+                          if getattr(n, flag))
+            case_balance[case] = dict(applied=round(applied_lat[case], 1),
+                                      reacted=round(float(abs(reacted)), 1))
+
     quads_out = []
     for qname, (kind, gid) in m.quad_meta.items():
         q = m.model.quads[qname]
@@ -711,12 +888,18 @@ def compute_fem(building: Building, mesh: float = 0.25,
         quads_out.append(dict(
             e=gid, k=kind, u=round(quad_u.get(qname, 0.0), 3),
             g=quad_g.get(qname, 3), s=round(quad_s.get(qname, 0.0)),
+            cmb=quad_cmb.get(qname, 0),
             c=[[round(n.X, 3), round(n.Y, 3), round(n.Z, 3)] for n in nds]))
 
     assumptions = [
         f"PyNite plate FEM, mesh {mesh} m, {m.qn} quads",
         "loads/capacities: shared DesignBasis (ULS "
         f"{db.gamma_g}G+{db.gamma_q}Q, snow {db.snow})",
+        ("combinations enveloped: " + ", ".join(display_combos)
+         + " — SEIS = G + phi*psi2*Q +/- ELF storey forces "
+         "(specs/seismic-lateral.md)" if elf is not None
+         else "gravity only: ULS = "
+         f"{db.gamma_g}G + {db.gamma_q}Q"),
         "design values: 1 m strip-averaged plate moments, 0.5 m averaged "
         "wall stress — overlap-weighted over the window, and the plate "
         "value averages |principal moment|, so hogging never cancels "
@@ -735,7 +918,8 @@ def compute_fem(building: Building, mesh: float = 0.25,
     # The honest answer to "what is missing" — printed on the X-ray page so
     # nobody mistakes a calm color for a safe building (owner 2026-08-08).
     not_modelled = [
-        "wind, seismic, lateral stability and diaphragm action",
+        ("wind and wind-governed lateral stability" if elf is not None
+         else "wind, seismic, lateral stability and diaphragm action"),
         "buckling, second-order effects and slender-wall behaviour",
         "punching and one-way (transverse) shear, local bearing",
         "foundations, soil bearing, settlement, uplift and sliding",
@@ -747,10 +931,27 @@ def compute_fem(building: Building, mesh: float = 0.25,
         "wall load, so any moment there would be a support artefact",
         "non-bearing walls: self-weight only, no stiffness or load path",
     ]
+    if elf is not None:
+        not_modelled += [
+            "accidental torsional eccentricity (+/-0.05L): inherent "
+            "torsion only — the per-node delta amplification breaks "
+            "force equilibrium (plan review); engineer applies EC8 "
+            "accidental torsion in design",
+            "vertical seismic component (cantilevers flagged in the "
+            "handoff report instead)",
+            "masonry stiffness: walls are meshed at C25 concrete "
+            "stiffness while the ELF capacity ruler assumes URM — "
+            "demand DISTRIBUTION is approximate where masonry is the "
+            "real material",
+            "behavior factor q applies to forces only; no ductility "
+            "or capacity design checks",
+        ]
     return FemResult(
         elements=elements,
-        field=dict(schema=1, coords="building-z-up", mesh=mesh,
-                   quads=quads_out),
-        intended=intended, attached=attached, reactions=abs(reactions),
+        field=dict(schema=2, coords="building-z-up", mesh=mesh,
+                   combos=display_combos, quads=quads_out),
+        intended=tot_intended, attached=tot_attached,
+        reactions=abs(reactions),
         unresolved=unresolved, assumptions=assumptions,
-        not_modelled=not_modelled)
+        not_modelled=not_modelled,
+        combos=display_combos, case_balance=case_balance)
