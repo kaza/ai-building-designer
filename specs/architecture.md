@@ -53,6 +53,9 @@ the only record — write the spec *in the same commit* as your next change to t
 | `validators/waivers.py` | Per-project suppression of known-acceptable findings | [validation-waivers.md](validation-waivers.md) |
 | `generators/shell.py`, `core.py`, `corridor.py`, `template.py`, `apartments.py`, `building_4apt.py` | Phased layout synthesis: shell → core → corridor → apartments → per-floor stamping | `unspecced` → `layout-generation.md` |
 | `queries/connectivity.py`, `wall_rooms.py`, `spatial.py`, `slice.py` | Read-only context extraction so an AI can reason about a building without loading all of it | `unspecced` → `reasoning-queries.md` |
+| `render3d/` (scene_blender, metadata), `export/glb_blender.py`, `export/glb_logic.py` | Blender scene construction + GLB export; metadata.py stamps ab_* element attributes that ride glTF extras into the browser | [browser-walkthrough.md](browser-walkthrough.md) § Element metadata |
+| `walkthrough/` (page generator + template), `assets.py`, `project_config.py` | Walkthrough page, pinned-asset fetching, strict project.toml config | [browser-walkthrough.md](browser-walkthrough.md), [project-config.md](project-config.md) |
+| `importers/ifc.py` | Foreign IFC import + patch-based update (GUIDs verbatim, unmapped reported) | [ifc-import.md](ifc-import.md) |
 | `queries/mermaid.py` | Connectivity graph as a mermaid diagram | `unspecced` → `reasoning-queries.md` |
 | `export/ifc.py` | IFC4 export via ifcopenshell | `unspecced` → `ifc-export.md` |
 | `export/floorplan.py`, `overview.py` | matplotlib 2D plans + all-stories overview | partly: [facade-detection.md](facade-detection.md), [spiral-stair-rendering.md](spiral-stair-rendering.md) → rest `unspecced` as `plan-rendering.md` |

@@ -14,14 +14,43 @@ the walkthrough is for *feeling the space* — that's what sells a design.
 Quality bar: would you show it to a client without apologizing.
 
 ## What exists today (v1)
-Implemented at the project layer for villa-maketa: GLB export + generated
-Three.js walkthrough page with free-fly controls, object info (I), measuring
-(M), dollhouse roof toggle (R), and feedback mode (F — freeze, draw strokes
-on the view, comment, submit; the serving script stores each submission as
-PNG + machine-readable meta); the model streams as a separate `.glb`
-fetched at runtime. Implementation record, file list, and the decisions
-behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md)
-§ Walkthrough (ADR 004 — project detail lives at the project tier).
+Framework-owned since ADR-006 (`src/archicad_builder/walkthrough/`,
+`render3d/`, `export/glb_blender.py`): GLB export + generated Three.js
+walkthrough page with free-fly controls, object info (I), measuring (M),
+dollhouse roof toggle (R), construction X-ray (G), shareable `#v=` view
+links (K), and feedback mode (F — freeze, draw strokes on the view,
+comment, submit; the `serve` command stores each submission as PNG +
+machine-readable meta); the model streams as a separate `.glb` fetched at
+runtime. Project taste (title, spawn, palette) comes from `project.toml`.
+Historical build record: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec.md).
+
+### Element metadata — attributes, not names (2026-08-10)
+The OBJ hop between IFC and Blender strips every property, and for a while
+the page reverse-engineered semantics from mesh names (`Ifc\w+?_` regexes,
+a TAGS payload, name-keyed loads). That whole class is gone. The chain now
+carries REAL attributes end to end:
+
+```
+building.json ─▸ render3d/metadata.py: element_metadata(doc)
+              ─▸ Blender custom props   ab_global_id / ab_kind / ab_name /
+                 (stamped BEFORE face   ab_load_bearing / ab_tag
+                  splits, copies inherit)
+              ─▸ GLB node extras        (export_extras=True)
+              ─▸ mesh.userData          (GLTFLoader, walked via _abMeta)
+```
+
+- Aim labels and feedback badges read `ab_tag` / `ab_name` (tag numbering
+  mirrors the 2D plan, `G:` prefix for non-ground storeys).
+- The X-ray classifies by `ab_kind` and colors by `ab_load_bearing`; a
+  mesh WITHOUT metadata is furniture/decor and is hidden. A GLB with no
+  metadata at all fails loud ("rebuild the GLB") — there is no name
+  fallback.
+- `loads.json` is keyed by GlobalId (the record carries `name` for
+  humans); the loads chip joins on `ab_global_id`. The E064–E066
+  validators read the name field instead of parsing keys.
+- Mesh names are debugging labels for humans, nothing more. The GlobalId
+  in the browser is the SAME identifier as in building.json and the IFC
+  ([ifc-identity.md](ifc-identity.md)).
 
 ## Roadmap (not commissioned yet)
 - Web deployment: static cloud publishing + hosted feedback loop —
@@ -58,7 +87,8 @@ behind each piece: [projects/villa-maketa/spec.md](../projects/villa-maketa/spec
 | 2026-08-08 | After feedback submit/cancel on touch: resume walking directly, no start overlay | owner: "after submitting feedback return to normal state not blocked state" (desktop keeps the overlay — pointer lock needs a fresh gesture) | Almir |
 | 2026-08-08 | Joystick grabs only touches within ~110px of its resting spot (hops to the finger inside that neighborhood); every other touch — both screen halves — is look/rotate | owner: the half-screen rule hijacked far-away left touches; "if I am far away I should be able to rotate using my finger" | Almir |
 | 2026-08-08 | Loads view (L key / ☰ menu): colors every structural element by TRUE % of capacity used (beams: bending; walls: axial incl. self-weight, t×Φ·f_d capacity; garage storey included with its full load path) — one continuous gray→amber→red ramp, no bands; everything else ghosts to 10%; per-element 1D gradient textures UV-mapped along the member — beams show their bending parabola (vertex colors could not: box beams have no midspan vertices), walls follow an 8-bucket sampled load profile; I shows q/M/util per element; data embedded at build from output/loads.json (experiment `load_takedown.py --emit-json`, rerun after model changes — absent file = toggle explains itself) | owner: "render me in 3D where I could see the loads on my concrete" — the RFEM-style view, KISS edition | Almir |
-| 2026-08-10 | Structure view v2, same day (owner: "in xray all should be transparent somehow" + three hologram reference images): G toggles a single CONSTRUCTION X-RAY — black background (sky/fog saved and restored), every structural element as additive-glow translucent faces + crisp `EdgesGeometry` outlines (the alignment information lives in the edges, Revit-wireframe idea); bearing walls red (faces 0.16, edges 0xff6b5e), everything else cyan (walls 0.10, slabs/roofs/openings 0.06, edges 0x7fdcff); furniture/decor hidden. Supersedes the same-day 3-state cycle whose solid red bearing walls blocked the view. URL flag `struct` (legacy `ghost` maps to it) | the first cut kept bearing walls opaque — "here I see the walls" | Almir + Claude |
+| 2026-08-10 | Name parsing purged (owner: "why are we doing this through names — isn't there a real property?" then "remove them all, KISS/YAGNI"): element metadata rides the pipeline as real attributes (see § Element metadata) — TAGS payload, `Ifc\w+?_` regexes, name-keyed loads, `_ifcBase()`, the legacy `ghost` URL flag and the `--model` fallback all deleted; loads.json keyed by GlobalId. Kept: the GLB leak gate and verify-assets (fail-loud detectors, not compatibility) | the blue-garage bug was a name-lookup miss on split meshes — the fix was to stop looking things up by name at all | Almir + Claude |
+| 2026-08-10 | Structure view v2, same day (owner: "in xray all should be transparent somehow" + three hologram reference images): G toggles a single CONSTRUCTION X-RAY — black background (sky/fog saved and restored), every structural element as additive-glow translucent faces + crisp `EdgesGeometry` outlines (the alignment information lives in the edges, Revit-wireframe idea); bearing walls red (faces 0.16, edges 0xff6b5e), everything else cyan (walls 0.10, slabs/roofs/openings 0.06, edges 0x7fdcff); furniture/decor hidden. Supersedes the same-day 3-state cycle whose solid red bearing walls blocked the view. URL flag `struct` | the first cut kept bearing walls opaque — "here I see the walls" | Almir + Claude |
 | 2026-08-09 | Ghost mode: G key / ☰ "Ghost" toggles see-through architecture (walls, slabs, roofs at opacity 0.12, `depthWrite:false`; furniture, doors and windows stay solid). Exactly ONE mode owns the materials at a time: entering the FEM X-ray unwinds Ghost synchronously BEFORE its fetch (the snapshot must never capture ghost clones as originals), and leaving FEM — or its fetch failing — re-applies the wanted ghost. `#v=` grammar: the first 5 fields stay required numerics; everything after is a flag SET (`xray`, `ghost`; unknown flags ignored so the camera survives links from newer builds). "X-ray" = FEM stress colouring, "Ghost" = visibility — two different modes, deliberately distinct names | owner: "x-ray view to see the walls through walls" (2026-08-09) | Almir + Claude |
 | 2026-08-08 | Shareable view state in the URL hash: `#v=x,y,z,yaw,pitch[,xray]` (same look-direction camera numbers as `#debug=` and the P filename, three.js coords) — written via `history.replaceState` throttled to 1 s with change detection on the formatted string (Safari hard-caps 100 calls/30 s); read once after the GLB is ready when no `#debug` is present, `xray` token turns the FEM X-ray on (existing `femFetchSeq` guard covers the toggle-while-fetching race); K key (desktop, cursor is pointer-locked) and a ☰ "Copy view link" button (touch) copy the URL synchronously in the input handler (iOS clipboard requirement); no `hashchange` listener — manual mid-session hash edits are out of scope. The X-ray is the ONE view toggle the link carries (roof/names are deliberately not: the X-ray is the state you send someone to argue about) | owner: refresh must keep the position, and a sent link must open at that position in that view; the link pins the position, not the geometry — old links open the latest model | Almir + Claude |
 | 2026-08-08 | Feedback shot composited at CSS resolution (was DPR-scaled: 4-9x more pixels); on POST failure show a red notice + Retry in the panel instead of auto-downloading a PNG | owner: smaller/faster submissions; "if feedback submitting fails it should inform the user, the drawing is less important" | Almir |

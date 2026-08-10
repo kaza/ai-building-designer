@@ -74,7 +74,7 @@ bread and butter; the model must carry the thing that makes it stand.
   and non-rc beams are `unresolved`, never errors (Codex). All
   assumptions live in `DesignBasis`; the output is labelled structural
   PLAUSIBILITY, not Eurocode compliance. CLI: `loads <project>` →
-  output/loads.json (the walkthrough Loads view consumes it — slabs
+  output/loads.json — keyed by element GlobalId since 2026-08-10, with the element name as a field on each record (the walkthrough joins on `ab_global_id`, the E064–E066 validators and the CLI read the name field) — (the walkthrough Loads view consumes it — slabs
   render flat-colored; walls/beams gradient).
 - Phase C candidates (not commissioned): continuous Euler-Bernoulli
   beam per strip (negative moments over interior supports; reactions
