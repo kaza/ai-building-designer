@@ -90,23 +90,29 @@ like to see this when I click L."
   beam shear/torsion/axial (bending only), slab membrane forces, and
   non-bearing walls (self-weight only, no stiffness). A calm color is
   not a safe building.
-- Field payload schema 3: per-quad `u`/`g`/`s` plus `cmb` (index of
-  the governing combination into the envelope's `combos` list) and
-  `uc` — one flat utilization array PER combination, aligned with
-  `combos` — so the viewer can paint any single combination without a
-  refetch; element records carry per-combo design values.
-- **V cycles the combination view** inside the X-ray (both the
-  walkthrough and xray.html): worst-case ENVELOPE (default) → each
-  combination in `combos` order — ULS doubles as the pure
-  gravity/"load-bearing" view, the SEIS stops isolate each quake
-  direction. L stays the one on/off toggle; V only chooses what the
-  open X-ray shows. Single-combination builds (no `[site]`) hide the
-  V hint — cycling envelope↔ULS alone is a no-op with extra steps.
-  In combination views the tooltip names the active combination and
-  reads that combination's fragment/element values; the
-  governing-component detail (`g`/`s`) is published for the envelope
-  only (per-combo component arrays would triple the payload for a
-  debugging nicety — boundary, not roadmap).
+- Field payload schema 4: per-quad `u`/`g`/`s` plus `cmb` (index of
+  the governing combination into the envelope's `combos` list), `uc`
+  (one flat utilization array PER combination, aligned with `combos`)
+  and `gc` (one failure-mode component-code array per combination) —
+  the TILE tooltip needs every combination's value and its failure
+  mode; element records carry per-combo design values.
+- **Two keys, two levels** (owner 2026-08-11, superseding the
+  one-day-old combination cycler): **V** cycles the views — NORMAL →
+  CONSTRUCTION X-RAY (hologram, bearing red / rest cyan) → LOAD VIEW
+  (FEM colors); **L** jumps straight INTO the load view from anywhere,
+  then cycles the load case: worst case → weight (ULS) → earthquake
+  (envelope of the SEIS combos). The default paint is the worst-case
+  envelope — "the reddest thing wins". G is deleted, the `?loads=1` /
+  `?xray=1` URL params are deleted without a mapping (owner: "dont
+  give a shit about bookmarks"). The ☰ menu gets View + Load buttons.
+  The standalone xray.html has the same L contract (no view states to
+  jump between).
+- **The aim panel is TILE-first**: pointing at a fragment lists every
+  combination's utilization FOR THAT TILE with its failure-mode label
+  (`SEIS_X+ 142% · diagonal tension`), the governing row — the one
+  that painted the tile — in bold. Element design values stay as one
+  context line; the tile block is the star (owner: "the showed values
+  should be for Tile not for the element").
 
 ## Components
 
@@ -160,7 +166,8 @@ like to see this when I click L."
 | 2026-08-08 | Default pytest stays bounded: solver gates + box fixtures on coarse meshes; project-scale solves are pipeline/CI steps, not pytest | Codex #16 |
 | 2026-08-10 | Load application refactored to unfactored cases G/Q (+ storey-weighted QE, EQX/EQY when `[site]` is set); combos ULS = 1.35G+1.5Q and SEIS_X±/SEIS_Y± = G+QE±EQ; field schema bumped to 2 (per-quad governing combo `cmb`, envelope `combos` list); per-case equilibrium ledgers (`case_balance`) replace trust in one scalar; walkthrough + xray decoders updated in the same commit | specs/seismic-lateral.md S2; Codex plan review: pre-factored loads can't be re-combined, a scalar balance hides per-case drops, a schema bump must move writer and viewers together. ULS regression on the villa: < 0.4% (rounding) |
 | 2026-08-10 | Every combo costs a backsolve + harvest pass — villa fem step slowed ~3-5×; stays acceptable because fem is a build-time profile step | measured during S2; revisit only if a project's build becomes painful |
-| 2026-08-10 | V cycles combination views (envelope → ULS → SEIS_X± → SEIS_Y±) inside the X-ray; L stays the single on/off toggle; schema 3 adds per-combo `uc` quad arrays | owner: "I want to see it the same way I saw it with L view … maybe lets use V to switch through different views, x-ray and load bearing." ULS *is* the load-bearing view, so V answers both asks without resurrecting a second L (owner precedent 2026-08-08 kept one L; V changes what the open X-ray shows, not how many X-rays exist) |
+| 2026-08-10 | ~~V cycles combination views inside the X-ray; L stays the toggle~~ SUPERSEDED next day | owner: "I want to see it the same way I saw it with L view … maybe lets use V to switch through different views" — first read as combination cycling |
+| 2026-08-11 | ONE key V cycles normal → construction x-ray → load view; load view is ALWAYS the worst-case envelope; the per-combination story moves into the TILE tooltip (every combo's value + failure-mode label, governing row bold — schema 4 `gc` arrays); L, G, `?loads=1`, `?xray=1` all deleted, no compatibility mapping | owner: "no G, L, V - just V … load view should always show the worst case … show all different values … the worst one should be in bold … for Tile not for the element … dont give a shit about bookmarks" |
 
 ## Acceptance
 

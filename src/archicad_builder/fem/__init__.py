@@ -838,10 +838,12 @@ def compute_fem(building: Building, mesh: float = 0.25,
     quad_g: dict[str, int] = {}
     quad_s: dict[str, float] = {}
     quad_cmb: dict[str, int] = {}
-    per_combo_qu: list[dict[str, float]] = []   # V-key views, schema 3
+    per_combo_qu: list[dict[str, float]] = []   # tile tooltip, schema 4
+    per_combo_qg: list[dict[str, int]] = []     # failure-mode per combo
     for ci, cname in enumerate(display_combos):
         els, qu, qg, qs = _harvest(cname)
         per_combo_qu.append(qu)
+        per_combo_qg.append(qg)
         for gid, e in els.items():
             if gid not in elements:
                 elements[gid] = {**e, "combo": cname,
@@ -898,6 +900,7 @@ def compute_fem(building: Building, mesh: float = 0.25,
             g=quad_g.get(qname, 3), s=round(quad_s.get(qname, 0.0)),
             cmb=quad_cmb.get(qname, 0),
             uc=[round(qu.get(qname, 0.0), 3) for qu in per_combo_qu],
+            gc=[qg.get(qname, 3) for qg in per_combo_qg],
             c=[[round(n.X, 3), round(n.Y, 3), round(n.Z, 3)] for n in nds]))
 
     assumptions = [
@@ -963,7 +966,7 @@ def compute_fem(building: Building, mesh: float = 0.25,
         ]
     return FemResult(
         elements=elements,
-        field=dict(schema=3, coords="building-z-up", mesh=mesh,
+        field=dict(schema=4, coords="building-z-up", mesh=mesh,
                    combos=display_combos, quads=quads_out),
         intended=tot_intended, attached=tot_attached,
         reactions=abs(reactions),

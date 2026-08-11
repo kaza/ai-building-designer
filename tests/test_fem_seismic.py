@@ -109,10 +109,11 @@ class TestSeismicCombos:
         write_payloads(res, tmp_path, "deadbeef")
         import json
         env = json.loads((tmp_path / "fem-field.json").read_text())
-        assert env["schema"] == 3
-        assert len(env["quads"]["uc"]) == len(env["combos"])
+        assert env["schema"] == 4
         n = env["quads"]["n"]
-        assert all(len(arr) == n for arr in env["quads"]["uc"])
+        for key in ("uc", "gc"):
+            assert len(env["quads"][key]) == len(env["combos"])
+            assert all(len(arr) == n for arr in env["quads"][key])
 
     def test_payload_uc_matrix_is_exactly_transposed(self, tmp_path):
         # Codex plan review: a dimension check passes on a transposed or
@@ -125,12 +126,12 @@ class TestSeismicCombos:
         res = FemResult(
             elements={"e1": {"name": "W", "kind": "wall", "story": "S",
                              "u": 0.9, "combo": "B", "combos": {}}},
-            field=dict(schema=3, coords="building-z-up", mesh=0.4, quads=[
+            field=dict(schema=4, coords="building-z-up", mesh=0.4, quads=[
                 dict(e="e1", k="wall", u=0.21, g=0, s=0, cmb=0,
-                     uc=[0.21, 0.11],
+                     uc=[0.21, 0.11], gc=[0, 4],
                      c=[[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]),
                 dict(e="e1", k="wall", u=0.42, g=0, s=0, cmb=1,
-                     uc=[0.32, 0.42],
+                     uc=[0.32, 0.42], gc=[1, 2],
                      c=[[1, 0, 0], [2, 0, 0], [2, 0, 1], [1, 0, 1]]),
             ]),
             intended=1.0, attached=1.0, reactions=1.0,
@@ -138,11 +139,13 @@ class TestSeismicCombos:
         write_payloads(res, tmp_path, "beef")
         env = json.loads((tmp_path / "fem-field.json").read_text())
         assert env["quads"]["uc"] == [[0.21, 0.32], [0.11, 0.42]]
+        assert env["quads"]["gc"] == [[0, 1], [4, 2]]
 
     def test_single_combo_uc_equals_envelope(self):
         uls = compute_fem(_box(), mesh=0.4)
         for q in uls.field["quads"]:
             assert q["uc"] == [q["u"]]
+            assert q["gc"] == [q.get("g", 3)]
 
     def test_partition_mass_shakes_with_its_storey(self):
         # non-bearing walls bucket at their storey's CEILING like the

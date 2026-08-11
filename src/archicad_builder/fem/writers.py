@@ -46,6 +46,7 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
     # decoder can render MPa without unit metadata (Codex review).
     # c_arr indexes the governing combination into envelope.combos.
     uc_arr: list[list[float]] = [[] for _ in res.combos]
+    gc_arr: list[list[int]] = [[] for _ in res.combos]
     for q in res.field["quads"]:
         e_idx.append(index[q["e"]])
         u_arr.append(q["u"])
@@ -56,21 +57,24 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
         # result, and synthesizing them from the envelope would label
         # envelope numbers as specific combinations (Codex plan review)
         quc = q["uc"]
+        qgc = q["gc"]
         for ci in range(len(res.combos)):
             uc_arr[ci].append(quc[ci])
+            gc_arr[ci].append(qgc[ci])
         for corner in q["c"]:
             pos.extend(corner)
     envelope = dict(
-        schema=3, coords=res.field["coords"], mesh=res.field["mesh"],
+        schema=4, coords=res.field["coords"], mesh=res.field["mesh"],
         digest=digest, balance=round(res.balance, 4),
         combos=res.combos, case_balance=res.case_balance,
         assumptions=res.assumptions, unresolved=res.unresolved,
         not_modelled=res.not_modelled,
         elems=elems,
-        # uc: one flat utilization array per combination (V-key views,
-        # specs/fem-xray.md schema 3); u stays the worst-case envelope
+        # uc/gc: per-combination utilization + failure-mode arrays for
+        # the tile tooltip (specs/fem-xray.md schema 4); u stays the
+        # worst-case envelope that paints the view
         quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
-                   cmb=c_arr, uc=uc_arr, pos=pos))
+                   cmb=c_arr, uc=uc_arr, gc=gc_arr, pos=pos))
     (out_dir / "fem-field.json").write_text(
         json.dumps(envelope, separators=(",", ":")))
 

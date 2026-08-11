@@ -151,9 +151,8 @@
   <div id="menu" hidden>
     <button class="tbtn" id="m-roof">Roof: on</button>
     <button class="tbtn" id="m-names">Names: off</button>
-    <button class="tbtn" id="m-loads">X-ray: off</button>
-    <button class="tbtn" id="m-femview" style="display:none">View: envelope</button>
-    <button class="tbtn" id="m-ghost">Structure: off</button>
+    <button class="tbtn" id="m-view">View: normal</button>
+    <button class="tbtn" id="m-load" style="display:none">Load: worst case</button>
     <button class="tbtn" id="m-link">Copy view link</button>
   </div>
   <button class="tbtn" id="btn-up">&#9650;</button>
@@ -224,16 +223,18 @@ const INITIAL_VIEW = (() => {
   // so the camera survives links from newer builds (Codex review — the
   // old positional parse threw the whole view away)
   const flags = new Set(parts.slice(5));
-  const struct = flags.has('struct') ? 1 : 0;
-  return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4],
-           xray: flags.has('xray'), struct };
+  // one view state (owner 2026-08-11): 'load' -> load view, 'xray' (and
+  // the legacy 'struct') -> construction x-ray
+  const view = flags.has('load') ? 2
+    : (flags.has('xray') || flags.has('struct')) ? 1 : 0;
+  return { pos: nums.slice(0, 3), yaw: nums[3], pitch: nums[4], view };
 })();
 let viewHashOn = false;   // flips on once the initial view (if any) applied
 let _lastViewHash = '';
 function writeViewHash() {
   if (!viewHashOn || DEBUG_MODE) return;
-  const spec = cameraSpec().text + (structuralMode === 'fem' ? ',xray' : '')
-    + (structWanted ? ',struct' : '');
+  const spec = cameraSpec().text
+    + (viewState === 2 ? ',load' : viewState === 1 ? ',xray' : '');
   if (spec === _lastViewHash) return;  // change detector: Safari caps
   try {                                // replaceState at 100 calls / 30 s
     history.replaceState(history.state, '', '#v=' + spec);
@@ -430,14 +431,21 @@ let rubberLine = null;     // live preview line
 let infoText = '';
 let aimText = '';   // top-right live readout: what the crosshair points at
 
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 function setHud() {
   const mode = measureMode
     ? (pendingPoint ? 'MEASURE — click second point' : 'MEASURE — click first point')
     : '';
   // second divider closes the element block before the where-am-I lines
-  const rule = (structuralMode === 'fem' && aimText) ? FEM_RULE : '';
-  hud.textContent = [mode, aimText, infoText, rule, positionLine()]
-    .filter(Boolean).join('\n');
+  const rule = (viewState === 2 && aimText) ? FEM_RULE : '';
+  // rich text: EVERYTHING is escaped first (element names come from the
+  // GLB — Gemini plan review flagged the XSS trap), then only the
+  // \x01/\x02 bold markers become tags
+  hud.innerHTML = escapeHtml([mode, aimText, infoText, rule, positionLine()]
+    .filter(Boolean).join('\n'))
+    .replace(/\x01/g, '<b>').replace(/\x02/g, '</b>');
 }
 
 function centerHit() {
@@ -596,7 +604,6 @@ function _ghost(n) {
 // element gets crisp edge lines. One state: off -> x-ray.
 // FEM stress X-ray still owns the materials exclusively: entering it
 // unwinds this synchronously; leaving it re-applies the wanted state.
-let structWanted = 0;          // 0 off, 1 construction x-ray
 let structApplied = 0;
 const _structSaved = new Map();   // uuid -> {material?, visible?}
 const _structEdges = [];          // LineSegments overlays, removed on exit
@@ -654,7 +661,6 @@ function _applyStruct(mode) {
   if (!stamped) {
     // an old GLB without extras would render an EMPTY x-ray — say so
     _unapplyStruct();
-    structWanted = 0;
     infoText = 'this model carries no metadata — rebuild the GLB';
     setHud();
     return;
@@ -688,28 +694,76 @@ function _unapplyStruct() {
   _structSaved.clear();
   structApplied = 0;
 }
-const STRUCT_LABEL = ['off', 'on'];
-function cycleStruct() {
-  structWanted = (structWanted + 1) % 2;
-  if (structuralMode === 'off') _applyStruct(structWanted);
-  const btn = document.getElementById('m-ghost');
-  if (btn) btn.textContent = 'Structure: ' + STRUCT_LABEL[structWanted];
+// ── ONE view state machine (owner 2026-08-11): V cycles
+// normal -> construction x-ray -> load view; L cycles the load case
+// inside the load view (worst -> weight -> quake). specs/fem-xray.md.
+let viewState = 0;               // 0 normal, 1 x-ray, 2 load
+const VIEW_LABEL = ['normal', 'x-ray', 'load'];
+function setView(v) {
+  if (!modelRoot || v === viewState) return;
+  // teardown to normal FIRST — the fem material snapshot must never
+  // capture hologram materials (Gemini plan review)
+  if (viewState === 1) _unapplyStruct();
+  if (viewState === 2) setStructuralMode('off');
+  viewState = 0;
+  if (v === 1) {
+    _applyStruct(1);
+    if (structApplied) {
+      viewState = 1;
+      infoText = 'CONSTRUCTION X-RAY — bearing red · other cyan\nV — next view';
+    }               // metadata-less GLB: _applyStruct already said why
+  } else if (v === 2) {
+    viewState = 2;
+    setStructuralMode('fem');   // async fetch resets viewState on failure
+  }
+  _updateViewBtns();
   writeViewHash();
+  setHud();
 }
+function cycleView() { setView((viewState + 1) % 3); }
 
-// V-key combination views (specs/fem-xray.md schema 3):
-// 0 = worst-case envelope, i > 0 = femEnv.combos[i-1]
-let femViewIdx = 0;
-function femMultiView() {
-  return femEnv && (femEnv.combos || []).length > 1;
+// Load stops inside the load view (owner 2026-08-11): worst case ->
+// weight (ULS only) -> earthquake (envelope of the SEIS combos). The
+// quake arrays are derived client-side from uc/gc once per payload.
+let loadStop = 0;
+const LOAD_LABEL = ['worst case', 'weight (ULS)', 'earthquake'];
+let femQuakeU = null, femQuakeG = null, femUlsIdx = 0, femSeisIdx = [];
+function _prepLoadArrays() {
+  femUlsIdx = Math.max(0, femEnv.combos.indexOf('ULS'));
+  femSeisIdx = femEnv.combos
+    .map((c, i) => [c, i]).filter(([c]) => c.startsWith('SEIS'))
+    .map(([, i]) => i);
+  const n = femEnv.quads.n;
+  femQuakeU = new Array(n).fill(0);
+  femQuakeG = new Array(n).fill(3);
+  for (let q = 0; q < n; q++) {
+    for (const i of femSeisIdx) {
+      const v = femEnv.quads.uc[i][q];
+      if (v > femQuakeU[q]) {
+        femQuakeU[q] = v;
+        femQuakeG[q] = femEnv.quads.gc[i][q];
+      }
+    }
+  }
 }
-function femViewName() {
-  return femViewIdx === 0 ? 'envelope (worst case)'
-    : femEnv.combos[femViewIdx - 1];
-}
+function femHasStops() { return femSeisIdx.length > 0; }
 function femActiveU(q) {
-  return femViewIdx === 0 ? femEnv.quads.u[q]
-    : femEnv.quads.uc[femViewIdx - 1][q];
+  return loadStop === 0 ? femEnv.quads.u[q]
+    : loadStop === 1 ? femEnv.quads.uc[femUlsIdx][q] : femQuakeU[q];
+}
+function femActiveG(q) {
+  return loadStop === 0 ? femEnv.quads.g[q]
+    : loadStop === 1 ? femEnv.quads.gc[femUlsIdx][q] : femQuakeG[q];
+}
+function femBoldIdx(q) {
+  // the combination row that painted the tile in the ACTIVE stop
+  if (loadStop === 0) return femEnv.quads.cmb[q];
+  if (loadStop === 1) return femUlsIdx;
+  let best = femSeisIdx[0], bv = -1;
+  for (const i of femSeisIdx) {
+    if (femEnv.quads.uc[i][q] > bv) { bv = femEnv.quads.uc[i][q]; best = i; }
+  }
+  return best;
 }
 function _repaintFem() {
   if (!femGroup) return;
@@ -723,16 +777,18 @@ function _repaintFem() {
     });
     attr.needsUpdate = true;
   }
-  const btn = document.getElementById('m-femview');
-  if (btn) btn.textContent = 'View: ' +
-    (femViewIdx === 0 ? 'envelope' : femViewName());
 }
-function cycleFemView() {
-  if (structuralMode !== 'fem' || !femMultiView()) return;
-  femViewIdx = (femViewIdx + 1) % (femEnv.combos.length + 1);
+function cycleLoad() {
+  // L outside the load view JUMPS straight into it (owner 2026-08-11:
+  // "if I click L I should jump direct in load, and with V I can
+  // circle back"); inside it, L cycles the load case
+  if (viewState !== 2) { setView(2); return; }
+  if (!femEnv || !femHasStops()) return;
+  loadStop = (loadStop + 1) % 3;
   _repaintFem();
-  infoText = 'X-RAY VIEW: ' + femViewName() +
-    '\nV — next view · L — exit';
+  _updateViewBtns();
+  infoText = 'LOAD VIEW · ' + LOAD_LABEL[loadStop] +
+    '\nL — load case · V — view';
   setHud();
 }
 
@@ -795,19 +851,16 @@ function _enterFem() {
   });
   femGroup.visible = true;
   document.body.classList.add('xray');   // dark-on-light HUD, see CSS
-  // the view PERSISTS across L toggles (Gemini plan review: an engineer
-  // comparing a combo against the finishes must not lose their place);
-  // first open starts at the envelope
+  if (!femQuakeU) _prepLoadArrays();
   _repaintFem();
-  const btn = document.getElementById('m-femview');
-  if (btn) btn.style.display = femMultiView() ? '' : 'none';
-  _updateLoadsBtn();
-  // the entry banner names the ACTIVE view — the selection persists
-  // across L toggles, so silence here would mislead (Codex plan review)
-  infoText = 'STRUCTURAL X-RAY (FEM) — per-fragment % of capacity (red = over 100%)' +
-    (femMultiView() ? '\nview: ' + femViewName() + ' · V — next view' : '') +
+  _updateViewBtns();
+  // the load stop PERSISTS across view cycles (Gemini plan review: an
+  // engineer comparing a load against the finishes keeps their place)
+  infoText = 'LOAD VIEW · ' + LOAD_LABEL[loadStop] +
+    ' — per-tile % of capacity (red = over 100%)' +
     '\nload balance ' + femEnv.balance +
-    ' · aim + I for a fragment · L to exit';
+    (femHasStops() ? ' · L — load case' : '') +
+    ' · aim + I for a tile · V — view';
   setHud();
 }
 
@@ -819,9 +872,8 @@ function setStructuralMode(mode) {
   // teardown
   if (structuralMode === 'fem') {
     if (femGroup) femGroup.visible = false;
-    _restoreMats();
-    _applyStruct(structWanted);         // leaving FEM: structure returns
-  }
+    _restoreMats();                     // states are exclusive now:
+  }                                     // leaving load returns to NORMAL
   document.body.classList.remove('xray');
   structuralMode = 'off';
   infoText = '';
@@ -838,13 +890,15 @@ function setStructuralMode(mode) {
         .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then((env) => {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;  // stale
-          if (env.schema !== 3) throw new Error('field schema ' + env.schema);
-          if (!Array.isArray(env.combos)
-              || !Array.isArray(env.quads.uc)
-              || env.quads.uc.length !== env.combos.length
-              || env.quads.uc.some((a) => !Array.isArray(a)
-                                          || a.length !== env.quads.n))
-            throw new Error('malformed uc combination arrays');
+          if (env.schema !== 4) throw new Error('field schema ' + env.schema);
+          for (const key of ['uc', 'gc']) {
+            if (!Array.isArray(env.combos)
+                || !Array.isArray(env.quads[key])
+                || env.quads[key].length !== env.combos.length
+                || env.quads[key].some((a) => !Array.isArray(a)
+                                              || a.length !== env.quads.n))
+              throw new Error('malformed ' + key + ' combination arrays');
+          }
           femEnv = env;
           femGroup = _buildFemGroup(env);
           scene.add(femGroup);
@@ -854,29 +908,27 @@ function setStructuralMode(mode) {
           if (seq !== femFetchSeq || structuralMode !== 'fem') return;
           structuralMode = 'off';
           _restoreMats();
-          _applyStruct(structWanted);       // failed FEM: structure returns
-          infoText = 'FEM field unavailable (' + err.message + ') — L for element loads';
+          viewState = 0;                    // failed load view: back to normal
+          _updateViewBtns();
+          infoText = 'load view unavailable (' + err.message + ')';
           setHud();
         });
       return;
     }
   }
-  _updateLoadsBtn();
+  _updateViewBtns();
   setHud();
 }
 
-function _updateLoadsBtn() {
-  const btn = document.getElementById('m-loads');
-  if (btn) btn.textContent = 'X-ray: ' + (structuralMode === 'fem' ? 'on' : 'off');
-  const vbtn = document.getElementById('m-femview');
-  if (vbtn && structuralMode !== 'fem') vbtn.style.display = 'none';
-}
-
-function cycleStructural() {
-  // owner 2026-08-08: one L, one view — the FEM x-ray. (The strip engine
-  // still runs the validators and the aim+I numbers; it just has no
-  // paint mode of its own anymore.)
-  setStructuralMode(structuralMode === 'fem' ? 'off' : 'fem');
+function _updateViewBtns() {
+  const vb = document.getElementById('m-view');
+  if (vb) vb.textContent = 'View: ' + VIEW_LABEL[viewState];
+  const lb = document.getElementById('m-load');
+  if (lb) {
+    lb.style.display = (viewState === 2 && femEnv && femHasStops())
+      ? '' : 'none';
+    lb.textContent = 'Load: ' + LOAD_LABEL[loadStop];
+  }
 }
 
 const FEM_COMPONENT = ['vertical compression', 'horizontal tension',
@@ -889,29 +941,26 @@ const FEM_RULE = '─'.repeat(32);
 function femCell(label, value) {
   return (label + ' ').padEnd(9) + String(value).padStart(7);
 }
-function femReadout(hit, g) {
+function femReadout(hit) {
+  // compact live readout — the ACTIVE load stop's value + failure mode
+  // for this tile (owner 2026-08-11: "tooltip stays as it is"); the
+  // full per-combination list lives behind I
   const el = hit.el;
   const pct = (v) => Math.round(v * 100) + '%';
-  // combination view: that combination's numbers; envelope: the design
-  // values with per-channel detail (g/s are envelope-only — schema 3)
-  // no fallback to el.u: a missing per-combo value renders n/a, never
-  // an envelope number under a combination label (Codex plan review)
-  const elU = femViewIdx > 0
-    ? (el.combos || {})[femViewName()] : el.u;
-  const rows = [femCell('element', elU === undefined ? 'n/a' : pct(elU)) +
-                (femViewIdx === 0 && el.peak
-                  ? '   ' + femCell('peak', pct(el.peak)) : '')];
+  const rows = [femCell('element', pct(el.u)) +
+                (el.peak ? '   ' + femCell('peak', pct(el.peak)) : '')];
   // channels are [label, value] pairs; a field written before 2026-08-09
   // carries preformatted strings, and indexing those gives single letters
-  const p = (femViewIdx === 0 ? el.p || [] : []).map(
+  const p = (el.p || []).map(
     (c) => (typeof c === 'string' ? [c, ''] : c));
   for (let i = 0; i < p.length; i += 2) {
     rows.push(femCell(p[i][0], p[i][1]) +
       (p[i + 1] ? '   ' + femCell(p[i + 1][0], p[i + 1][1]) : ''));
   }
-  return el.name + (femViewIdx > 0 ? ' @ ' + femViewName() : '') +
+  return el.name +
+    (loadStop > 0 ? ' @ ' + LOAD_LABEL[loadStop] : '') +
     '\ntile ' + pct(femActiveU(hit.q)) +
-    (femViewIdx > 0 || g === undefined ? '' : '  ·  ' + FEM_COMPONENT[g]) +
+    '  ·  ' + FEM_COMPONENT[femActiveG(hit.q)] +
     '\n' + FEM_RULE + '\n' + rows.join('\n');
 }
 
@@ -926,39 +975,34 @@ function femHit() {
 }
 
 function femInfo() {
+  // the FULL story for the tile under the crosshair: one row per
+  // combination with its failure mode, the row that painted the tile
+  // (in the active load stop) in BOLD via \x01/\x02 markers — setHud
+  // escapes everything first, then converts only the markers
   const hit = femHit();
-  if (!hit) { infoText = 'no fragment hit'; setHud(); return; }
+  if (!hit) { infoText = 'no tile hit'; setHud(); return; }
   const { q, el } = hit;
-  const g = (femEnv.quads.g || [])[q];
   const s = (femEnv.quads.s || [])[q];
-  const inCombo = femViewIdx > 0;
-  const comp = (inCombo || g === undefined) ? '' :
-    '\ngoverned by ' + FEM_COMPONENT[g] +
-    (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '');
-  const multi = femMultiView();
-  const qCombo = inCombo ? ' @ ' + femViewName()
-    : (multi && femEnv.quads.cmb
-       ? ' @ ' + femEnv.combos[femEnv.quads.cmb[q]] : '');
-  const elU = inCombo ? (el.combos || {})[femViewName()] : el.u;
-  const eCombo = inCombo ? ' @ ' + femViewName()
-    : (multi && el.combo ? ' @ ' + el.combo : '');
+  const bold = femBoldIdx(q);
+  const rows = femEnv.combos.map((name, ci) => {
+    const line = (name + ' ').padEnd(9) +
+      (Math.round(femEnv.quads.uc[ci][q] * 100) + '%').padStart(5) +
+      ' · ' + FEM_COMPONENT[femEnv.quads.gc[ci][q]];
+    return ci === bold ? '\x01' + line + '\x02' : line;
+  });
   infoText = el.name + ' (' + el.kind + ', ' + el.story + ')\n' +
-    'this fragment ' + Math.round(femActiveU(q) * 100) + '% of capacity' +
-    qCombo + comp +
-    '\nelement design value ' +
-    (elU === undefined ? 'n/a' : Math.round(elU * 100) + '%') + eCombo +
-    (!inCombo && el.peak
-      ? ' · worst fragment ' + Math.round(el.peak * 100) + '%' : '') +
-    '\n(sized on the design value — standard practice; the peak sits at a' +
-    ' corner and flags local detailing, not the member size)' +
-    ((el.p || []).length
-      ? '\nall channels: ' + el.p.map((c) => c[0] + ' ' + c[1]).join(' · ')
-      : '');
+    'tile ' + Math.round(femActiveU(q) * 100) + '% of capacity @ ' +
+    LOAD_LABEL[loadStop] +
+    (s ? ' (' + (Math.abs(s) / 1000).toFixed(2) + ' MPa)' : '') +
+    '\n' + FEM_RULE + '\n' + rows.join('\n') + '\n' + FEM_RULE +
+    '\nelement design value ' + Math.round(el.u * 100) + '%' +
+    (el.combo ? ' @ ' + el.combo : '') +
+    (el.peak ? ' · worst tile ' + Math.round(el.peak * 100) + '%' : '');
   setHud();
 }
 
 function showInfo() {
-  if (structuralMode === 'fem') { femInfo(); return; }
+  if (viewState === 2 && femEnv) { femInfo(); return; }
   const hit = centerHit();
   if (!hit) { infoText = 'no surface hit'; setHud(); return; }
   const { node, label } = semanticNode(hit.object);
@@ -1113,9 +1157,8 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyR' && !e.repeat) toggleRoof();
   if (e.code === 'KeyP' && !e.repeat) screenshot();
   if (e.code === 'KeyF' && !e.repeat) enterFeedback();
-  if (e.code === 'KeyL' && !e.repeat) cycleStructural();
-  if (e.code === 'KeyV' && !e.repeat) cycleFemView();
-  if (e.code === 'KeyG' && !e.repeat) cycleStruct();
+  if (e.code === 'KeyV' && !e.repeat) cycleView();
+  if (e.code === 'KeyL' && !e.repeat) cycleLoad();
   if (e.code === 'KeyK' && !e.repeat) copyViewLink();
   if (e.code === 'KeyN' && !e.repeat) {
     labelsOn = !labelsOn;
@@ -1204,14 +1247,11 @@ if (isTouch) {
     toggleRoof();
     e.target.textContent = 'Roof: ' + (roofVisible ? 'on' : 'off');
   });
-  document.getElementById('m-loads').addEventListener('click', () => {
-    cycleStructural();
+  document.getElementById('m-view').addEventListener('click', () => {
+    cycleView();
   });
-  document.getElementById('m-ghost').addEventListener('click', () => {
-    cycleStruct();
-  });
-  document.getElementById('m-femview').addEventListener('click', () => {
-    cycleFemView();
+  document.getElementById('m-load').addEventListener('click', () => {
+    cycleLoad();
   });
   document.getElementById('m-link').addEventListener('click', () => {
     copyViewLink();
@@ -1538,20 +1578,14 @@ if (INITIAL_VIEW && ready) {
                       INITIAL_VIEW.pos[2]);
   camera.rotation.set(INITIAL_VIEW.pitch * Math.PI / 180,
                       INITIAL_VIEW.yaw * Math.PI / 180, 0, 'YXZ');
-  if (INITIAL_VIEW.struct) {
-    structWanted = INITIAL_VIEW.struct;
-    _applyStruct(structWanted);
-    const gb = document.getElementById('m-ghost');
-    if (gb) gb.textContent = 'Structure: ' + STRUCT_LABEL[structWanted];
-  }
-  if (INITIAL_VIEW.xray) setStructuralMode('fem');
+  if (INITIAL_VIEW.view) setView(INITIAL_VIEW.view);
 }
 viewHashOn = ready;   // a failed load must not overwrite a pasted link
 
 if (location.hash.startsWith('#debug') && ready) {
   const seams = new URLSearchParams(location.search);
-  if (seams.get('loads') === '1' || seams.get('xray') === '1')
-    setStructuralMode('fem');  // test seam — one structural view since 2026-08-08
+  const v = seams.get('view');
+  if (v) setView(Number(v));   // test seam: ?view=1 x-ray, ?view=2 load
   if (isTouch && seams.get('start') === '1') {  // test seam: skip the tap
     touchWalking = true;
     overlay.classList.add('hidden');
@@ -1561,8 +1595,8 @@ if (location.hash.startsWith('#debug') && ready) {
   // headless test seam: module-scope state is invisible to CDP's
   // Runtime.evaluate, so #debug exposes exactly what the harness needs
   window.__ab = {
-    cycleStruct, setStructuralMode,
-    state: () => ({ mode: structuralMode, structWanted, structApplied }),
+    setView, cycleView, cycleLoad,
+    state: () => ({ viewState, loadStop, structApplied }),
     find: (substr) => {
       const out = [];
       modelRoot.traverse((n) => {
@@ -1638,12 +1672,9 @@ function updateAim(now) {
   _aimLast = now;
   let next = '';
   if (!measureMode && !fbMode) {
-    if (structuralMode === 'fem') {
+    if (viewState === 2 && femEnv) {
       const hit = femHit();
-      if (hit) {
-        const g = (femEnv.quads.g || [])[hit.q];
-        next = femReadout(hit, g);
-      }
+      if (hit) next = femReadout(hit);
     } else {
       const hit = centerHit();
       if (hit) next = displayName(semanticNode(hit.object).node);

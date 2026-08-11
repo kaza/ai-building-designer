@@ -61,7 +61,7 @@ class TestChannelReadout:
     def test_page_renders_every_channel(self, tmp_path):
         page = _page(tmp_path)
         assert "el.p" in page              # all channels, not just governing
-        assert "white-space:pre-line" in page   # the extra line must show
+        assert "white-space:pre" in page   # the extra line must show
 
     def test_written_elems_carry_channel_lists(self, tmp_path):
         import json
@@ -97,26 +97,32 @@ class TestDesignAndPeak:
 
     def test_page_shows_the_peak_beside_the_design_value(self, tmp_path):
         page = _page(tmp_path)
-        assert "worst fragment" in page and "el.peak" in page
+        assert "worst tile" in page and "el.peak" in page
 
 
-class TestCombinationViews:
-    """V cycles envelope -> per-combination views (specs/fem-xray.md
-    schema 3)."""
+class TestLoadStops:
+    """L cycles worst case -> weight (ULS) -> earthquake; the paint is
+    the ACTIVE stop, tooltip stays compact (owner 2026-08-11,
+    specs/fem-xray.md schema 4)."""
 
-    def test_v_key_cycles_and_repaints(self, tmp_path):
+    def test_l_key_cycles_and_repaints(self, tmp_path):
         page = _page(tmp_path)
-        assert "'KeyV'" in page
+        assert "'KeyL'" in page
+        assert "'KeyV'" not in page       # V is a walkthrough concept
         assert "needsUpdate = true" in page       # recolor in place
-        assert "envelope (worst case)" in page
+        assert "'worst case', 'weight (ULS)', 'earthquake'" in page
 
-    def test_schema_gate_is_three(self, tmp_path):
+    def test_schema_gate_is_four(self, tmp_path):
         page = _page(tmp_path)
-        assert "env.schema !== 3" in page
+        assert "env.schema !== 4" in page
         # combos itself must be validated as an array (CodeRabbit)
         assert "!Array.isArray(env.combos)" in page
 
-    def test_single_combo_hides_the_cycler(self, tmp_path):
+    def test_gravity_only_hides_the_cycler(self, tmp_path):
         page = _page(tmp_path)
-        assert "multiView" in page
-        assert "if (multiView) addEventListener('keydown'" in page
+        assert "if (hasStops) addEventListener('keydown'" in page
+
+    def test_tooltip_is_escaped(self, tmp_path):
+        page = _page(tmp_path)
+        assert "tip.innerHTML" in page
+        assert "&amp;" in page            # esc() present

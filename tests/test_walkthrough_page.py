@@ -41,9 +41,10 @@ class TestViewHash:
         assert "s.trim() === ''" in template      # Number('') is 0
         assert "Math.abs(v) > 5000" in template   # finite but absurd
 
-    def test_xray_token_round_trips(self, template):
+    def test_view_token_round_trips(self, template):
         assert "flags.has('xray')" in template   # flag-set grammar (2026-08-09)
-        assert "structuralMode === 'fem' ? ',xray' : ''" in template
+        assert "viewState === 2 ? ',load' : viewState === 1 ? ',xray'" \
+            in template
 
     def test_copy_link_bound_to_key_and_menu(self, template):
         assert "'KeyK'" in template
@@ -79,9 +80,11 @@ class TestXrayReadability:
         assert "classList.add('xray')" in template
         assert "classList.remove('xray')" in template
 
-    def test_all_channels_in_both_readouts(self, template):
-        # the aim block (femReadout) and the I detail both read el.p
-        assert template.count("el.p || []") >= 2
+    def test_channels_in_the_aim_readout(self, template):
+        # the compact aim block keeps the element channels; the I panel
+        # is tile-first per-combination since 2026-08-11
+        assert "el.p || []" in template
+        assert "femBoldIdx" in template
 
     def test_readout_is_two_blocks_with_a_divider(self, template):
         assert "const FEM_RULE" in template
@@ -91,7 +94,7 @@ class TestXrayReadability:
     def test_peak_travels_with_the_design_value(self, template):
         # sized on the design value, peak shown as a detailing flag
         assert "femCell('peak'" in template
-        assert "worst fragment" in template
+        assert "worst tile" in template
 
 
 class TestStructureView:
@@ -100,11 +103,9 @@ class TestStructureView:
 
     def test_flag_set_parser_ignores_unknown_flags(self, template):
         assert "const flags = new Set(parts.slice(5));" in template
-        assert "flags.has('xray')" in template
-        # single flag, no legacy mapping (owner 2026-08-10)
-        assert "flags.has('struct') ? 1 : 0" in template
-        assert "flags.has('ghost')" not in template
-        assert "parts.length !== 5 && !xray" not in template
+        # one view state in the hash: 'load' -> 2, 'xray'/'struct' -> 1
+        assert "flags.has('load') ? 2" in template
+        assert "flags.has('xray') || flags.has('struct')" in template
 
     def test_struct_unwound_before_fem_fetch(self, template):
         i_set = template.index("function setStructuralMode(mode) {")
@@ -112,13 +113,16 @@ class TestStructureView:
         i_fetch = template.index("fetch(FEM_FIELD_URL)")
         assert i_set < i_unw < i_fetch
 
-    def test_struct_returns_after_fem_exit_and_failure(self, template):
-        assert template.count("_applyStruct(structWanted);") >= 2
+    def test_states_are_exclusive_after_fem_exit(self, template):
+        # leaving the load view returns to NORMAL, never to the hologram
+        # (states are exclusive since 2026-08-11)
+        assert "_applyStruct(structWanted)" not in template
+        assert "leaving load returns to NORMAL" in template
 
     def test_bindings_and_hash(self, template):
-        assert "if (e.code === 'KeyG' && !e.repeat) cycleStruct();" in template
-        assert 'id="m-ghost"' in template
-        assert ",struct'" in template
+        assert "if (e.code === 'KeyV' && !e.repeat) cycleView();" in template
+        assert "viewState === 2 ? ',load' : viewState === 1 ? ',xray'" \
+            in template
 
     def test_everything_transparent_with_edges(self, template):
         # every structural element gets a translucent clone + edge lines;
@@ -142,20 +146,41 @@ class TestStructureView:
         assert "const bearing = !!meta.ab_load_bearing;" in template
 
 
-class TestFemCombinationViews:
-    """V cycles X-ray combination views; menu button for phones
-    (specs/browser-walkthrough.md, fem-xray.md schema 3)."""
+class TestViewAndLoadKeys:
+    """V cycles normal -> x-ray -> load; L cycles worst -> weight ->
+    quake inside the load view; G is gone (owner 2026-08-11,
+    specs/browser-walkthrough.md, fem-xray.md schema 4)."""
 
-    def test_v_key_and_menu_button_wired(self, template):
-        assert "'KeyV'" in template
-        assert "cycleFemView" in template
-        assert 'id="m-femview"' in template
+    def test_v_and_l_keys_wired(self, template):
+        assert "'KeyV'" in template and "cycleView" in template
+        assert "'KeyL'" in template and "cycleLoad" in template
+        assert "'KeyG'" not in template
 
-    def test_schema_gate_is_three(self, template):
-        assert "env.schema !== 3" in template
+    def test_l_jumps_straight_into_the_load_view(self, template):
+        # owner 2026-08-11: L outside the load view enters it directly;
+        # V circles back through normal/x-ray
+        assert "if (viewState !== 2) { setView(2); return; }" in template
 
-    def test_view_persists_across_l_toggles(self, template):
-        # Gemini plan review: resetting to envelope on every open would
-        # destroy an engineer's investigative context
-        assert "femViewIdx = 0;\n  _repaintFem();" not in template
-        assert "let femViewIdx = 0;" in template
+    def test_single_view_state_machine(self, template):
+        assert "let viewState = 0;" in template
+        assert "'normal', 'x-ray', 'load'" in template
+        assert "'worst case', 'weight (ULS)', 'earthquake'" in template
+
+    def test_menu_buttons_collapsed(self, template):
+        assert 'id="m-view"' in template and 'id="m-load"' in template
+        for gone in ('id="m-loads"', 'id="m-ghost"', 'id="m-femview"'):
+            assert gone not in template
+
+    def test_schema_gate_is_four(self, template):
+        assert "env.schema !== 4" in template
+
+    def test_hud_is_escaped_rich_text(self, template):
+        # everything escaped FIRST, then only the bold markers become
+        # tags (Gemini plan review: GLB names are untrusted)
+        assert "function escapeHtml" in template
+        assert "hud.innerHTML = escapeHtml(" in template
+        assert "replace(/\\x01/g, '<b>')" in template.replace("\x01", "\\x01") or "x01" in template
+
+    def test_legacy_params_deleted(self, template):
+        assert "seams.get('loads')" not in template
+        assert "seams.get('xray')" not in template

@@ -30,7 +30,8 @@ _TEMPLATE = r"""<!DOCTYPE html>
           color:#bbb; }
   #tip { position:fixed; pointer-events:none; background:rgba(20,22,30,.92);
          color:#fff; padding:4px 9px; border-radius:6px; display:none;
-         z-index:6; white-space:pre-line; }
+         z-index:6; white-space:pre;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
   #legend { position:fixed; bottom:12px; left:50%;
             transform:translateX(-50%); background:rgba(20,22,30,.85);
             color:#eee; padding:8px 14px; border-radius:10px; z-index:5;
@@ -77,15 +78,17 @@ try {
   const resp = await fetch('__FIELD_URL__');
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   env = await resp.json();
-  if (env.schema !== 3) throw new Error('unknown field schema ' + env.schema);
+  if (env.schema !== 4) throw new Error('unknown field schema ' + env.schema);
   // malformed per-combo arrays must fail loudly, never paint envelope
   // values under a combination label (Codex plan review 2026-08-10)
-  if (!Array.isArray(env.combos)
-      || !Array.isArray(env.quads.uc)
-      || env.quads.uc.length !== env.combos.length
-      || env.quads.uc.some(a => !Array.isArray(a)
-                                || a.length !== env.quads.n))
-    throw new Error('malformed uc combination arrays');
+  for (const key of ['uc', 'gc']) {
+    if (!Array.isArray(env.combos)
+        || !Array.isArray(env.quads[key])
+        || env.quads[key].length !== env.combos.length
+        || env.quads[key].some(a => !Array.isArray(a)
+                                    || a.length !== env.quads.n))
+      throw new Error('malformed ' + key + ' combination arrays');
+  }
 } catch (err) {
   document.getElementById('load').textContent =
     'could not load the structural field: ' + err.message;
@@ -153,15 +156,32 @@ function writeViewHash() {
   }
 }
 
-// view 0 = worst-case envelope; i > 0 = combination i-1 in env.combos
-// (V cycles — specs/fem-xray.md schema 3)
-let viewIdx = 0;
-const multiView = (env.combos || []).length > 1;
-function activeU(q) {
-  return viewIdx === 0 ? u[q] : env.quads.uc[viewIdx - 1][q];
+// L cycles the load stop (owner 2026-08-11): worst case -> weight (ULS)
+// -> earthquake (envelope of the SEIS combos). Same contract as the
+// walkthrough; quake arrays derived client-side from uc/gc.
+let loadStop = 0;
+const LOAD_LABEL = ['worst case', 'weight (ULS)', 'earthquake'];
+const ulsIdx = Math.max(0, env.combos.indexOf('ULS'));
+const seisIdx = env.combos.map((c, i) => [c, i])
+  .filter(([c]) => c.startsWith('SEIS')).map(([, i]) => i);
+const hasStops = seisIdx.length > 0;
+const quakeU = new Array(n).fill(0);
+const quakeG = new Array(n).fill(3);
+for (let q = 0; q < n; q++) {
+  for (const i of seisIdx) {
+    if (env.quads.uc[i][q] > quakeU[q]) {
+      quakeU[q] = env.quads.uc[i][q];
+      quakeG[q] = env.quads.gc[i][q];
+    }
+  }
 }
-function viewName() {
-  return viewIdx === 0 ? 'envelope (worst case)' : env.combos[viewIdx - 1];
+function activeU(q) {
+  return loadStop === 0 ? u[q]
+    : loadStop === 1 ? env.quads.uc[ulsIdx][q] : quakeU[q];
+}
+function activeG(q) {
+  return loadStop === 0 ? env.quads.g[q]
+    : loadStop === 1 ? env.quads.gc[ulsIdx][q] : quakeG[q];
 }
 
 const byKind = {};
@@ -202,6 +222,7 @@ for (const [kind, ids] of Object.entries(byKind)) {
   document.getElementById('hud').appendChild(label);
 }
 
+
 const viewLine = document.createElement('div');
 viewLine.style.marginTop = '6px';
 document.getElementById('hud').appendChild(viewLine);
@@ -216,13 +237,13 @@ function repaint() {
     });
     attr.needsUpdate = true;
   }
-  viewLine.textContent = 'view: ' + viewName()
-    + (multiView ? '  (V — next)' : '');
+  viewLine.textContent = 'load: ' + LOAD_LABEL[loadStop]
+    + (hasStops ? '  (L — next)' : '');
 }
 repaint();
-if (multiView) addEventListener('keydown', ev => {
-  if (ev.code === 'KeyV' && !ev.repeat) {
-    viewIdx = (viewIdx + 1) % (env.combos.length + 1);
+if (hasStops) addEventListener('keydown', ev => {
+  if (ev.code === 'KeyL' && !ev.repeat) {
+    loadStop = (loadStop + 1) % 3;
     repaint();
     tip.style.display = 'none';  // stale until the pointer moves again
   }
@@ -260,35 +281,23 @@ addEventListener('mousemove', ev => {
     const comps = ['vertical compression', 'horizontal tension',
                    'vertical tension', 'bending',
                    'diagonal tension (shear)'];
-    const g = (env.quads.g || [])[q];
     const s = (env.quads.s || [])[q];
-    const qc = (env.quads.cmb || [])[q];
-    // envelope view: governing combo per fragment + component detail.
-    // combination view: that combination's own value (g/s are published
-    // for the envelope only — specs/fem-xray.md).
-    const combo = viewIdx > 0 ? ` @ ${viewName()}`
-      : (multiView && qc !== undefined ? ` · ${env.combos[qc]}` : '');
-    const elU = viewIdx > 0
-      ? (el.combos || {})[viewName()] : el.u;
-    const elCombo = viewIdx > 0 ? ` @ ${viewName()}`
-      : (multiView && el.combo ? ` @ ${el.combo}` : '');
-    // a missing per-combo element value renders as n/a — NEVER the
-    // envelope number under a combination label (Codex plan review)
-    const elUText = elU === undefined ? 'n/a'
-      : `${(elU * 100).toFixed(0)}%`;
-    tip.textContent =
-      `${el.name} — this fragment ${(activeU(q) * 100).toFixed(0)}%${combo}` +
-      (viewIdx > 0 || g === undefined ? '' :
-        ` · ${comps[g]}${s ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : ''}`) +
-      ` (element design value ${elUText}${elCombo}` +
-      (viewIdx === 0 && el.peak
-        ? ` · worst fragment ${(el.peak * 100).toFixed(0)}%` : '') + ')' +
-      (viewIdx === 0 && (el.p || []).length
-        ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : '') +
-      ((el.combos && Object.keys(el.combos).length > 1)
-        ? '\n' + Object.entries(el.combos)
-            .map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join('  ·  ')
-        : '');
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                              .replace(/>/g, '&gt;');
+    // compact tooltip: the ACTIVE load stop's value + failure mode for
+    // this tile (owner 2026-08-11: "tooltip stays as it is"); the full
+    // per-combination bold list is the walkthrough I-panel's job
+    tip.innerHTML =
+      esc(`${el.name} — tile ${(activeU(q) * 100).toFixed(0)}%` +
+        (loadStop > 0 ? ` @ ${LOAD_LABEL[loadStop]}` : '') +
+        ` · ${comps[activeG(q)]}` +
+        (loadStop === 0 && s
+          ? ' ' + (Math.abs(s) / 1000).toFixed(2) + ' MPa' : '') +
+        `\nelement design value ${(el.u * 100).toFixed(0)}%` +
+        (el.combo ? ` @ ${el.combo}` : '') +
+        (el.peak ? ` · worst tile ${(el.peak * 100).toFixed(0)}%` : '') +
+        ((el.p || []).length
+          ? '\n' + el.p.map(c => `${c[0]} ${c[1]}`).join('  ·  ') : ''));
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';
