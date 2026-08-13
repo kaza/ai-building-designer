@@ -122,6 +122,11 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena 2026-08-13-seismic (d-cost): both y=8 partitions stand directly on
+# the Garage North Wall (E103 verifies the shear path) — flagging them
+# load_bearing adds x-direction capacity at zero construction cost.
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
@@ -165,8 +170,12 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena 2026-08-13-seismic (d-cost): the 1.5m band ate the South Wall's
+# shear length. Consolidated to a tall backsplash pane over the counter
+# (0.6 x 1.9 = 1.14 m2 >= the 1.125 m2 band, glazing preserved) — the
+# wall regains 0.9 m of net shear length at window-rework cost only.
+b.add_window(GF, "South Wall", position=1.95, width=0.6, height=1.9,
+             sill_height=0.95, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
@@ -217,8 +226,13 @@ b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
 # Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
 # meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
 # the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
-             sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Arena 2026-08-13-seismic (d-cost): the 2.35m band over the TV wall was
+# the other big x-direction hole. Consolidated into one full-height
+# corner pane (0.65 x 2.75 = 1.79 m2 >= the 1.76 m2 band) hard against
+# the W7 corner, so the feedback #001 corner-glass meeting with Win2
+# survives and the TV sideboard (x0.7-2.15) keeps its solid wall behind.
+b.add_window(GF, "Living North Wall", position=3.85, width=0.65, height=2.75,
+             sill_height=0.05, name="Living Band Window N", pane_side="inner")
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
 # showed its 3.85m band was one of the worst structural offenders (79x).
@@ -254,6 +268,29 @@ b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
 # corner. Solid return at the same balustrade height closes the line.
 b.add_wall(GF, (0, 14), (0.5, 14), height=1.25, thickness=0.12,
            name="Deck Screen Return N", finish="stone_rubble")
+
+# ── Seismic shear skins (arena 2026-08-13-seismic, d-cost) ──────────────
+# New 25cm URM leaves laid tight against the OUTER face of existing solid
+# x-direction stretches: full shear length gained, zero interior floor
+# area lost, no opening blocked. On grade outside the garage footprint —
+# each gets its own strip footing (priced in the proposal; GF on-grade
+# walls carry no modeled footings, matching the existing facade walls).
+def skin(name, start, end):
+    return b.add_wall(GF, start, end, height=H, thickness=0.25, name=name,
+                      is_external=True, load_bearing=True)
+
+
+# South facade (y=0, outer face y=-0.15): two leaves flanking the reworked
+# kitchen pane, one beside the entry door; the stair-tower gap x6.1-7.6
+# stays open.
+skin("Shear Skin South W", (-0.15, -0.275), (1.95, -0.275))
+skin("Shear Skin South E", (2.55, -0.275), (6.1, -0.275))
+skin("Shear Skin Entry", (7.6, -0.275), (8.5, -0.275))
+# North facade (y=12, outer face y=12.15): pilaster leaves behind the two
+# solid stubs flanking the Room 2 slider — added on the SOFT north side,
+# so they also pull the centre of rigidity toward the mass (E102).
+skin("Shear Skin North E", (8.85, 12.275), (9.65, 12.275))
+skin("Shear Skin North W", (5.85, 12.275), (6.65, 12.275))
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
