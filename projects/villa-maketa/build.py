@@ -122,6 +122,12 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena 2026-08-13 (b-garage): the y=8 line is the garage north wall's
+# centerline — these two partitions stand ON it (E050/E103 continuous).
+# Re-anchored as bearing: the garage box becomes the spine of the
+# northern x-direction shear line (E100 x / E102 x fix).
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
