@@ -1277,7 +1277,7 @@
           "outline": {
             "vertices": [
               {
-                "x": -0.1,
+                "x": -0.2,
                 "y": 8.0
               },
               {
@@ -1297,7 +1297,7 @@
                 "y": 14.0
               },
               {
-                "x": -0.1,
+                "x": -0.2,
                 "y": 14.0
               }
             ]
@@ -1750,7 +1750,24 @@
           },
           "width": 0.3,
           "depth": 0.5,
-          "z_top": 3.35,
+          "z_top": 3.3,
+          "material": "rc"
+        },
+        {
+          "global_id": "092KOUNRvF3hpap5zzTVwz",
+          "name": "Ring Beam East Facade",
+          "description": "",
+          "start": {
+            "x": 9.5,
+            "y": 2.55
+          },
+          "end": {
+            "x": 9.5,
+            "y": 8.15
+          },
+          "width": 0.3,
+          "depth": 0.6,
+          "z_top": 3.4,
           "material": "rc"
         }
       ],

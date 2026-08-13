@@ -253,11 +253,12 @@ gslab = b.add_slab(
 gslab.span_direction = "x"  # over the garage: x=4.5 -> x=9.5 bearing lines
 
 # --- Outdoor: deck, pool, lawn (render/IFC only — outside the apartment) ---
-# Arena 2026-08-13: west edge +0.10m — compensates the three pergola-pier
-# footprints (0.45 m2) so net slab-minus-walls floor area does not drop.
+# Arena 2026-08-13: west edge +0.20m — compensates the pergola-pier and
+# wing-wall footprints (0.81 m2) so net slab-minus-walls floor area stays
+# positive under any accounting.
 b.add_slab(
     GF,
-    [(-0.1, 8), (6, 8), (6, 12), (9.5, 12), (9.5, 14), (-0.1, 14)],
+    [(-0.2, 8), (6, 8), (6, 12), (9.5, 12), (9.5, 14), (-0.2, 14)],
     thickness=0.15,
     name="Deck",
 )
@@ -393,8 +394,16 @@ b.add_beam(GF, (-1.2, 8), (9.65, 8), width=0.30, depth=0.50,
            z_top=3.35, name="Ring Beam Axis 2")
 b.add_beam(GF, (0.2, 12), (9.65, 12), width=0.30, depth=0.50,
            z_top=3.35, name="Ring Beam Axis 1")
+# West + east facades: soffit at 2.80 = the band-window head — iteration 1
+# left a 5cm wall sliver between head (2.80) and beam bottom (2.85) that
+# carried the whole roof edge in horizontal tension (West Wall 130%,
+# East Wall 183% — THE remaining reds). Beam bottom sits ON the glass.
 b.add_beam(GF, (0, 2.55), (0, 8.15), width=0.30, depth=0.50,
-           z_top=3.35, name="Ring Beam West Facade")
+           z_top=3.30, name="Ring Beam West Facade")
+# East facade: 5.3m Hallway Window band — deepest beam of the set
+# (0.30 x 0.60 fills the fascia, z 2.80-3.40, Phase B util 0.93).
+b.add_beam(GF, (9.5, 2.55), (9.5, 8.15), width=0.30, depth=0.60,
+           z_top=3.40, name="Ring Beam East Facade")
 
 # --- Tie-column grid (confined masonry evidence, EN 1998-1 §9.5.3) ---
 # Architect axes: A = x4.5 (Living East Wall / garage west), B/C = x9.5
