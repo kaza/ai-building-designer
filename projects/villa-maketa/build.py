@@ -74,6 +74,15 @@ for fname, fs, fe in [
 # 0.6 m bears 215 kPa > sigma_rd — E105 sized this one up to 0.8 m
 b.add_footing(GAR, (4.5, 8), (4.5, 0), width=0.8, height=0.5,
               name="Footing Garage West")
+# Arena 2026-08-13 (b-garage): strip under the GF Terrace Fin Wall
+# (y=12, outside the garage box — bears on soil). Declared on the
+# garage storey because footings live on the lowest storey (E104);
+# the real construction depth is a frost-depth strip, engineer to set.
+# Arena 2026-08-13-zero-red (h-premium): extended along the whole axis-4
+# line to (9.65, 12) — it now also grounds the below-grade continuation
+# stubs of the North Wall tie-columns (E108 support path).
+b.add_footing(GAR, (4.5, 12), (9.65, 12), width=0.6, height=0.5,
+              name="Footing Terrace Fin")
 
 b.add_story(GF, height=H, elevation=0.0)
 
@@ -91,11 +100,26 @@ def wall(name: str, start, end, thickness=INT):
 # east segment is appended after all other walls so W1-W14 stay stable.
 # White south-band walls rise past the brown roof as a parapet (photo #24:
 # "the wall should go to that height" — there is NO thick white roof)
+# Arena 2026-08-13 (b-garage): south band + Room 2 north wall thickened
+# OUTWARD for E100 x. Arena 2026-08-13-zero-red (h-premium): the confined
+# preset ([structure] in project.toml) cuts seismic demand 25% (q 1.5→2.0),
+# and the freed margin pays the thickening back: South/South East revert
+# 0.45→0.30 (original centerlines), North 0.60→0.45 (inner face stays at
+# 11.85, centerline 12.075). x-capacity ~535 kN vs ~475 kN confined demand.
+T_NORTH = 0.45   # centerline y = 12.075, inner face stays at 11.85
 w_south = wall("South Wall", (0, 0), (6.1, 0), EXT)  # white
-w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
-w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
-w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
+w_east = wall("East Wall", (9.5, 0), (9.5, 12.075), EXT)  # meets thick N wall
+w_north = wall("North Wall", (9.65, 12.075), (6.0, 12.075), T_NORTH)
+w_north.is_external = True
+w_north.load_bearing = True
+w_r2_west = wall("Room 2 West Wall", (6.0, 12.075), (6.0, 8), EXT)
 w_master_n = wall("Master North Wall", (6.0, 8), (4.5, 8), EXT)
+# Arena 2026-08-13-zero-red (h-premium): this wall is 100% glazing (D8/D9
+# edge-to-edge) — net shear length 0.00 m, so its "bearing" flag bought no
+# capacity and would demand a confining tie at the D8/D9 pane joint where
+# there is no wall to cast it in (EN 1998-1 §9.5.3 jambs). Declared
+# non-bearing: honest, capacity-neutral, keeps the maquette's glass pair.
+w_master_n.load_bearing = False
 # W6: east (door-side) half is one floor-to-roof window; west half is solid
 # yellow concrete carrying the TV, wrapping the corner into W7 (owner 2026-08-06)
 w_nw = wall("Living North Wall", (4.5, 8), (0, 8), EXT)
@@ -122,7 +146,15 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena 2026-08-13 (b-garage): the y=8 line is the garage north wall's
+# centerline — these two partitions stand ON it (E050/E103 continuous).
+# Re-anchored as bearing: the garage box becomes the spine of the
+# northern x-direction shear line (E100 x / E102 x fix).
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
+w_south_e.is_external = True
+w_south_e.load_bearing = True
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
 # --- Doors ---
@@ -152,10 +184,19 @@ d_r2.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # inner-flush like all villa glazing), Win5 = the fixed 1.1m pane beside
 # it; exact adjacency at position 1.75 (Gemini plan review: zero-overlap
 # adjacency is legal, sliding op skips W100 swing checks, 1.1m > egress).
-d_r2_terrace = b.add_door(GF, "North Wall", position=1.75, width=1.1,
+d_r2_terrace = b.add_door(GF, "North Wall", position=1.9, width=1.1,
                           height=2.8, name="Vila Room 2 Terrace Door",
                           swing_inward=False, pane_side="inner")
-d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
+# (position 1.9 from the extended wall start x=9.65 = same absolute
+# x6.65-7.75 opening as b-garage)
+# Arena 2026-08-13-zero-red (h-premium): sliding → out-swing. The door is
+# 3.08 m² > 1.5 m², so EN 1998-1 §9.5.3 demands tie-columns at BOTH jambs;
+# the east jamb was the glass-to-glass joint with the fixed pane — no wall
+# to cast a tie in. A 0.30 m tied pier now stands at x7.75-8.05 (Tie 4-B),
+# the fixed glazing moves east of it as two ≤1.5 m² panes (no jamb ties
+# required), and the door swings onto the deck (no slide pocket needed;
+# swing-out clears W100 like D8). Room 2 keeps 99.5% of baseline glazing.
+d_r2_terrace.operation_type = DoorOperationType.SINGLE_SWING_LEFT
 
 # --- Windows ---
 # ALL villa glazing sits flush with the INNER wall face (maquette photo #28,
@@ -165,8 +206,11 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena 2026-08-13 (b-garage): kitchen band consolidated to a taller,
+# narrower pane — same 1.125 m² of glass, +0.6 m of shear wall (E100 x).
+b.add_window(GF, "South Wall", position=1.8, width=0.9, height=1.25,
+             sill_height=1.55, name="Kitchen Window", pane_side="inner")
+# (position 1.8 from the reverted wall start x=0 = same absolute x1.8-2.7)
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
@@ -179,7 +223,10 @@ b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
              sill_height=0.05, name="Living Glass W2", pane_side="inner")
 # Feedback #003: flush at the wall start (x=4.5) — glazing runs through the
 # W8 end cap and touches the D8/D9 glass on the master side.
-b.add_window(GF, "Living North Wall", position=0, width=2.15, height=2.75,
+# Arena 2026-08-13 (b-garage): 2.15→1.60 — the freed 0.55 m becomes a
+# masonry pier on the garage-anchored y=8 shear line (Living stays ≥90%
+# glazed: 13.93 of 15.41 m²).
+b.add_window(GF, "Living North Wall", position=0, width=1.60, height=2.75,
              sill_height=0.05, name="Living Sliding Window", pane_side="inner")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
@@ -201,10 +248,17 @@ d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.55,
                              name="Vila Master Bedroom Terrace Door Small",
                              pane_side="inner")
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
-# The fixed pane of the Room 2 slider (photo #31) — abuts D7 at 1.75,
-# same 2.80 head, slot reused in place so tags stay stable
-b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
+# The fixed glazing of the Room 2 pair (photo #31) — slot reused in place
+# so tags stay stable. Arena 2026-08-13-zero-red (h-premium): the single
+# 0.9 m fixed pane splits into TWO 0.545 m panes east of the new tied pier
+# (see the terrace-door comment): each pane is 1.499 m² ≤ the 1.5 m² EN
+# 1998-1 jamb threshold, so the glass needs no tie at its edges and the
+# panes may abut glass-to-glass. Absolute: panes x9.14-8.05 (stations
+# 0.51-1.6), tied pier x8.05-7.75, door x7.75-6.65 — door unmoved.
+b.add_window(GF, "North Wall", position=1.055, width=0.545, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
+b.add_window(GF, "North Wall", position=0.51, width=0.545, height=2.75,
+             sill_height=0.05, name="Room 2 Fixed Pane E", pane_side="inner")
 # Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
 # clerestory band, not a lone porthole — same 2.05-2.80 language as
 # Win2/Win7. Two windows because the Room 2 partition (y=8) must land on
@@ -217,8 +271,14 @@ b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
 # Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
 # meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
 # the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
-             sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Arena 2026-08-13 (b-garage): the 2.35 m band becomes a 0.65 m
+# FULL-HEIGHT slot hard against the NW corner (same glass area, 1.79 vs
+# 1.76 m²; echoes Win3's vertical language on the west facade). The
+# corner joint with Win2 keeps glass meeting glass over the 2.05-2.80
+# band strip; 1.70 m of yellow masonry pier lands mid-wall on the y=8
+# shear line.
+b.add_window(GF, "Living North Wall", position=3.85, width=0.65, height=2.75,
+             sill_height=0.05, name="Living Band Window N", pane_side="inner")
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
 # showed its 3.85m band was one of the worst structural offenders (79x).
@@ -240,6 +300,109 @@ b.add_slab(
     name="Deck",
 )
 b.add_slab(GF, [(0.5, 14), (9, 14), (9, 17.5), (0.5, 17.5)], thickness=0.15, name="Pool")
+# Arena 2026-08-13 (b-garage): terrace fin — extends the North Wall line
+# (axis 4) westward from the Room 2 corner, under the Roof East / Roof
+# West north edge. Carries the roof corner over the covered terrace AND
+# anchors the northern x-direction shear line far from the stiff south
+# band (E100 x + E102 x). Full storey height, bearing, on its own strip
+# footing (soil under — outside the garage box).
+w_fin = b.add_wall(GF, (6.0, 12), (4.5, 12), height=H, thickness=EXT,
+                   name="Terrace Fin Wall", is_external=True,
+                   load_bearing=True)
+
+# ── Arena 2026-08-13-zero-red (h-premium): confined-masonry tie grid ────
+# [structure] type="confined" (project.toml) earns q=2.0 (−25% seismic
+# demand) ONLY through the fail-closed geometric evidence in the seismic
+# engine (EN 1998-1 §9.5.3, specs/columns.md): RC 25×25 full-height ties
+# at every bearing-wall free end, within 1.5 m of every bearing-wall
+# intersection, at both jambs of openings > 1.5 m², spacing ≤ 5 m — on
+# BOTH storeys. Jamb ties sit 0.125 m outside the opening edge (within
+# the 0.3 m placement tolerance) so the column body stays in masonry.
+# Two ties (C-2, 7-A) cross the 0.75 m clerestory band glass and the NW
+# corner tie (7-NW) lands in the Win2/Win7 glass corner — real confined-
+# masonry corner posts; glazing AREAS are unchanged, the band panes are
+# detailed around the posts (documented in the proposal, owner to bless).
+TIE = dict(width=0.25, depth=0.25, material="rc")
+for wname, along, cname in [
+    # axis 1 (y=0, south band): free ends at the stair gap + entry jambs
+    ("South Wall", 0.30, "Tie 1-A"),          # SW corner junction (0,0)
+    ("South Wall", 3.00, "Tie 1-B"),          # 5 m spacing
+    ("South Wall", 5.975, "Tie 1-C"),         # free end at stair gap
+    ("South Wall East", 0.125, "Tie 1-D"),    # free end at stair gap
+    ("South Wall East", 0.775, "Tie 1-E"),    # entry door W jamb
+    ("South Wall East", 1.775, "Tie 1-F"),    # entry door E jamb + SE corner
+    # axis C (x=9.5, east): hallway band jambs + spacing + y=8 junction
+    ("East Wall", 2.575, "Tie C-1"),          # band S jamb
+    ("East Wall", 5.25, "Tie C-2"),           # spacing (crosses the band)
+    ("East Wall", 8.125, "Tie C-3"),          # band N jamb + y=8 junction
+    # axis 4 (y=12.075, Room 2 north): corners + terrace-door jambs
+    ("North Wall", 0.30, "Tie 4-A"),          # NE corner junction
+    ("North Wall", 1.75, "Tie 4-B"),          # door E jamb (tied pier)
+    ("North Wall", 3.125, "Tie 4-C"),         # door W jamb + R2W junction
+    ("Room 2 West Wall", 0.125, "Tie 4-Fin Root"),  # fin junction — the
+    # round-1 210% connection peak gets a cast tie at its root
+    ("Terrace Fin Wall", 1.375, "Tie 4-Fin End"),   # fin free end
+    # axis 6/7 (y=8 west + x=0): window jambs, NW glass corner
+    ("Living North Wall", 1.725, "Tie 6-A"),  # Win4 E jamb
+    ("Living North Wall", 3.725, "Tie 6-B"),  # Win7 E jamb + NW junction
+    ("West Wall", 0.125, "Tie 7-NW"),         # NW corner: Win2/Win7 jambs
+    ("West Wall", 3.20, "Tie 7-A"),           # Win2/W2 shared jamb
+    ("West Wall South", 0.075, "Tie 7-B"),    # W2 S jamb + wall junction
+    # axis B (x=4.5, interior bearing spine): kitchen-door jambs + spacing
+    ("Living East Wall", 1.475, "Tie B-1"),   # kitchen door S jamb
+    ("Living East Wall", 2.625, "Tie B-2"),   # kitchen door N jamb
+    ("Living East Wall", 5.25, "Tie B-3"),    # 5 m spacing
+    ("Living East Wall", 7.875, "Tie B-4"),   # y=8 junction + Win4 W jamb
+    # axis 3 (y=8, garage-anchored shear line): junctions + R2 door jambs
+    ("Room 2 South Wall West", 0.175, "Tie 3-A"),   # x=6 junction
+    ("Room 2 South Wall East", 0.175, "Tie 3-B"),   # x=8 junction + jamb
+    ("Room 2 South Wall East", 1.325, "Tie 3-C"),   # R2 door E jamb
+]:
+    b.add_column(GF, wall=wname, along=along, name=cname, **TIE)
+for wname, along, cname in [
+    ("Garage South Wall", 1.475, "Tie G1-A"),       # free end at stair gap
+    ("Garage South Wall East", 0.125, "Tie G1-B"),  # free end at stair gap
+    ("Garage East Wall", 0.125, "Tie GC-1"),        # free end at (9.5,0)
+    ("Garage East Wall", 0.875, "Tie GC-2"),        # vehicle door S jamb
+    ("Garage East Wall", 3.525, "Tie GC-3"),        # vehicle door N jamb
+    ("Garage North Wall", 0.30, "Tie G3-E"),        # NE corner junction
+    ("Garage North Wall", 4.70, "Tie G3-W"),        # NW corner junction
+    ("Garage West Wall", 4.00, "Tie GB-1"),         # 5 m spacing
+    ("Garage West Wall", 7.875, "Tie GB-2"),        # free end + S junction
+]:
+    b.add_column(GAR, wall=wname, along=along, name=cname, **TIE)
+# E108 support path: GF ties standing OFF the garage box get a free rc
+# post on the garage storey directly below — the tie's below-grade
+# continuation down to its pad/strip (footings live on the lowest storey,
+# E104; real depth is a frost-depth strip, engineer to set — same
+# convention as the Terrace Fin footing above). Free posts carry no
+# confinement role (specs/columns.md); here they are pure support path.
+for x, y, cname in [
+    (0.30, 0.0, "Stub 1-A"), (3.00, 0.0, "Stub 1-B"),
+    (5.975, 0.0, "Stub 1-C"), (7.725, 0.0, "Stub 1-D"),
+    (8.375, 0.0, "Stub 1-E"), (9.375, 0.0, "Stub 1-F"),
+    (9.35, 12.075, "Stub 4-A"), (7.90, 12.075, "Stub 4-B"),
+    (6.525, 12.075, "Stub 4-C"), (6.0, 11.95, "Stub 4-Fin Root"),
+    (4.625, 12.0, "Stub 4-Fin End"),
+    (2.775, 8.0, "Stub 6-A"), (0.775, 8.0, "Stub 6-B"),
+    (0.0, 7.875, "Stub 7-NW"), (0.0, 4.80, "Stub 7-A"),
+    (0.0, 2.625, "Stub 7-B"),
+]:
+    b.add_column(GAR, at=(x, y), name=cname, **TIE)
+# Pads under the stubs that no existing strip reaches (Stub 1-F rides the
+# garage east footing; the 4-* stubs ride the extended Terrace Fin strip).
+for fs, fe, fname in [
+    ((0.0, 0.0), (0.6, 0.0), "Pad Tie 1-A"),
+    ((2.7, 0.0), (3.3, 0.0), "Pad Tie 1-B"),
+    ((5.675, 0.0), (6.275, 0.0), "Pad Tie 1-C"),
+    ((7.425, 0.0), (8.675, 0.0), "Pad Tie 1-DE"),
+    ((2.475, 8.0), (3.075, 8.0), "Pad Tie 6-A"),
+    ((0.475, 8.0), (1.075, 8.0), "Pad Tie 6-B"),
+    ((0.0, 7.575), (0.0, 8.175), "Pad Tie 7-NW"),
+    ((0.0, 4.50), (0.0, 5.10), "Pad Tie 7-A"),
+    ((0.0, 2.325), (0.0, 2.925), "Pad Tie 7-B"),
+]:
+    b.add_footing(GAR, fs, fe, width=0.6, height=0.5, name=fname)
 # Deck windscreen on the west edge (feedback #004 + maquette photo #29):
 # stone-clad near the house, glass panel running to the pool. Height 1.25
 # above the deck top (deck slab tops out at the storey datum since the
@@ -277,6 +440,8 @@ roof_e.span_direction = "x"
 # The roof splits into TWO clean rectangles (owner, P-shot 2026-08-06):
 # white south band + brown rest, tops flush at 3.45. The white part has NO
 # overhang — flush with the wall outer faces, "wall goes up then flat".
+# Arena 2026-08-13-zero-red (h-premium): south band walls reverted to
+# 0.30, so the flush edge returns to the original -0.15 line.
 roof_s = b.add_roof(
     GF,
     [(-0.15, -0.15), (9.65, -0.15), (9.65, 2.7), (-0.15, 2.7)],

@@ -168,3 +168,9 @@ ground_type = "B"
 
 [site.soil]
 sigma_rd = 200.0
+
+# Arena 2026-08-13-zero-red (h-premium): confined masonry, evidenced by
+# the RC tie-column grid in build.py (fail-closed check in the seismic
+# engine — specs/seismic-lateral.md §Structure presets).
+[structure]
+type = "confined"

@@ -261,6 +261,440 @@
           },
           "width": 0.8,
           "height": 0.5
+        },
+        {
+          "global_id": "25PzVhamL8Dvmns2h1F07D",
+          "name": "Footing Terrace Fin",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 12.0
+          },
+          "end": {
+            "x": 9.65,
+            "y": 12.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1Z90fUZJbCZRHXFaTOIBVA",
+          "name": "Pad Tie 1-A",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 0.6,
+            "y": 0.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "24PtRxq89C5xGPFUDkYL3o",
+          "name": "Pad Tie 1-B",
+          "description": "",
+          "start": {
+            "x": 2.7,
+            "y": 0.0
+          },
+          "end": {
+            "x": 3.3,
+            "y": 0.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "05AHXKrMr0qAYJzFb0P4EW",
+          "name": "Pad Tie 1-C",
+          "description": "",
+          "start": {
+            "x": 5.675,
+            "y": 0.0
+          },
+          "end": {
+            "x": 6.275,
+            "y": 0.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "3VEYWHWc93perRtk8n9Jxn",
+          "name": "Pad Tie 1-DE",
+          "description": "",
+          "start": {
+            "x": 7.425,
+            "y": 0.0
+          },
+          "end": {
+            "x": 8.675,
+            "y": 0.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "2TOIuSBZL8V9vmo2XeCuYE",
+          "name": "Pad Tie 6-A",
+          "description": "",
+          "start": {
+            "x": 2.475,
+            "y": 8.0
+          },
+          "end": {
+            "x": 3.075,
+            "y": 8.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "30eBfRUDPFCPFzZhZArFXO",
+          "name": "Pad Tie 6-B",
+          "description": "",
+          "start": {
+            "x": 0.475,
+            "y": 8.0
+          },
+          "end": {
+            "x": 1.075,
+            "y": 8.0
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1SyOJrE0HCKeWG1DUwXz2w",
+          "name": "Pad Tie 7-NW",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 7.575
+          },
+          "end": {
+            "x": 0.0,
+            "y": 8.175
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "1HCAUex3L7A9hcQYAuADAt",
+          "name": "Pad Tie 7-A",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 4.5
+          },
+          "end": {
+            "x": 0.0,
+            "y": 5.1
+          },
+          "width": 0.6,
+          "height": 0.5
+        },
+        {
+          "global_id": "2NTKXkPl5BkAVD7gOdyDuv",
+          "name": "Pad Tie 7-B",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 2.325
+          },
+          "end": {
+            "x": 0.0,
+            "y": 2.925
+          },
+          "width": 0.6,
+          "height": 0.5
+        }
+      ],
+      "columns": [
+        {
+          "global_id": "3fuCOMolX90g4hMX8AD5T5",
+          "name": "Tie G1-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3tSO2wqSv4GAIBQ2y2Td5N",
+          "along": 1.475
+        },
+        {
+          "global_id": "3KJUD9L3z7UgkAxfhEOp5g",
+          "name": "Tie G1-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2lDCB3xaTF1hx2P1Wshthc",
+          "along": 0.125
+        },
+        {
+          "global_id": "0U6_0PVsP5$OlBJ0miq8ig",
+          "name": "Tie GC-1",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "38jshuNmTB3eVFcU07A8ZI",
+          "along": 0.125
+        },
+        {
+          "global_id": "2yEG9f48P3GfCDfckDZdFo",
+          "name": "Tie GC-2",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "38jshuNmTB3eVFcU07A8ZI",
+          "along": 0.875
+        },
+        {
+          "global_id": "2Lwb7dAqn358PdFgxH5rTb",
+          "name": "Tie GC-3",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "38jshuNmTB3eVFcU07A8ZI",
+          "along": 3.525
+        },
+        {
+          "global_id": "2mAh0vHz97IgKJ$ZWPcQom",
+          "name": "Tie G3-E",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2oa2WVJ495lRgO_MODDocS",
+          "along": 0.3
+        },
+        {
+          "global_id": "25UEMFZy17QvM_xF5MnKxc",
+          "name": "Tie G3-W",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2oa2WVJ495lRgO_MODDocS",
+          "along": 4.7
+        },
+        {
+          "global_id": "18SOrz1eD1KgGQwBCIIdzw",
+          "name": "Tie GB-1",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2rU4q7ArDFkv$zK3DN0aYn",
+          "along": 4.0
+        },
+        {
+          "global_id": "0hxmLDDBz3FOCj7ujomFIj",
+          "name": "Tie GB-2",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2rU4q7ArDFkv$zK3DN0aYn",
+          "along": 7.875
+        },
+        {
+          "global_id": "3xJPNRt8rFOB0eBPXtxD8j",
+          "name": "Stub 1-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 0.3,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "06aS7MJl576eEOy6qEqcOT",
+          "name": "Stub 1-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 3.0,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "1mk0UB2BX5zPhXbAKx$QQF",
+          "name": "Stub 1-C",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 5.975,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "1m1nat4p1Ae9gTZbe5tSSS",
+          "name": "Stub 1-D",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 7.725,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "13VPN2eADCp9Hp8K3Y1w5m",
+          "name": "Stub 1-E",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 8.375,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "2hLd72prv0FRpSn8om3sm_",
+          "name": "Stub 1-F",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 9.375,
+            "y": 0.0
+          }
+        },
+        {
+          "global_id": "1s1MHSc_D8CAY0dNU1GXDx",
+          "name": "Stub 4-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 9.35,
+            "y": 12.075
+          }
+        },
+        {
+          "global_id": "20xkglguzBzxLQbk8966RR",
+          "name": "Stub 4-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 7.9,
+            "y": 12.075
+          }
+        },
+        {
+          "global_id": "0wuximBMrEwuOwqW77_B4y",
+          "name": "Stub 4-C",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 6.525,
+            "y": 12.075
+          }
+        },
+        {
+          "global_id": "0fIhU7gnn2Q8fEIX9tSqOR",
+          "name": "Stub 4-Fin Root",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 6.0,
+            "y": 11.95
+          }
+        },
+        {
+          "global_id": "25LNvTg4v7vRwLUgq8GXpX",
+          "name": "Stub 4-Fin End",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 4.625,
+            "y": 12.0
+          }
+        },
+        {
+          "global_id": "0HAxgcYcr918677y69HbyY",
+          "name": "Stub 6-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 2.775,
+            "y": 8.0
+          }
+        },
+        {
+          "global_id": "0WKhuD_yfCTvcyBDrbaEnO",
+          "name": "Stub 6-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 0.775,
+            "y": 8.0
+          }
+        },
+        {
+          "global_id": "2IihUz_9H42utxzhu_Cj2K",
+          "name": "Stub 7-NW",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 0.0,
+            "y": 7.875
+          }
+        },
+        {
+          "global_id": "2Rt8b5Ltr7GOMXzmPGihmF",
+          "name": "Stub 7-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 0.0,
+            "y": 4.8
+          }
+        },
+        {
+          "global_id": "10A$Zywuf2UgxYm3dhdj0L",
+          "name": "Stub 7-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "at": {
+            "x": 0.0,
+            "y": 2.625
+          }
         }
       ],
       "virtual_elements": [],
@@ -331,7 +765,7 @@
           },
           "end": {
             "x": 9.5,
-            "y": 12.0
+            "y": 12.075
           },
           "height": 3.0,
           "thickness": 0.3,
@@ -344,15 +778,15 @@
           "tag": "",
           "description": "",
           "start": {
-            "x": 9.5,
-            "y": 12.0
+            "x": 9.65,
+            "y": 12.075
           },
           "end": {
             "x": 6.0,
-            "y": 12.0
+            "y": 12.075
           },
           "height": 3.0,
-          "thickness": 0.3,
+          "thickness": 0.45,
           "load_bearing": true,
           "is_external": true
         },
@@ -363,7 +797,7 @@
           "description": "",
           "start": {
             "x": 6.0,
-            "y": 12.0
+            "y": 12.075
           },
           "end": {
             "x": 6.0,
@@ -389,7 +823,7 @@
           },
           "height": 3.0,
           "thickness": 0.3,
-          "load_bearing": true,
+          "load_bearing": false,
           "is_external": true
         },
         {
@@ -535,7 +969,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -553,7 +987,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -586,6 +1020,24 @@
           "end": {
             "x": 0.0,
             "y": 0.0
+          },
+          "height": 3.0,
+          "thickness": 0.3,
+          "load_bearing": true,
+          "is_external": true
+        },
+        {
+          "global_id": "0J7UIqdpz2hBtfsDPvKksN",
+          "name": "Terrace Fin Wall",
+          "tag": "",
+          "description": "",
+          "start": {
+            "x": 6.0,
+            "y": 12.0
+          },
+          "end": {
+            "x": 4.5,
+            "y": 12.0
           },
           "height": 3.0,
           "thickness": 0.3,
@@ -860,10 +1312,10 @@
           "tag": "",
           "description": "",
           "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
-          "position": 1.75,
+          "position": 1.9,
           "width": 1.1,
           "height": 2.8,
-          "operation_type": "SLIDING_TO_LEFT",
+          "operation_type": "SINGLE_SWING_LEFT",
           "swing_inward": false,
           "pane_side": "inner"
         },
@@ -901,10 +1353,10 @@
           "tag": "",
           "description": "",
           "wall_id": "3uIyGYFk53mxU6HJuXVczn",
-          "position": 1.5,
-          "width": 1.5,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "position": 1.8,
+          "width": 0.9,
+          "height": 1.25,
+          "sill_height": 1.55,
           "pane_side": "inner"
         },
         {
@@ -938,7 +1390,7 @@
           "description": "",
           "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
           "position": 0.0,
-          "width": 2.15,
+          "width": 1.6,
           "height": 2.75,
           "sill_height": 0.05,
           "pane_side": "inner"
@@ -949,8 +1401,20 @@
           "tag": "",
           "description": "",
           "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
-          "position": 0.65,
-          "width": 1.1,
+          "position": 1.055,
+          "width": 0.545,
+          "height": 2.75,
+          "sill_height": 0.05,
+          "pane_side": "inner"
+        },
+        {
+          "global_id": "3NI3R5Fv9F5Q3XOaVUaonD",
+          "name": "Room 2 Fixed Pane E",
+          "tag": "",
+          "description": "",
+          "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
+          "position": 0.51,
+          "width": 0.545,
           "height": 2.75,
           "sill_height": 0.05,
           "pane_side": "inner"
@@ -973,10 +1437,10 @@
           "tag": "",
           "description": "",
           "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
-          "position": 2.15,
-          "width": 2.35,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "position": 3.85,
+          "width": 0.65,
+          "height": 2.75,
+          "sill_height": 0.05,
           "pane_side": "inner"
         }
       ],
@@ -1121,6 +1585,268 @@
       ],
       "beams": [],
       "footings": [],
+      "columns": [
+        {
+          "global_id": "1EaIlCHq135Bzg5cBuTbJE",
+          "name": "Tie 1-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3uIyGYFk53mxU6HJuXVczn",
+          "along": 0.3
+        },
+        {
+          "global_id": "0hJX5TA6HA6RfEPJQWPsFZ",
+          "name": "Tie 1-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3uIyGYFk53mxU6HJuXVczn",
+          "along": 3.0
+        },
+        {
+          "global_id": "0L4pxCWKXAlOcfvLvY$uv4",
+          "name": "Tie 1-C",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3uIyGYFk53mxU6HJuXVczn",
+          "along": 5.975
+        },
+        {
+          "global_id": "1$MMM_qtTAueXtjTMeYLHv",
+          "name": "Tie 1-D",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2WG2L$HlTF$fPM0eGlZpbq",
+          "along": 0.125
+        },
+        {
+          "global_id": "3bNDZxgIT07PcvHxPj54Qz",
+          "name": "Tie 1-E",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2WG2L$HlTF$fPM0eGlZpbq",
+          "along": 0.775
+        },
+        {
+          "global_id": "2$_NBMvb98nwfguKGS1NhQ",
+          "name": "Tie 1-F",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2WG2L$HlTF$fPM0eGlZpbq",
+          "along": 1.775
+        },
+        {
+          "global_id": "0olKNqC1L9NgWKQey1C1Le",
+          "name": "Tie C-1",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "20Lyevs8L4reFEI4Q6p6Hc",
+          "along": 2.575
+        },
+        {
+          "global_id": "2hRrcgeTD8AfNXJvnbEmHu",
+          "name": "Tie C-2",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "20Lyevs8L4reFEI4Q6p6Hc",
+          "along": 5.25
+        },
+        {
+          "global_id": "3O51FhiND7ghHHJldVbr2m",
+          "name": "Tie C-3",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "20Lyevs8L4reFEI4Q6p6Hc",
+          "along": 8.125
+        },
+        {
+          "global_id": "2H49n_8gr3jBOdxqMsrUGL",
+          "name": "Tie 4-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
+          "along": 0.3
+        },
+        {
+          "global_id": "2W4tChom1Ed8TDj_BWzEvA",
+          "name": "Tie 4-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
+          "along": 1.75
+        },
+        {
+          "global_id": "2YIUfdPvT5uPlqJ6GtCOPe",
+          "name": "Tie 4-C",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
+          "along": 3.125
+        },
+        {
+          "global_id": "0wuqWM9xv3feVUhic7Dna8",
+          "name": "Tie 4-Fin Root",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3RTf8o3Tz0T8ViIsOzNvgk",
+          "along": 0.125
+        },
+        {
+          "global_id": "2O5JCfVz93RPVzkIjCa97F",
+          "name": "Tie 4-Fin End",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "0J7UIqdpz2hBtfsDPvKksN",
+          "along": 1.375
+        },
+        {
+          "global_id": "0BGuTFa2H12QM_gbTgxAlp",
+          "name": "Tie 6-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
+          "along": 1.725
+        },
+        {
+          "global_id": "1sl4Auljb4Xw3$w4vUMZug",
+          "name": "Tie 6-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
+          "along": 3.725
+        },
+        {
+          "global_id": "3vCzgM5tL7DPdyJMoYxG8Z",
+          "name": "Tie 7-NW",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3zuv3MxVf5xB0UAqQBTpvW",
+          "along": 0.125
+        },
+        {
+          "global_id": "0Se4zzyCLEYh_RfOPRDg_F",
+          "name": "Tie 7-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "3zuv3MxVf5xB0UAqQBTpvW",
+          "along": 3.2
+        },
+        {
+          "global_id": "2D4UlX3Yj0EwQ5OhXfba1T",
+          "name": "Tie 7-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "0VaaQWfID6NfkWXLtv96uR",
+          "along": 0.075
+        },
+        {
+          "global_id": "0hNrW3j9D1ABCWGUMeleW3",
+          "name": "Tie B-1",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "28VhVN6TH0fPlN9pojdx2H",
+          "along": 1.475
+        },
+        {
+          "global_id": "0WWYeNphD6iQ9MjwehB3Fq",
+          "name": "Tie B-2",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "28VhVN6TH0fPlN9pojdx2H",
+          "along": 2.625
+        },
+        {
+          "global_id": "26rpnbV6D7Buzjx2YSYCfK",
+          "name": "Tie B-3",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "28VhVN6TH0fPlN9pojdx2H",
+          "along": 5.25
+        },
+        {
+          "global_id": "1g6O9Enwb1PuzTE1MDutrW",
+          "name": "Tie B-4",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "28VhVN6TH0fPlN9pojdx2H",
+          "along": 7.875
+        },
+        {
+          "global_id": "0xpMXxSSnAJQU9nlIFKFON",
+          "name": "Tie 3-A",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "0ZMUKBuev1iff6b9yqwpSF",
+          "along": 0.175
+        },
+        {
+          "global_id": "1bCFMfi$T0jBo2wAhYKNR8",
+          "name": "Tie 3-B",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "1$tocrR8f6oPFl$WLR8dsP",
+          "along": 0.175
+        },
+        {
+          "global_id": "1EsQZT$sjDrOueHyn5Dau8",
+          "name": "Tie 3-C",
+          "description": "",
+          "width": 0.25,
+          "depth": 0.25,
+          "material": "rc",
+          "wall_id": "1$tocrR8f6oPFl$WLR8dsP",
+          "along": 1.325
+        }
+      ],
       "virtual_elements": [],
       "spaces": [],
       "apartments": [
