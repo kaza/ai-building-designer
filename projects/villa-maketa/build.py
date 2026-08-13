@@ -91,14 +91,24 @@ def wall(name: str, start, end, thickness=INT):
 # east segment is appended after all other walls so W1-W14 stay stable.
 # White south-band walls rise past the brown roof as a parapet (photo #24:
 # "the wall should go to that height" — there is NO thick white roof)
-w_south = wall("South Wall", (0, 0), (6.1, 0), EXT)  # white
+# Arena 2026-08-13 (a-surgeon, E100 x): +0.20 thickened OUTWARD — inner
+# face stays at y=0.15 (zero floor-area loss), centerline 0 -> -0.10.
+w_south = wall("South Wall", (0, -0.10), (6.1, -0.10), EXT)  # white
+w_south.thickness = 0.50
 w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
-w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
+# Arena 2026-08-13 (a-surgeon): +0.30 thickened OUTWARD into the deck —
+# inner face stays y=11.85, centerline 12 -> 12.15 (E100 x + E102).
+w_north = wall("North Wall", (9.5, 12.15), (6.0, 12.15), EXT)
+w_north.thickness = 0.60
 w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
 w_master_n = wall("Master North Wall", (6.0, 8), (4.5, 8), EXT)
 # W6: east (door-side) half is one floor-to-roof window; west half is solid
 # yellow concrete carrying the TV, wrapping the corner into W7 (owner 2026-08-06)
-w_nw = wall("Living North Wall", (4.5, 8), (0, 8), EXT)
+# Arena 2026-08-13 (a-surgeon, E100 x + E102): +0.30 thickened OUTWARD
+# into the deck strip — inner face stays y=7.85, centerline 8 -> 8.15.
+# North-side stiffness pulls the centre of rigidity toward the CoM.
+w_nw = wall("Living North Wall", (4.5, 8.15), (0, 8.15), EXT)
+w_nw.thickness = 0.60
 w_nw.finish = "accent"
 # Photo #21: the west facade's southern ~third is WHITE — the wall splits
 # so the finish can differ (yellow north, plain south).
@@ -122,6 +132,11 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena 2026-08-13 (a-surgeon): both y=8 partitions sit DIRECTLY on the
+# Garage North Wall (real support below, same line the brief names) —
+# marked load-bearing so their length counts as x-direction shear wall.
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
@@ -165,8 +180,12 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena 2026-08-13 (a-surgeon): band consolidated into one taller pane —
+# head stays at 2.80, sill drops to 1.20 (above the counter+splash), width
+# 1.5 -> 0.70. Glazing 1.125 -> 1.12 m2 (99.6% of baseline, >= 90% gate);
+# South Wall x-shear length grows by 0.80 m.
+b.add_window(GF, "South Wall", position=1.5, width=0.70, height=1.60,
+             sill_height=1.20, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
@@ -203,7 +222,10 @@ d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.55,
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # The fixed pane of the Room 2 slider (photo #31) — abuts D7 at 1.75,
 # same 2.80 head, slot reused in place so tags stay stable
-b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
+# Arena 2026-08-13 (a-surgeon): fixed pane 1.10 -> 0.90, still hard
+# against D7 at 1.75 (0.85 + 0.90). Room 2 glazing 6.105 -> 5.555 m2
+# (91.0% of baseline, >= 90% gate); east stub grows 0.65 -> 0.85.
+b.add_window(GF, "North Wall", position=0.85, width=0.90, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
 # Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
 # clerestory band, not a lone porthole — same 2.05-2.80 language as
@@ -211,13 +233,23 @@ b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
 # wall, not glass: Win6 = hallway stretch, Win8 (appended last, after
 # Win7) = Room 2 stretch, stopping 0.15 short of the north corner like
 # Win5 does.
-b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
+# Arena 2026-08-13 (a-surgeon): clerestory 5.30 -> 4.78 — the reclaimed
+# 0.52 m becomes a masonry pier at y7.48-8.0, exactly under where the
+# Room 2 partition lands on the east facade. Keeps E100 y green after the
+# thickened walls raised the seismic mass (demand rose ~73 kN in BOTH
+# directions). Hallway glazing 3.975 -> 3.585 m2 (90.2%, >= 90% gate).
+b.add_window(GF, "East Wall", position=2.7, width=4.78, height=0.75,
              sill_height=2.05, name="Hallway Window", pane_side="inner")
 # Band window over the TV wall (W6 solid half) — appended last => tag Win7.
 # Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
 # meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
 # the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
+# Arena 2026-08-13 (a-surgeon): band shortened 2.35 -> 0.60 from the Win4
+# side — the glass-to-glass corner with Win2 (feedback #001) is KEPT
+# (0.60 pane still ends at the W7 corner); a 1.75 m masonry pier appears
+# between Win4 and the corner band. Living glazing 15.41 -> 14.10 m2
+# (91.5% of baseline, >= 90% gate).
+b.add_window(GF, "Living North Wall", position=3.9, width=0.60, height=0.75,
              sill_height=2.05, name="Living Band Window N", pane_side="inner")
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
@@ -277,9 +309,14 @@ roof_e.span_direction = "x"
 # The roof splits into TWO clean rectangles (owner, P-shot 2026-08-06):
 # white south band + brown rest, tops flush at 3.45. The white part has NO
 # overhang — flush with the wall outer faces, "wall goes up then flat".
+# Arena 2026-08-13 (a-surgeon): south edge follows the thickened South
+# Wall (outer face now y=-0.35 for x<=6.1) so the parapet stays flush
+# (photo #24, no overhang); the east segment past the stair tower keeps
+# the original -0.15 face.
 roof_s = b.add_roof(
     GF,
-    [(-0.15, -0.15), (9.65, -0.15), (9.65, 2.7), (-0.15, 2.7)],
+    [(-0.15, -0.35), (6.1, -0.35), (6.1, -0.15), (9.65, -0.15),
+     (9.65, 2.7), (-0.15, 2.7)],
     thickness=0.45, name="Roof South White",
 )
 roof_s.span_direction = "x"
