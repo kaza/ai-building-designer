@@ -901,10 +901,10 @@
           "tag": "",
           "description": "",
           "wall_id": "3uIyGYFk53mxU6HJuXVczn",
-          "position": 1.5,
-          "width": 1.5,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "position": 1.8,
+          "width": 0.9,
+          "height": 1.25,
+          "sill_height": 1.55,
           "pane_side": "inner"
         },
         {
@@ -938,7 +938,7 @@
           "description": "",
           "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
           "position": 0.0,
-          "width": 2.15,
+          "width": 1.6,
           "height": 2.75,
           "sill_height": 0.05,
           "pane_side": "inner"
@@ -949,8 +949,8 @@
           "tag": "",
           "description": "",
           "wall_id": "2GzC1CSbvF9fEhz$e9I7sU",
-          "position": 0.65,
-          "width": 1.1,
+          "position": 0.85,
+          "width": 0.9,
           "height": 2.75,
           "sill_height": 0.05,
           "pane_side": "inner"
@@ -973,10 +973,10 @@
           "tag": "",
           "description": "",
           "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
-          "position": 2.15,
-          "width": 2.35,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "position": 3.85,
+          "width": 0.65,
+          "height": 2.75,
+          "sill_height": 0.05,
           "pane_side": "inner"
         }
       ],

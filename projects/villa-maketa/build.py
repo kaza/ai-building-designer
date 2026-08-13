@@ -171,8 +171,10 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena 2026-08-13 (b-garage): kitchen band consolidated to a taller,
+# narrower pane — same 1.125 m² of glass, +0.6 m of shear wall (E100 x).
+b.add_window(GF, "South Wall", position=1.8, width=0.9, height=1.25,
+             sill_height=1.55, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
@@ -185,7 +187,10 @@ b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
              sill_height=0.05, name="Living Glass W2", pane_side="inner")
 # Feedback #003: flush at the wall start (x=4.5) — glazing runs through the
 # W8 end cap and touches the D8/D9 glass on the master side.
-b.add_window(GF, "Living North Wall", position=0, width=2.15, height=2.75,
+# Arena 2026-08-13 (b-garage): 2.15→1.60 — the freed 0.55 m becomes a
+# masonry pier on the garage-anchored y=8 shear line (Living stays ≥90%
+# glazed: 13.93 of 15.41 m²).
+b.add_window(GF, "Living North Wall", position=0, width=1.60, height=2.75,
              sill_height=0.05, name="Living Sliding Window", pane_side="inner")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
@@ -209,7 +214,9 @@ d_terrace_small = b.add_door(GF, "Master North Wall", position=0.95, width=0.55,
 d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # The fixed pane of the Room 2 slider (photo #31) — abuts D7 at 1.75,
 # same 2.80 head, slot reused in place so tags stay stable
-b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
+# Arena 2026-08-13 (b-garage): fixed pane 1.1→0.9 (Room 2 keeps 91% of
+# its glazing); exact adjacency to D7 at position 1.75 preserved.
+b.add_window(GF, "North Wall", position=0.85, width=0.9, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
 # Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
 # clerestory band, not a lone porthole — same 2.05-2.80 language as
@@ -223,8 +230,14 @@ b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
 # Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
 # meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
 # the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
-             sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Arena 2026-08-13 (b-garage): the 2.35 m band becomes a 0.65 m
+# FULL-HEIGHT slot hard against the NW corner (same glass area, 1.79 vs
+# 1.76 m²; echoes Win3's vertical language on the west facade). The
+# corner joint with Win2 keeps glass meeting glass over the 2.05-2.80
+# band strip; 1.70 m of yellow masonry pier lands mid-wall on the y=8
+# shear line.
+b.add_window(GF, "Living North Wall", position=3.85, width=0.65, height=2.75,
+             sill_height=0.05, name="Living Band Window N", pane_side="inner")
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
 # showed its 3.85m band was one of the worst structural offenders (79x).
