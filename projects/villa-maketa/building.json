@@ -1268,7 +1268,7 @@
             "y": 12.0
           },
           "height": 3.0,
-          "thickness": 0.3,
+          "thickness": 0.4,
           "load_bearing": true,
           "is_external": true,
           "material": "rc"

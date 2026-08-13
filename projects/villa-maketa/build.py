@@ -288,7 +288,9 @@ b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.1
 # post is modeled as a 0.50x0.30 rc PIER — a wall stub the FEM meshes.
 # It earns NO confinement credit beyond its own tie; the engineer designs
 # the actual member (steel HEA or rc 50x30) and its anchorage.
-b.add_wall(GF, (A - 0.25, 12), (A + 0.25, 12), height=H, thickness=EXT,
+# 0.50 x 0.40 — iteration 2: at 0.30 thick the post sat at u 1.014 ULS
+# (crush under the axis-1 + axis-A beam seats); 0.40 clears it.
+b.add_wall(GF, (A - 0.25, 12), (A + 0.25, 12), height=H, thickness=0.40,
            name="A1 Post", is_external=True, load_bearing=True,
            material="rc")
 # Wing wall on the axis-2 line west of the facade (round-1 e-wildcard /
