@@ -122,6 +122,13 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena c-torsion 2026-08-13: both Room 2 south walls sit exactly on the
+# y=8 bearing line — the Garage North Wall (4.5,8)-(9.5,8) is directly
+# below, so counting them as shear walls needs no new structure, only a
+# masonry spec + a shear tie into the slab (E100 x, and they sit north
+# of the centre of rigidity so they pull it toward the centre of mass).
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
@@ -165,14 +172,20 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena c-torsion 2026-08-13: consolidated 1.5x0.75 band -> 0.9x1.15 pane
+# (area 1.035 = 92% of baseline, same head 2.80) — frees 0.6m of South
+# Wall shear length for E100 x. Sill 1.65 clears the counter run below.
+b.add_window(GF, "South Wall", position=1.8, width=0.9, height=1.15,
+             sill_height=1.65, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
 # the band meets Win7 glass-to-glass around the corner (no yellow post).
-b.add_window(GF, "West Wall", position=0, width=3.35, height=0.75,
-             sill_height=2.05, name="Living Band Window", pane_side="inner")
+# Arena c-torsion 2026-08-13: band deepened to sill 1.80 (the owner's
+# original dictation was 1.80 — the 2.05 was a build choice) to keep the
+# Living room's glazing >= 90% while Win7 becomes masonry (E100 x).
+b.add_window(GF, "West Wall", position=0, width=3.35, height=1.0,
+             sill_height=1.80, name="Living Band Window", pane_side="inner")
 # Win3: full-height glazing from Win2's end to the white south third
 # (photo #21). Feedback #001: abuts Win2 directly — no mullion between.
 b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
@@ -213,12 +226,13 @@ b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
 # Win5 does.
 b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
              sill_height=2.05, name="Hallway Window", pane_side="inner")
-# Band window over the TV wall (W6 solid half) — appended last => tag Win7.
-# Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
-# meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
-# the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
-             sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Win7 (Living Band Window N, the 2.35m band over the TV-wall solid half)
+# REMOVED — arena c-torsion 2026-08-13: the Living North Wall is the only
+# x-direction bearing wall at y=8 and it had ZERO net shear length. The
+# band becomes masonry (+0.705 m2 t*L for E100 x, pulls the centre of
+# rigidity north for E102); the lost daylight moves into the deepened
+# Win2 band (sill 1.80) — Living stays at 94% of baseline glazing.
+# NOTE: this leaves the E062 waiver for 'Living Band Window N' stale.
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
 # showed its 3.85m band was one of the worst structural offenders (79x).
@@ -254,6 +268,22 @@ b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
 # corner. Solid return at the same balustrade height closes the line.
 b.add_wall(GF, (0, 14), (0.5, 14), height=1.25, thickness=0.12,
            name="Deck Screen Return N", finish="stone_rubble")
+# Arena c-torsion 2026-08-13: stone windbreak wall on the deck, aligned
+# in front of the SOLID half of the living facade (x1.7-4.5 — Win4 ends
+# at x2.15, so the living room's direct pool view stays open) under the
+# Roof West north strip. It is the x-direction shear element the plan
+# lacked north of y=8: t*L = 1.40 m2 at y=12.3 clears E100 x and drags
+# the centre of rigidity onto the centre of mass (E102). Runs PARALLEL
+# to the roof span (x), so it takes no gravity load — detailed as
+# gravity-released, shear-tied to the Roof West edge (E065's "columns
+# at the deck edge" option, upgraded to a wall). Stone to match the
+# deck screen. On grade; gets a real strip footing on site (priced in
+# the arena proposal) — the model can't carry GF-level footings (they
+# belong to the lowest storey only), same as every other on-grade GF
+# wall here.
+b.add_wall(GF, (1.7, 12.3), (4.5, 12.3), height=3.0, thickness=0.5,
+           name="Deck Windbreak Wall", load_bearing=True,
+           finish="stone_rubble")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
