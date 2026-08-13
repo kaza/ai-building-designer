@@ -96,6 +96,13 @@ w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
 w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
 w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
 w_master_n = wall("Master North Wall", (6.0, 8), (4.5, 8), EXT)
+# Arena zero-red (2026-08-13, lane i-wild): the master north face is 100%
+# glass (D8+D9 edge-to-edge) — as a "bearing" wall it is a 0.2m masonry
+# band arching its roof strip into the 12cm divider's top corner (FEM
+# peak 6.2x at (4.5,8)). Declared as what it physically is: a storefront.
+# The roof edge is carried by an explicit RC lintel (RB Master North
+# below) bearing on Room 2 West Wall and the divider.
+w_master_n.load_bearing = False
 # W6: east (door-side) half is one floor-to-roof window; west half is solid
 # yellow concrete carrying the TV, wrapping the corner into W7 (owner 2026-08-06)
 w_nw = wall("Living North Wall", (4.5, 8), (0, 8), EXT)
@@ -122,6 +129,12 @@ w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs gu
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Arena zero-red: both stand exactly on the Garage North Wall (y=8) and
+# its strip footing — counting them as shear/bearing walls costs a
+# masonry spec and slab ties, not new structure (round-1 c-torsion /
+# e-wildcard consensus; load path as real as the x=4.5 divider's).
+w_r2_hall.load_bearing = True
+w_r2_master.load_bearing = True
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
@@ -165,14 +178,20 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # stretch of the west wall (y 4.5-8) is floor-to-ceiling glazing; the
 # concrete stretches carry a roof-to-1.80 band so the wall below stays
 # usable and light falls from above.
-b.add_window(GF, "South Wall", position=1.5, width=1.5, height=0.75,
-             sill_height=2.05, name="Kitchen Window", pane_side="inner")
+# Arena zero-red: 1.5m band -> 0.9 x 1.15 tall pane, same head (2.80),
+# 92% of baseline glazing area. Returns 0.6m of the south facade to
+# shear and drops the opening under the E062 beam threshold.
+b.add_window(GF, "South Wall", position=1.5, width=0.9, height=1.15,
+             sill_height=1.65, name="Kitchen Window", pane_side="inner")
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
 # the band meets Win7 glass-to-glass around the corner (no yellow post).
-b.add_window(GF, "West Wall", position=0, width=3.35, height=0.75,
-             sill_height=2.05, name="Living Band Window", pane_side="inner")
+# Arena zero-red: sill deepened 2.05 -> 1.80 (the owner's ORIGINAL
+# dictation — the built 2.05 was a build choice). Compensates the Win7
+# infill so Living keeps 94% of its baseline glazing.
+b.add_window(GF, "West Wall", position=0, width=3.35, height=1.0,
+             sill_height=1.80, name="Living Band Window", pane_side="inner")
 # Win3: full-height glazing from Win2's end to the white south third
 # (photo #21). Feedback #001: abuts Win2 directly — no mullion between.
 b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
@@ -213,12 +232,12 @@ b.add_window(GF, "North Wall", position=0.65, width=1.1, height=2.75,
 # Win5 does.
 b.add_window(GF, "East Wall", position=2.7, width=5.3, height=0.75,
              sill_height=2.05, name="Hallway Window", pane_side="inner")
-# Band window over the TV wall (W6 solid half) — appended last => tag Win7.
-# Feedback #001: reaches the wall end (corner with W7) -> corner glazing,
-# meets Win2 glass-to-glass. Feedback #019: starts at Win4's edge (2.15) so
-# the band glass touches the sliding window's glass — no yellow strip.
-b.add_window(GF, "Living North Wall", position=2.15, width=2.35, height=0.75,
-             sill_height=2.05, name="Living Band Window N", pane_side="inner")
+# Win7 (Living Band Window N) REMOVED — arena zero-red: the 2.35m band
+# over the TV wall was the last x-shear hole at mid-plan (y=8); infilled
+# to masonry, its daylight moved into the deepened Living Band Window
+# (Win2, sill 1.80 — the owner's original dictation). Living keeps 94%
+# of baseline glazing; the pool view through the big slider is untouched
+# (round-1 c-torsion move, referee-verified).
 # Win8 (Room 2's east clerestory, feedback #024) REMOVED 2026-08-08 on owner
 # order ("remove win8 and make it wall") — the load-takedown experiment
 # showed its 3.85m band was one of the worst structural offenders (79x).
@@ -255,6 +274,20 @@ b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
 b.add_wall(GF, (0, 14), (0.5, 14), height=1.25, thickness=0.12,
            name="Deck Screen Return N", finish="stone_rubble")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
+
+# Arena zero-red: Deck Windbreak Wall — 2.8m stone wall at y=12.3 under
+# Roof West's floating north edge (FEM: the y11.2-12.6 run spans 6.6m
+# unsupported from x=-0.6 to x=6, hogging 2.07x over Room 2 West Wall).
+# One wall does three jobs: supports that roof run, adds 1.4 m2 of
+# x-direction shear at the far north (torsion outrigger — CoR moves to
+# the mass), and is the E065 "columns at the deck edge" option upgraded.
+# Placed in front of the solid (infilled Win7) half of the living
+# facade; off-slab on its own footing => zero floor-area cost. Stone
+# rubble to match the deck screen (round-1 c-torsion move).
+w_windbreak = b.add_wall(GF, (1.7, 12.3), (4.5, 12.3), height=H,
+                         thickness=0.5, name="Deck Windbreak Wall",
+                         is_external=False, load_bearing=True,
+                         finish="stone_rubble")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
 # skylight aperture over the deck). Two polygons frame the hole — a C-shaped
@@ -336,14 +369,45 @@ story = b.get_story(GF)
 assert story is not None
 story.apartments.append(apartment)
 
-# --- Ring beams over every wide opening on a bearing wall (E062) ---
-# Ring beams REMOVED deliberately (owner 2026-08-08 evening): "remove
-# them, let's see how it looks without them, then we can check where and
-# how we need to make Verstärkung." The FEM X-ray on the beam-less model
-# shows where reinforcement actually belongs; E062 findings are waived
-# with this reason (validation.json). History: the load-takedown
-# experiment proved the 0.20m bands fail 6-144x unreinforced; the beam
-# sizes that worked are in git history (commit dd9ee6a and earlier).
+# --- Verstärkung (arena zero-red, 2026-08-13) ---
+# The owner's ring-beam removal experiment (2026-08-08: "remove them,
+# let's see how it looks, then we can check where and how we need to
+# make Verstärkung") is now answered by the beam-less FEM X-ray: every
+# wall red sits in the z=2.2-2.9 band zone where 0.2m masonry strips
+# over glass carry the roof as accidental deep beams. RC ring beams go
+# exactly there — upstands hidden inside the wall band + the 0.45m roof
+# fascia zone (z<=3.25 < roof visual top 3.45), sizes from the proven
+# dd9ee6a set. Non-glazed walls keep plain masonry tops.
+RB_W, RB_D = 0.30, 0.45   # standard ring-beam section on 30cm walls
+RB_TOP = 3.25             # head 2.80 + 0.45 upstand, inside the fascia
+# West facade: Win2+Win3 are a contiguous 5.25m glass run; the beam runs
+# the FULL wall line and continues over the solid West Wall South to the
+# (0,0) corner — the beam-less band dumped the whole roof edge into the
+# (0,2.7) pier top (FEM 6.6x peak).
+b.add_beam(GF, (0, 8), (0, 0), width=RB_W, depth=0.55, z_top=3.35,
+           name="RB West")  # E064-sized: 5.25m glass run, util 0.73
+# Living north band (Win4 + infilled Win7 stretch), into the (0,8) corner
+b.add_beam(GF, (4.5, 8), (0, 8), width=RB_W, depth=RB_D, z_top=RB_TOP,
+           name="RB Living North")
+# Master storefront lintel: carries the Roof East edge over the demoted
+# all-glass wall, bearing on Room 2 West Wall and the x=4.5 divider
+b.add_beam(GF, (6.15, 8), (4.35, 8), width=RB_W, depth=RB_D, z_top=RB_TOP,
+           name="RB Master North")
+# Room 2 north face (D7 + Win5 slider band)
+b.add_beam(GF, (9.5, 12), (6, 12), width=RB_W, depth=RB_D, z_top=RB_TOP,
+           name="RB North")
+# East clerestory (Win6, 5.3m — deep dd9ee6a section kept via upstand)
+b.add_beam(GF, (9.5, 2.55), (9.5, 8.15), width=RB_W, depth=0.70,
+           z_top=3.50, name="RB East")  # dd9ee6a depth for the 5.3m Win6
+# The 12cm divider carries half the roof; a flush ring beam on its top
+# spreads the band-window / storefront corner reactions along the wall
+# instead of crushing the (4.5,8) corner (FEM 6.2x peak, base 1.51x)
+b.add_beam(GF, (4.5, 0), (4.5, 8), width=0.12, depth=0.30, z_top=H,
+           name="RB Living East")
+# Lintel over the stair-tower gap in the south facade (x6.1-7.6): the
+# white roof strip there had no y=0 support at all (FEM 1.57x corner)
+b.add_beam(GF, (5.95, 0), (7.75, 0), width=RB_W, depth=RB_D, z_top=H,
+           name="RB Stair Gap")
 
 garage_story = b.get_story(GAR)
 assert garage_story is not None

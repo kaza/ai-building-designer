@@ -389,7 +389,7 @@
           },
           "height": 3.0,
           "thickness": 0.3,
-          "load_bearing": true,
+          "load_bearing": false,
           "is_external": true
         },
         {
@@ -535,7 +535,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -553,7 +553,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -646,6 +646,25 @@
           "height": 1.25,
           "thickness": 0.12,
           "load_bearing": false,
+          "is_external": false,
+          "finish": "stone_rubble"
+        },
+        {
+          "global_id": "0ZbAfeVRv5r9dMDMgItOLQ",
+          "name": "Deck Windbreak Wall",
+          "tag": "",
+          "description": "",
+          "start": {
+            "x": 1.7,
+            "y": 12.3
+          },
+          "end": {
+            "x": 4.5,
+            "y": 12.3
+          },
+          "height": 3.0,
+          "thickness": 0.5,
+          "load_bearing": true,
           "is_external": false,
           "finish": "stone_rubble"
         }
@@ -902,9 +921,9 @@
           "description": "",
           "wall_id": "3uIyGYFk53mxU6HJuXVczn",
           "position": 1.5,
-          "width": 1.5,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "width": 0.9,
+          "height": 1.15,
+          "sill_height": 1.65,
           "pane_side": "inner"
         },
         {
@@ -915,8 +934,8 @@
           "wall_id": "3zuv3MxVf5xB0UAqQBTpvW",
           "position": 0.0,
           "width": 3.35,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "height": 1.0,
+          "sill_height": 1.8,
           "pane_side": "inner"
         },
         {
@@ -963,18 +982,6 @@
           "wall_id": "20Lyevs8L4reFEI4Q6p6Hc",
           "position": 2.7,
           "width": 5.3,
-          "height": 0.75,
-          "sill_height": 2.05,
-          "pane_side": "inner"
-        },
-        {
-          "global_id": "0N0$7wnhfEVfGlocgOO5hH",
-          "name": "Living Band Window N",
-          "tag": "",
-          "description": "",
-          "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
-          "position": 2.15,
-          "width": 2.35,
           "height": 0.75,
           "sill_height": 2.05,
           "pane_side": "inner"
@@ -1119,7 +1126,127 @@
           "tread_length": 0.28
         }
       ],
-      "beams": [],
+      "beams": [
+        {
+          "global_id": "3Et8OCcNfE2fp9scaiaV_M",
+          "name": "RB West",
+          "description": "",
+          "start": {
+            "x": 0.0,
+            "y": 8.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "width": 0.3,
+          "depth": 0.55,
+          "z_top": 3.35,
+          "material": "rc"
+        },
+        {
+          "global_id": "10kUZVQ$XElhcH6tT2M$Z$",
+          "name": "RB Living North",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 8.0
+          },
+          "end": {
+            "x": 0.0,
+            "y": 8.0
+          },
+          "width": 0.3,
+          "depth": 0.45,
+          "z_top": 3.25,
+          "material": "rc"
+        },
+        {
+          "global_id": "2XTkldYX5EOPFBeUyu7wU6",
+          "name": "RB Master North",
+          "description": "",
+          "start": {
+            "x": 6.15,
+            "y": 8.0
+          },
+          "end": {
+            "x": 4.35,
+            "y": 8.0
+          },
+          "width": 0.3,
+          "depth": 0.45,
+          "z_top": 3.25,
+          "material": "rc"
+        },
+        {
+          "global_id": "3PvsmRbDb6yeLxz7a9bu9j",
+          "name": "RB North",
+          "description": "",
+          "start": {
+            "x": 9.5,
+            "y": 12.0
+          },
+          "end": {
+            "x": 6.0,
+            "y": 12.0
+          },
+          "width": 0.3,
+          "depth": 0.45,
+          "z_top": 3.25,
+          "material": "rc"
+        },
+        {
+          "global_id": "1ubdkdUg57teQtaM7Pi11h",
+          "name": "RB East",
+          "description": "",
+          "start": {
+            "x": 9.5,
+            "y": 2.55
+          },
+          "end": {
+            "x": 9.5,
+            "y": 8.15
+          },
+          "width": 0.3,
+          "depth": 0.7,
+          "z_top": 3.5,
+          "material": "rc"
+        },
+        {
+          "global_id": "2EEl_LjyrBg8tEdtNH16zY",
+          "name": "RB Living East",
+          "description": "",
+          "start": {
+            "x": 4.5,
+            "y": 0.0
+          },
+          "end": {
+            "x": 4.5,
+            "y": 8.0
+          },
+          "width": 0.12,
+          "depth": 0.3,
+          "z_top": 3.0,
+          "material": "rc"
+        },
+        {
+          "global_id": "3VNA4gDOH4qhUJ1FwxCYyr",
+          "name": "RB Stair Gap",
+          "description": "",
+          "start": {
+            "x": 5.95,
+            "y": 0.0
+          },
+          "end": {
+            "x": 7.75,
+            "y": 0.0
+          },
+          "width": 0.3,
+          "depth": 0.45,
+          "z_top": 3.0,
+          "material": "rc"
+        }
+      ],
       "footings": [],
       "virtual_elements": [],
       "spaces": [],
