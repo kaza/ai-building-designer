@@ -17,6 +17,7 @@ Auth: uses the az CLI login (key lookup), no secrets in the repo.
 """
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -42,6 +43,28 @@ REPO = Path(__file__).resolve().parents[2]
 # whatever happens to be lying in output/, including renders from an older
 # model that no step claims (CodeRabbit review 2026-08-09).
 PLAN_PATTERNS = ("floor_*.png", "perspective.png", "top_down.png")
+
+
+def channel_dest(project: str, channel: str | None) -> str:
+    """Blob prefix for this release: the project itself, or a publish
+    channel (specs/web-deployment.md). A channel must extend the owning
+    project's name (`<project>--<suffix>`) so an alias can never write
+    into another project's prefix."""
+    if channel is None:
+        return project
+    prefix = f"{project}--"
+    if not channel.startswith(prefix):
+        sys.exit(f"channel {channel!r} must start with {prefix!r} — "
+                 "aliases stay inside the owning project's namespace")
+    suffix = channel[len(prefix):]
+    if not suffix:
+        sys.exit(f"channel {channel!r} has an empty suffix — name the "
+                 "candidate (e.g. villa-maketa--b-garage)")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", suffix):
+        sys.exit(f"channel suffix {suffix!r} must be lowercase kebab "
+                 "([a-z0-9-]) — it becomes a URL path segment and blob "
+                 "prefix")
+    return channel
 
 
 def run(*cmd: str) -> str:
@@ -93,7 +116,8 @@ def web_plan(src_png: Path, tmp: Path) -> Path:
     return out
 
 
-def publish(project: str) -> None:
+def publish(project: str, channel: str | None = None) -> None:
+    dest = channel_dest(project, channel)
     project_dir = REPO / "projects" / project
     out = project_dir / "output"
     if not out.is_dir():
@@ -118,11 +142,11 @@ def publish(project: str) -> None:
     # through the last upload so a concurrent `pipeline` cannot move an
     # artifact out from under us after it passed the check.
     with Lock(project_dir):
-        _publish_locked(project_dir, project, sha, out)
+        _publish_locked(project_dir, project, sha, out, dest)
 
 
 def _publish_locked(project_dir: Path, project: str, sha: str,
-                    out: Path) -> None:
+                    out: Path, dest: str) -> None:
     problems = freshness_problems(project_dir)
     if problems:
         sys.exit("refusing to publish: the built artifacts are not fresh:\n  "
@@ -182,26 +206,26 @@ def _publish_locked(project_dir: Path, project: str, sha: str,
     # (Codex review 2026-08-09).
     with tempfile.TemporaryDirectory() as td:
         staged: list[tuple[Path, str, str]] = []      # (file, key, ctype)
-        staged.append((glb, f"{project}/{model}-{sha}.glb",
+        staged.append((glb, f"{dest}/{model}-{sha}.glb",
                        "model/gltf-binary"))
         if has_fem:
             wt = wt.replace("fem-field.json", f"fem-field-{sha}.json")
         pinned = Path(td) / "walkthrough.html"
         pinned.write_text(wt)
-        staged.append((pinned, f"{project}/walkthrough-{sha}.html",
+        staged.append((pinned, f"{dest}/walkthrough-{sha}.html",
                        "text/html"))
         if has_fem:
-            staged.append((field, f"{project}/fem-field-{sha}.json",
+            staged.append((field, f"{dest}/fem-field-{sha}.json",
                            "application/json"))
             xr = Path(td) / "xray.html"
             xr.write_text(xray.read_text().replace(
                 "fem-field.json", f"fem-field-{sha}.json"))
-            staged.append((xr, f"{project}/xray-{sha}.html", "text/html"))
+            staged.append((xr, f"{dest}/xray-{sha}.html", "text/html"))
         plan_entries = []
         for name in plans:
             web = web_plan(out / name, Path(td))
             key = f"{web.stem}-{sha}{web.suffix}"
-            staged.append((web, f"{project}/{key}",
+            staged.append((web, f"{dest}/{key}",
                            "image/jpeg" if web.suffix == ".jpg"
                            else "image/png"))
             plan_entries.append({
@@ -225,14 +249,24 @@ def _publish_locked(project_dir: Path, project: str, sha: str,
         build["fem_field"] = f"fem-field-{sha}.json"
     build_file = out / "build.json"
     build_file.write_text(json.dumps(build, indent=2))
-    upload(build_file, f"{project}/build.json", "application/json", POINTER)
+    upload(build_file, f"{dest}/build.json", "application/json", POINTER)
     print(f"live: build.json now points at {sha}")
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        sys.exit("usage: python -m archicad_builder.publish <project>")
-    publish(sys.argv[1])
+    args = sys.argv[1:]
+    channel = None
+    if "--as" in args:
+        i = args.index("--as")
+        try:
+            channel = args[i + 1]
+        except IndexError:
+            sys.exit("--as needs a channel name (e.g. villa-maketa--b)")
+        args = args[:i] + args[i + 2:]
+    if len(args) != 1:
+        sys.exit("usage: python -m archicad_builder.publish <project> "
+                 "[--as <project>--<suffix>]")
+    publish(args[0], channel)
 
 
 if __name__ == "__main__":

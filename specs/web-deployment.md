@@ -107,6 +107,14 @@ psql "$DATABASE_URL" -c "SELECT id, comment, where_label FROM feedback \
   table.
 - **The app never redeploys for a model update** — publish touches blob
   only; the app picks up the new build.json within its cache TTL.
+- **Publish channels** (2026-08-13, for the design arena —
+  [design-arena.md](design-arena.md)): `publish <project> --as <channel>`
+  uploads the same artifact set under blob prefix `<channel>/`; the app
+  serves it at `/<channel>/…` because every route is generic over the
+  path segment (the channel needs its own `projects` DB row — operator
+  ops, not framework code). The channel MUST start with `<project>--`
+  (e.g. `villa-maketa--b-garage`), so an alias can never overwrite
+  another project's blobs. All publish gates run unchanged.
 
 ## Limits
 - The feedback POST is unauthenticated; acceptable while the audience is
@@ -145,6 +153,7 @@ psql "$DATABASE_URL" -c "SELECT id, comment, where_label FROM feedback \
 | 2026-08-08 | Walkthrough shows a streaming progress bar (MB / %) while the GLB downloads | owner: 30 MB with a static "Loading scene…" message "just seems stuck" |
 | 2026-08-07 | Artifacts SHA-stamped (build.json, viewed_sha) | Codex's #1 failure mode: published artifact not matching the claimed git SHA |
 | 2026-08-07 | Agent polls, no inbound webhook | Codex: webhook retries/reordering double the work; polling matches the existing "check the feedback" workflow |
+| 2026-08-13 | Publish channels (`--as <project>--<suffix>`) for arena candidates | owner reviews design variants on the live site; per-candidate project copies rejected (duplicate Tier-2 records); prefix guard keeps aliases inside the owning project's namespace |
 
 ## Related
 [browser-walkthrough.md](browser-walkthrough.md) (the product this

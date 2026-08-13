@@ -1151,10 +1151,15 @@ def ids_cmd(
 
 
 @app.command("publish")
-def publish_cmd(project: str = typer.Argument(..., help="Project directory name")):
+def publish_cmd(
+    project: str = typer.Argument(..., help="Project directory name"),
+    as_channel: str = typer.Option(
+        None, "--as",
+        help="Publish channel <project>--<suffix> (specs/design-arena.md)"),
+):
     """Publish built artifacts to the cloud (specs/web-deployment.md)."""
     from archicad_builder.publish import publish
-    publish(project)
+    publish(project, as_channel)
 
 
 @app.command("freshness")
