@@ -535,7 +535,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -553,7 +553,7 @@
           },
           "height": 3.0,
           "thickness": 0.12,
-          "load_bearing": false,
+          "load_bearing": true,
           "is_external": false
         },
         {
@@ -646,6 +646,25 @@
           "height": 1.25,
           "thickness": 0.12,
           "load_bearing": false,
+          "is_external": false,
+          "finish": "stone_rubble"
+        },
+        {
+          "global_id": "2FcKkdzk97iOXPjSkTRghO",
+          "name": "Deck Windbreak Wall",
+          "tag": "",
+          "description": "",
+          "start": {
+            "x": 1.7,
+            "y": 12.3
+          },
+          "end": {
+            "x": 4.5,
+            "y": 12.3
+          },
+          "height": 3.0,
+          "thickness": 0.5,
+          "load_bearing": true,
           "is_external": false,
           "finish": "stone_rubble"
         }
@@ -901,10 +920,10 @@
           "tag": "",
           "description": "",
           "wall_id": "3uIyGYFk53mxU6HJuXVczn",
-          "position": 1.5,
-          "width": 1.5,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "position": 1.8,
+          "width": 0.9,
+          "height": 1.15,
+          "sill_height": 1.65,
           "pane_side": "inner"
         },
         {
@@ -915,8 +934,8 @@
           "wall_id": "3zuv3MxVf5xB0UAqQBTpvW",
           "position": 0.0,
           "width": 3.35,
-          "height": 0.75,
-          "sill_height": 2.05,
+          "height": 1.0,
+          "sill_height": 1.8,
           "pane_side": "inner"
         },
         {
@@ -963,18 +982,6 @@
           "wall_id": "20Lyevs8L4reFEI4Q6p6Hc",
           "position": 2.7,
           "width": 5.3,
-          "height": 0.75,
-          "sill_height": 2.05,
-          "pane_side": "inner"
-        },
-        {
-          "global_id": "0N0$7wnhfEVfGlocgOO5hH",
-          "name": "Living Band Window N",
-          "tag": "",
-          "description": "",
-          "wall_id": "26jEwV5LX3qO6opP_7Ef8D",
-          "position": 2.15,
-          "width": 2.35,
           "height": 0.75,
           "sill_height": 2.05,
           "pane_side": "inner"
