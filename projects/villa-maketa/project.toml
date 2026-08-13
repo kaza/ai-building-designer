@@ -168,3 +168,10 @@ ground_type = "B"
 
 [site.soil]
 sigma_rd = 200.0
+
+# Arena j-true-grid (2026-08-13): the architect's grid is confined
+# masonry — rc tie-columns on axes A/B/C x 1-4. q = 2.0 is earned
+# fail-closed by the tie geometry (seismic.json confinement_failures
+# must be empty), never by this declaration alone.
+[structure]
+type = "confined"

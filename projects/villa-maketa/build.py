@@ -18,14 +18,16 @@ INT = 0.12       # interior wall thickness
 
 b = Building(name="Villa Maketa", description="Villa from cardboard maquette: garage + ground floor")
 
-# ── Garage storey — Option A (owner 2026-08-08): x4.5-9.5 × y0.6-8,
-#    ~37m² / 2 cars, under the east block only. The old full-L basement was
-#    an E050 workaround; E050 now understands partial basements (walls
-#    outside the footprint stand on foundations). The garage perimeter sits
-#    exactly under the GF bearing lines x=4.5 / x=9.5 / y=8, making x=4.5 a
-#    real bearing line for the roof (load-takedown experiment 2026-08-08). ──
+# ── Garage storey — THE ARCHITECT'S GRID (owner + architect, decoded from
+#    the maquette 2026-08-13, arena j-true-grid). The box moves from
+#    x4.5-9.5 to A-B: west wall ON axis A (x=2.8), east wall ON axis B
+#    (x=6.58 — the Bath Divider line above lands on it exactly), north
+#    wall directly UNDER axis 2 (y=8, the kamin line). One-car box,
+#    3.48 m clear. South face stays INSET at y=0.6 (maquette photo #22:
+#    the GF volume floats over the door plane — console look). ──
 GAR = "Garage"
 GH = 2.89  # clear 2.52 after 0.37 structure — exactly the W001 target
+A, B, C = 2.8, 6.58, 9.5   # letter axes (constant-x), owner 2026-08-13
 b.add_story(GAR, height=GH, elevation=-GH)
 
 
@@ -36,23 +38,21 @@ def gwall(name, start, end):
                       finish="stone_rubble")
 
 
-# Maquette photo #22: the garage south face is INSET 0.6m behind the GF edge
-# (GF cantilevers over it, carport-style); the spiral-stair shaft pokes
-# through the gap x6.1-7.6. Side walls keep their full length to the y=0
-# corners — the stone reaches the front, only the door plane is recessed.
-gwall("Garage South Wall", (4.5, 0.6), (6.1, 0.6))
-gwall("Garage South Wall East", (7.6, 0.6), (9.5, 0.6))
-gwall("Garage East Wall", (9.5, 0), (9.5, 8))
-gwall("Garage North Wall", (9.5, 8), (4.5, 8))
-gwall("Garage West Wall", (4.5, 8), (4.5, 0))
+# The spiral-stair shaft (x6.1-7.6, unchanged — it must keep landing
+# beside B) straddles the new SE corner: the south wall stops at the
+# shaft, the east wall starts north of it (a wall through the shaft
+# would cut the spiral). The landing opens into the garage corner.
+gwall("Garage South Wall", (A, 0.6), (6.1, 0.6))
+gwall("Garage East Wall", (B, 0.75), (B, 8))
+gwall("Garage North Wall", (B, 8), (A, 8))
+gwall("Garage West Wall", (A, 8), (A, 0))
 
-# vehicle door on the EAST wall (owner 2026-08-08) — the shrunk south face
-# has only 1.6m/1.9m segments beside the stair shaft, a 2.4m door no longer
-# fits there; driveway approaches from the east. NOTDEFINED = sectional.
-b.add_door(GAR, "Garage East Wall", position=1.0, width=2.4, height=2.1,
+# vehicle entrance in the garage SOUTH wall (owner-confirmed 2026-08-13):
+# the moved box faces the driveway again. NOTDEFINED = sectional.
+b.add_door(GAR, "Garage South Wall", position=0.45, width=2.4, height=2.1,
            name="Garage Vehicle Door",
            operation_type=DoorOperationType.NOTDEFINED)
-b.add_slab(GAR, [(4.5, 0.6), (9.5, 0.6), (9.5, 8), (4.5, 8)],
+b.add_slab(GAR, [(A, 0.6), (B, 0.6), (B, 8), (A, 8)],
            thickness=0.25, name="Garage Slab")
 # spiral stair shaft aligned with the ground-floor one (E051); straddles the
 # south facade — the tower is half OUTSIDE the house (maquette photo #22)
@@ -60,20 +60,18 @@ b.add_staircase(GAR, [(6.1, -0.75), (7.6, -0.75), (7.6, 0.75), (6.1, 0.75)],
                 width=0.7, stair_type=StaircaseType.SPIRAL_STAIR,
                 name="Garage Stair Lower")
 
-# ── Strip footings under the garage bearing grid (specs/foundations.md).
-# 0.6 × 0.5 m rc strips, top flush with the garage floor; sized against the
+# ── Strip footings move WITH the box (specs/foundations.md). 0.6/0.8 ×
+# 0.5 m rc strips, top flush with the garage floor; sized against the
 # placeholder sigma_rd=200 kPa pending the real geotech report (spec.md).
-for fname, fs, fe in [
-    ("Footing Garage South", (4.5, 0.6), (6.1, 0.6)),
-    ("Footing Garage South East", (7.6, 0.6), (9.5, 0.6)),
-    ("Footing Garage East", (9.5, 0), (9.5, 8)),
-    ("Footing Garage North", (9.5, 8), (4.5, 8)),
+# B carries the GF slab console reaction + the Bath Divider takedown →
+# 0.8 m; A carries the slab + the kamin line edge → 0.8 m.
+for fname, fs, fe, fw in [
+    ("Footing Garage South", (A, 0.6), (6.1, 0.6), 0.6),
+    ("Footing Garage East", (B, 0.75), (B, 8), 0.8),
+    ("Footing Garage North", (B, 8), (A, 8), 0.8),
+    ("Footing Garage West", (A, 8), (A, 0), 0.8),
 ]:
-    b.add_footing(GAR, fs, fe, width=0.6, height=0.5, name=fname)
-# x=4.5 is the real bearing line for the roof (load-takedown 2026-08-08):
-# 0.6 m bears 215 kPa > sigma_rd — E105 sized this one up to 0.8 m
-b.add_footing(GAR, (4.5, 8), (4.5, 0), width=0.8, height=0.5,
-              name="Footing Garage West")
+    b.add_footing(GAR, fs, fe, width=fw, height=0.5, name=fname)
 
 b.add_story(GF, height=H, elevation=0.0)
 
@@ -91,7 +89,12 @@ def wall(name: str, start, end, thickness=INT):
 # east segment is appended after all other walls so W1-W14 stay stable.
 # White south-band walls rise past the brown roof as a parapet (photo #24:
 # "the wall should go to that height" — there is NO thick white roof)
-w_south = wall("South Wall", (0, 0), (6.1, 0), EXT)  # white
+# Axis 4 (y=0): thickened 0.30 -> 0.40 (arena j-true-grid) — the moved
+# garage takes the old x=4.5 bearing line away from the x-direction
+# shear ledger; the south stone band gives it back (+61 kN at ~EUR 800).
+w_south = b.add_wall(GF, (0, 0), (6.1, 0), height=H, thickness=0.40,
+                     name="South Wall", is_external=True,
+                     load_bearing=True)  # white
 w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
 w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
 w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
@@ -109,19 +112,34 @@ w_west.finish = "accent"
 # Naming matters: validators match corridor walls and doors by name
 # (E022 wants "corridor" in a wall name; E070 wants "<apt> <room> Door").
 w_divider = wall("Living East Wall", (4.5, 0), (4.5, 8))          # west column vs center
-# The x=4.5 line is the interior BEARING line (garage west wall directly
-# below): halves the roof spans so the band-window facades stop carrying
-# the whole roof (load-takedown experiment 2026-08-08). Kept at INT
-# thickness — a 12cm RC bearing wall; sizing is the future E06x feature.
-w_divider.load_bearing = True
+# ARENA j-true-grid (2026-08-13): the garage moved to A-B — x=4.5 has
+# NOTHING below any more. Living East Wall is DEMOTED to a plain room
+# partition (E050/E103 would rightly fail it as bearing); the takedown
+# reorganizes onto the architect's axes A (x=2.8) / B (x=6.58) / C (9.5).
 w_hall_w = wall("Corridor West Wall", (8, 2.5), (8, 8))           # hallway vs baths/master
 w_bath_s = wall("Bath South Wall", (4.5, 2.5), (8, 2.5))          # passage vs baths
 # Guest bathroom needs >= 1.30m CLEAR between W11 and W9 (owner requirement —
 # the 0.8 x 1.3 shower spans the full width): 8.0 - 1.3 - 0.06 - 0.06 = 6.58
 w_bath_mid = wall("Bath Divider Wall", (6.58, 2.5), (6.58, 4.5))  # bath 1 vs guest bath
+# The Bath Divider sits ON axis B — the garage east wall is directly
+# below after the move. It becomes the interior bearing line (the
+# architect's grid made it "natural": B was aligned to it exactly).
+w_bath_mid.load_bearing = True
+w_bath_mid.material = "rc"
 w_master_s = wall("Master South Wall", (4.5, 4.5), (8, 4.5))      # baths vs master
+w_master_s.material = "rc"   # axis 3 ("stiffens the house") — data-only:
+# no garage wall below its x4.5-6.58 stretch, so it cannot be bearing
+w_bath_s.material = "rc"     # axis-3 family, declared intent (hatched)
 w_r2_hall = wall("Room 2 South Wall East", (8, 8), (9.5, 8))      # room2 vs hallway
 w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs master
+# Axis 2 (y=8, the kamin line) extends across x6-9.5 as rc BEARING walls
+# (rebuilt 0.12 -> 0.25): east of B they stand on their own foundations
+# (grade), west of x6.58 the garage north wall is below. This is the
+# mid-support Roof East loses when x=4.5 dies, plus +x shear capacity.
+for _w2 in (w_r2_hall, w_r2_master):
+    _w2.load_bearing = True
+    _w2.material = "rc"
+    _w2.thickness = 0.25
 w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
@@ -179,7 +197,11 @@ b.add_window(GF, "West Wall", position=3.35, width=1.9, height=2.75,
              sill_height=0.05, name="Living Glass W2", pane_side="inner")
 # Feedback #003: flush at the wall start (x=4.5) — glazing runs through the
 # W8 end cap and touches the D8/D9 glass on the master side.
-b.add_window(GF, "Living North Wall", position=0, width=2.15, height=2.75,
+# ARENA j-true-grid: width 2.15 -> 1.60. The architect's 2A stub (60x20,
+# hidden in the kamin/stone mass) stands at x=2.8 — the wall x2.9-2.35
+# returns to solid masonry so the stub has mass to hide in. Living keeps
+# 90.2% of baseline glazing (>= 90% gate).
+b.add_window(GF, "Living North Wall", position=0, width=1.60, height=2.75,
              sill_height=0.05, name="Living Sliding Window", pane_side="inner")
 # Maquette print (maquette-alignment.md D-1): asymmetric glass pair filling the
 # approved 1.4 opening — 0.9 leaf hinge EAST (x5.95) + 0.5 leaf hinge WEST
@@ -233,9 +255,12 @@ gslab = b.add_slab(
 gslab.span_direction = "x"  # over the garage: x=4.5 -> x=9.5 bearing lines
 
 # --- Outdoor: deck, pool, lawn (render/IFC only — outside the apartment) ---
+# Arena j-true-grid: west edge +0.30 m — compensates the new wall
+# footprints (South Wall +0.10, Room 2 south walls +0.13, wing wall, A1
+# post pier: ~1.6 m2) so net slab-minus-walls floor area stays positive.
 b.add_slab(
     GF,
-    [(0, 8), (6, 8), (6, 12), (9.5, 12), (9.5, 14), (0, 14)],
+    [(-0.3, 8), (6, 8), (6, 12), (9.5, 12), (9.5, 14), (-0.3, 14)],
     thickness=0.15,
     name="Deck",
 )
@@ -255,6 +280,24 @@ b.add_wall(GF, (0, 10.5), (0, 14), height=1.25, thickness=0.12,
 b.add_wall(GF, (0, 14), (0.5, 14), height=1.25, thickness=0.12,
            name="Deck Screen Return N", finish="stone_rubble")
 b.add_slab(GF, [(4.7, 8.3), (5.9, 8.3), (5.9, 10.8), (4.7, 10.8)], thickness=0.16, name="Lawn")
+
+# ── Arena j-true-grid (2026-08-13): the two grid members standing free ──
+# A1: the architect's post at (A, 12) — the roof/canopy support at the
+# all-glass deck corner. Phase C1 does not mesh columns (specs/columns.md:
+# a Column would be visual-only and the deck roof would stay red), so the
+# post is modeled as a 0.50x0.30 rc PIER — a wall stub the FEM meshes.
+# It earns NO confinement credit beyond its own tie; the engineer designs
+# the actual member (steel HEA or rc 50x30) and its anchorage.
+b.add_wall(GF, (A - 0.25, 12), (A + 0.25, 12), height=H, thickness=EXT,
+           name="A1 Post", is_external=True, load_bearing=True,
+           material="rc")
+# Wing wall on the axis-2 line west of the facade (round-1 e-wildcard /
+# round-2 f-grid proved the move): the kamin/stone line runs 1.2 m past
+# the west glass — +x shear capacity outside the footprint, zero floor
+# loss, and a real seat for the axis-2 ring beam's west end.
+b.add_wall(GF, (0, 8), (-1.2, 8), height=H, thickness=EXT,
+           name="Wing Wall 2W", is_external=True, load_bearing=True,
+           finish="accent", material="rc")
 
 # --- Roof (maquette photo: flat slab, 0.6m overhang, brown fascia, and a
 # skylight aperture over the deck). Two polygons frame the hole — a C-shaped
@@ -336,20 +379,124 @@ story = b.get_story(GF)
 assert story is not None
 story.apartments.append(apartment)
 
-# --- Ring beams over every wide opening on a bearing wall (E062) ---
-# Ring beams REMOVED deliberately (owner 2026-08-08 evening): "remove
-# them, let's see how it looks without them, then we can check where and
-# how we need to make Verstärkung." The FEM X-ray on the beam-less model
-# shows where reinforcement actually belongs; E062 findings are waived
-# with this reason (validation.json). History: the load-takedown
-# experiment proved the 0.20m bands fail 6-144x unreinforced; the beam
-# sizes that worked are in git history (commit dd9ee6a and earlier).
+# --- Ring beams (E062 / arena j-true-grid 2026-08-13) ---
+# History: beams REMOVED 2026-08-08 (owner: "let's see how it looks
+# without them, then we can check where and how we need to make
+# Verstärkung"). The beam-less FEM answered; the architect's grid puts
+# them back as CONTINUOUS ring beams hidden in the 0.45 m roof-fascia
+# depth. Soffits sit ON the glazing heads (z 2.80) — the f-grid lane
+# proved a 5 cm masonry sliver between head and soffit carries the roof
+# edge in tension and stays red.
+# Axis 2 (the kamin line), wing tip to the east overhang:
+b.add_beam(GF, (-1.2, 8), (9.65, 8), width=0.30, depth=0.50,
+           z_top=3.30, name="Ring Beam Axis 2")
+# Axis 1 (y=12, guest-room north / deck edge):
+b.add_beam(GF, (0.2, 12), (9.65, 12), width=0.30, depth=0.50,
+           z_top=3.30, name="Ring Beam Axis 1")
+# THE architect's beam ("iron or concrete" — concrete here, a steel beam
+# would not be meshed): on the A line at roof level, from the 2A stub
+# north to the A1 post, carrying the roof edge over the glass zone.
+b.add_beam(GF, (A, 8), (A, 12.15), width=0.30, depth=0.50,
+           z_top=3.30, name="Beam Axis A")
+# Axis B roof-level tie: bridges the Bath Divider (B3) up to axis 2 —
+# the roof seam field x4.3-6.58 lost its x=4.5 support when the garage
+# moved; B is its new east seat.
+b.add_beam(GF, (B, 2.35), (B, 8.15), width=0.30, depth=0.50,
+           z_top=3.30, name="Ring Beam Axis B")
+# West facade: soffit at 2.80 = the band-window head.
+b.add_beam(GF, (0, 2.55), (0, 8.15), width=0.30, depth=0.50,
+           z_top=3.30, name="Ring Beam West Facade")
+
+# --- Tie-column grid (confined masonry evidence, EN 1998-1 §9.5.3) ---
+# The architect's axes: A/B/C = x 2.8/6.58/9.5, 1/2/3/4 = y 12/8/4.5/0.
+# Ties at every bearing-wall intersection, free end, jamb of openings
+# > 1.5 m2, and <= 5 m spacing — output/seismic.json
+# confinement_failures must be EMPTY (earns q = 2.0 fail-closed).
+# The architect's hidden stub: 60x20 at 2A, long side along A (y) —
+# hosted in the kamin wall, 20 cm along the wall, 60 cm across it.
+b.add_column(GF, wall="Living North Wall", along=1.7, width=0.20,
+             depth=0.60, material="rc", name="Stub 2A 60x20")
+GF_TIES = [
+    # (host wall, along, width, name)
+    ("South Wall", 0.15, 0.25, "Tie 4-west corner"),
+    ("South Wall", 3.05, 0.25, "Tie 4 mid (A4 zone)"),
+    ("South Wall", 5.95, 0.25, "Tie 4 stair W"),
+    ("South Wall East", 0.15, 0.25, "Tie 4 stair E"),
+    ("South Wall East", 0.90, 0.25, "Tie 4 entry jamb"),
+    ("South Wall East", 1.85, 0.25, "Tie C4"),
+    ("East Wall", 2.70, 0.25, "Tie C hall jamb S"),
+    ("East Wall", 5.35, 0.25, "Tie C mid"),
+    ("East Wall", 8.00, 0.25, "Tie C2"),
+    ("East Wall", 11.85, 0.25, "Tie C1"),
+    ("North Wall", 0.65, 0.25, "Tie 1 win jamb E"),
+    ("North Wall", 1.75, 0.25, "Tie 1 door jamb"),
+    ("North Wall", 2.85, 0.25, "Tie 1 win jamb W"),
+    ("Room 2 West Wall", 3.85, 0.25, "Tie 2 x6"),
+    ("Master North Wall", 0.95, 0.25, "Tie 2 master jamb"),
+    ("Living East Wall", 7.85, 0.25, "Tie 2 old-A line"),
+    ("Living North Wall", 2.05, 0.25, "Tie 2 kamin E"),
+    ("West Wall", 3.35, 0.25, "Tie W mullion"),
+    ("West Wall", 5.25, 0.25, "Tie 3W joint"),
+    ("Room 2 South Wall East", 0.15, 0.25, "Tie 2 corridor"),
+    ("Room 2 South Wall East", 1.20, 0.25, "Tie 2 room2 jamb"),
+    ("Bath Divider Wall", 0.15, 0.25, "Tie B3 south"),
+    ("Bath Divider Wall", 1.85, 0.25, "Tie B3 north"),
+    ("Wing Wall 2W", 0.05, 0.25, "Tie 2W corner"),
+    ("Wing Wall 2W", 1.05, 0.25, "Tie 2W end"),
+    ("A1 Post", 0.25, 0.25, "Tie A1"),
+]
+for _host, _along, _w, _name in GF_TIES:
+    b.add_column(GF, wall=_host, along=_along, width=_w, depth=0.25,
+                 material="rc", name=_name)
+GAR_TIES = [
+    ("Garage West Wall", 0.15, "GTie A2 corner"),
+    ("Garage West Wall", 4.00, "GTie A mid"),
+    ("Garage West Wall", 7.85, "GTie A4 corner"),
+    ("Garage East Wall", 0.15, "GTie B stair corner"),
+    ("Garage East Wall", 3.55, "GTie B mid"),
+    ("Garage East Wall", 7.10, "GTie B2 corner"),
+    ("Garage South Wall", 0.45, "GTie 4 door jamb W"),
+    ("Garage South Wall", 3.05, "GTie 4 door jamb E"),
+]
+for _host, _along, _name in GAR_TIES:
+    b.add_column(GAR, wall=_host, along=_along, width=0.25, depth=0.25,
+                 material="rc", name=_name)
+
+# --- Foundation piers under off-garage tie-columns (E108) ---
+# GF ties standing over the garage box lines are supported by the walls
+# below; the rest of the grid gets an rc pier to the garage founding
+# level with its own pad — one founding depth for the whole house, no
+# differential settlement against the box. (2.45,8) lands on the wide
+# A footing, so it needs no pad of its own.
+TIE_PIERS = [
+    ((0.15, 0), "x"), ((3.05, 0), "x"), ((5.95, 0), "x"),
+    ((7.75, 0), "x"), ((8.50, 0), "x"), ((9.45, 0), "x"),
+    ((9.5, 2.7), "y"), ((9.5, 5.35), "y"), ((9.5, 8.0), "y"),
+    ((9.5, 11.85), "y"),
+    ((8.85, 12), "x"), ((7.75, 12), "x"), ((6.65, 12), "x"),
+    ((2.45, 8), None),          # on the axis-A strip footing (w 0.8)
+    ((-0.05, 8), "x"), ((-1.05, 8), "x"),
+    ((0, 4.65), "y"), ((0, 2.75), "y"),
+    ((8.15, 8), "x"), ((9.2, 8), "x"),
+    ((2.8, 12), "x"),           # under the A1 post pier
+]
+for _i, ((_px, _py), _axis) in enumerate(TIE_PIERS, 1):
+    b.add_column(GAR, at=(_px, _py), width=0.25, depth=0.25,
+                 material="rc", name=f"Foundation Pier {_i}")
+    if _axis == "x":
+        _fs, _fe = (_px - 0.35, _py), (_px + 0.35, _py)
+    elif _axis == "y":
+        _fs, _fe = (_px, _py - 0.35), (_px, _py + 0.35)
+    else:
+        continue
+    b.add_footing(GAR, _fs, _fe, width=0.7, height=0.5,
+                  name=f"Pad Pier {_i}")
 
 garage_story = b.get_story(GAR)
 assert garage_story is not None
 garage_story.spaces.append(space(
     "Garage", RoomType.UTILITY,
-    [(4.5, 0.6), (9.5, 0.6), (9.5, 8), (4.5, 8)],
+    [(A, 0.6), (B, 0.6), (B, 8), (A, 8)],
 ))
 
 out = Path(__file__).parent / "building.json"
