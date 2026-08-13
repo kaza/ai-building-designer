@@ -76,6 +76,10 @@
       "rule": "E062",
       "match": "Living Band Window N",
       "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
+    },
+    {
+      "rule": "E101",
+      "reason": "arena 2026-08-13-seismic: unwinnable by geometry under URM at ag*S=0.18g (Table 9.3 has no row) - lanes must submit a structure-type recommendation with cost allowance instead (brief.md); E100/E102 stay live as the numeric race"
     }
   ]
 }
