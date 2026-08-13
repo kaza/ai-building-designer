@@ -50,6 +50,12 @@ def channel_dest(project: str, channel: str | None) -> str:
     channel (specs/web-deployment.md). A channel must extend the owning
     project's name (`<project>--<suffix>`) so an alias can never write
     into another project's prefix."""
+    if "--" in project:
+        # '--' is the channel separator: a plain project carrying it would
+        # be indistinguishable from (and clobberable by) another project's
+        # channel (Codex review 2026-08-13)
+        sys.exit(f"project id {project!r} contains '--', which is reserved "
+                 "for publish channels — rename the project")
     if channel is None:
         return project
     prefix = f"{project}--"

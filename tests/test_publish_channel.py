@@ -34,6 +34,14 @@ class TestChannelDest:
         with pytest.raises(SystemExit, match="empty"):
             channel_dest("villa-maketa", "villa-maketa--")
 
+    def test_double_dash_is_reserved_for_channels(self):
+        # a plain project named like a channel would be clobberable by
+        # project "alpha"'s channel "alpha--beta" (Codex review 2026-08-13)
+        with pytest.raises(SystemExit, match="reserved"):
+            channel_dest("alpha--beta", None)
+        with pytest.raises(SystemExit, match="reserved"):
+            channel_dest("alpha--beta", "alpha--beta--x")
+
     def test_channel_charset_is_url_and_blob_safe(self):
         # path segment in the web app + blob key prefix: lowercase
         # kebab only, same alphabet as project ids
