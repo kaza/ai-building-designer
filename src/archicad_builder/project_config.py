@@ -147,6 +147,16 @@ class Site(_Strict):
     soil: Soil | None = None
 
 
+class Structure(_Strict):
+    """[structure] — lateral system preset (specs/seismic-lateral.md
+    §Structure presets). Absent block = urm, today's behaviour,
+    byte-identical. The preset swaps q and the Table 9.3 density row as
+    data; the confined reward is gated FAIL-CLOSED on tie-column
+    evidence inside compute_seismic."""
+
+    type: Literal["urm", "confined"] = "urm"
+
+
 class PolyhavenAsset(_Strict):
     source: Literal["polyhaven"]
     id: str
@@ -183,6 +193,7 @@ class ProjectConfig(_Strict):
     render: Render = Render()
     walkthrough: Walkthrough = Walkthrough()
     site: Site | None = None
+    structure: Structure = Structure()
     assets: list[Asset] = Field(default=[], alias="asset")
 
     @field_validator("assets")

@@ -639,22 +639,35 @@ function _applyStruct(mode) {
     }
     stamped++;
     const isWall = meta.ab_kind === 'wall';
+    const isColumn = meta.ab_kind === 'column';
     const bearing = !!meta.ab_load_bearing;
+    const steel = meta.ab_material === 'steel';
+    // rc walls join the warm skeleton family (specs/seismic-lateral.md:
+    // per-wall material is data-only — hue changes, capacity does not)
+    const warm = bearing || (isWall && meta.ab_material === 'rc');
     _structSaved.set(n.uuid, { material: n.material });
     // hologram faces: additive glow on the black background (owner's
-    // reference images 2026-08-10) — bearing structure red, rest cyan
-    const faceHex = bearing ? 0xd64541 : 0x3fa7d6;
+    // reference images 2026-08-10) — bearing structure red, rest cyan.
+    // Columns are the bright skeleton (specs/columns.md): a 60x20 sliver
+    // at ghost opacity would vanish, and hidden tie-columns are the exact
+    // thing an X-ray exists to reveal — high opacity ABOVE bearing walls,
+    // strong edges, hue by material (rc warm, steel cool steel-blue).
+    const faceHex = isColumn ? (steel ? 0x4f8fd9 : 0xd64541)
+      : warm ? 0xd64541 : 0x3fa7d6;
     n.material = _mapMat(n.material, () => new THREE.MeshBasicMaterial({
       color: faceHex, transparent: true,
-      opacity: bearing ? 0.16 : (isWall ? 0.10 : 0.06),
+      opacity: isColumn ? 0.35 : warm ? 0.16 : (isWall ? 0.10 : 0.06),
       blending: THREE.AdditiveBlending, depthWrite: false,
       side: THREE.DoubleSide }));
     // glowing edges — misalignment shows as broken/offset lines
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(n.geometry, 30),
       new THREE.LineBasicMaterial({
-        color: bearing ? 0xff6b5e : 0x7fdcff, transparent: true,
-        opacity: 0.9, blending: THREE.AdditiveBlending }));
+        color: isColumn ? (steel ? 0xa9d4ff : 0xffb3a8)
+          : warm ? 0xff6b5e : 0x7fdcff,
+        transparent: true,
+        opacity: isColumn ? 1.0 : 0.9,
+        blending: THREE.AdditiveBlending }));
     n.add(edges);
     _structEdges.push(edges);
   }
@@ -710,7 +723,7 @@ function setView(v) {
     _applyStruct(1);
     if (structApplied) {
       viewState = 1;
-      infoText = 'CONSTRUCTION X-RAY — bearing red · other cyan\nV — next view';
+      infoText = 'CONSTRUCTION X-RAY — bearing red · columns bright · other cyan\nV — next view';
     }               // metadata-less GLB: _applyStruct already said why
   } else if (v === 2) {
     viewState = 2;
@@ -843,11 +856,20 @@ function _buildFemGroup(env) {
   return group;
 }
 
+function _neutralColumn(n) {
+  // columns are not meshed in the plate FEM (specs/columns.md): a stress
+  // hue would fabricate physics — neutral structure-grey overlay instead
+  n.material = _mapMat(n.material, () => new THREE.MeshBasicMaterial({
+    color: 0x8b929c, transparent: true, opacity: 0.85 }));
+}
+
 function _enterFem() {
   modelRoot.traverse((n) => {
     if (!n.isMesh) return;
     _savedMats.set(n.uuid, { material: n.material, geometry: n.geometry });
-    _ghost(n);
+    const meta = _abMeta(n);
+    if (meta && meta.ab_kind === 'column') _neutralColumn(n);
+    else _ghost(n);
   });
   femGroup.visible = true;
   document.body.classList.add('xray');   // dark-on-light HUD, see CSS
@@ -980,7 +1002,15 @@ function femInfo() {
   // (in the active load stop) in BOLD via \x01/\x02 markers — setHud
   // escapes everything first, then converts only the markers
   const hit = femHit();
-  if (!hit) { infoText = 'no tile hit'; setHud(); return; }
+  if (!hit) {
+    const chit = centerHit();
+    const meta = chit && _abMeta(semanticNode(chit.object).node);
+    infoText = (meta && meta.ab_kind === 'column')
+      ? meta.ab_name + '\ncolumn — frame action not modelled'
+      : 'no tile hit';
+    setHud();
+    return;
+  }
   const { q, el } = hit;
   const s = (femEnv.quads.s || [])[q];
   const bold = femBoldIdx(q);
@@ -1675,6 +1705,15 @@ function updateAim(now) {
     if (viewState === 2 && femEnv) {
       const hit = femHit();
       if (hit) next = femReadout(hit);
+      else {
+        // secondary raycast: the FEM hit test targets fragments only, so
+        // an unmeshed column would be unselectable (specs/columns.md)
+        const chit = centerHit();
+        const meta = chit && _abMeta(semanticNode(chit.object).node);
+        if (meta && meta.ab_kind === 'column') {
+          next = meta.ab_name + '\ncolumn — frame action not modelled';
+        }
+      }
     } else {
       const hit = centerHit();
       if (hit) next = displayName(semanticNode(hit.object).node);

@@ -72,6 +72,8 @@ function ramp(u) {
                     new THREE.Color(0xf3722c), (t - 0.7) / 0.3);
   return c;
 }
+const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;');
 
 let env;
 try {
@@ -223,6 +225,27 @@ for (const [kind, ids] of Object.entries(byKind)) {
 }
 
 
+// Columns ride along as NEUTRAL boxes (specs/columns.md): not meshed in
+// the plate FEM, so no stress hue — structure-grey, secondary raycast.
+const colMeshes = [];
+for (const c of (env.columns || [])) {
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(c.w, c.d, c.z1 - c.z0),
+    new THREE.MeshBasicMaterial(
+      { color: 0x8b929c, transparent: true, opacity: 0.85 }));
+  m.position.set(c.x, c.y, (c.z0 + c.z1) / 2);
+  m.userData.column = c;
+  scene.add(m);
+  colMeshes.push(m);
+}
+if (colMeshes.length) {
+  const label = document.createElement('label');
+  label.innerHTML = '<input type="checkbox" checked> columns';
+  label.querySelector('input').onchange = e =>
+    { for (const m of colMeshes) m.visible = e.target.checked; };
+  document.getElementById('hud').appendChild(label);
+}
+
 const viewLine = document.createElement('div');
 viewLine.style.marginTop = '6px';
 document.getElementById('hud').appendChild(viewLine);
@@ -282,8 +305,6 @@ addEventListener('mousemove', ev => {
                    'vertical tension', 'bending',
                    'diagonal tension (shear)'];
     const s = (env.quads.s || [])[q];
-    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                              .replace(/>/g, '&gt;');
     // compact tooltip: the ACTIVE load stop's value + failure mode for
     // this tile (owner 2026-08-11: "tooltip stays as it is"); the full
     // per-combination bold list is the walkthrough I-panel's job
@@ -301,7 +322,19 @@ addEventListener('mousemove', ev => {
     tip.style.left = (ev.clientX + 14) + 'px';
     tip.style.top = (ev.clientY + 10) + 'px';
     tip.style.display = 'block';
-  } else tip.style.display = 'none';
+  } else {
+    // secondary raycast: unmeshed columns are invisible to the fragment
+    // hit test; the readout stays honest (specs/columns.md load view)
+    const chits = ray.intersectObjects(colMeshes.filter(m => m.visible));
+    if (chits.length) {
+      const c = chits[0].object.userData.column;
+      tip.innerHTML = esc(c.name + ' (' + c.material + ')' +
+        '\ncolumn — frame action not modelled');
+      tip.style.left = (ev.clientX + 14) + 'px';
+      tip.style.top = (ev.clientY + 10) + 'px';
+      tip.style.display = 'block';
+    } else tip.style.display = 'none';
+  }
 });
 
 addEventListener('resize', () => {

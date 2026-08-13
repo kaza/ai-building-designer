@@ -20,7 +20,7 @@ from archicad_builder.models.ifc_id import is_valid_ifc_id
 # every flat Story collection whose members carry a global_id; spaces and
 # apartments are handled separately because apartment spaces are nested
 KINDS = ("walls", "slabs", "doors", "windows", "roofs", "staircases",
-         "beams", "footings", "virtual_elements")
+         "beams", "footings", "columns", "virtual_elements")
 
 Key = tuple[str, str, str]          # (story, kind, name)
 
@@ -117,10 +117,14 @@ def reconcile_ids(new: Building, prev: Building) -> ReconcileReport:
         if key not in new_els:
             report.removed.append((key, el.global_id))
 
-    # cross-references: a door/window points at its host wall by id
+    # cross-references: doors/windows/tie-columns point at their host
+    # wall by id
     for story in new.stories:
         for el in (*story.doors, *story.windows):
             el.wall_id = id_map.get(el.wall_id, el.wall_id)
+        for col in story.columns:
+            if col.wall_id is not None:
+                col.wall_id = id_map.get(col.wall_id, col.wall_id)
 
     new.global_id = prev.global_id
     prev_stories: dict[str, Story] = {s.name.lower(): s

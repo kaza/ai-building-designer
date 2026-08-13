@@ -129,7 +129,9 @@ class TestStructureView:
         # furniture is hidden, nothing stays opaque
         assert "EdgesGeometry" in template
         assert "n.visible = false;" in template
-        assert "opacity: bearing ? 0.16 : (isWall ? 0.10 : 0.06)" in template
+        # columns join at 0.35 (specs/columns.md skeleton layer)
+        assert ("opacity: isColumn ? 0.35 : warm ? 0.16 : "
+                "(isWall ? 0.10 : 0.06)" in template)
         assert "AdditiveBlending" in template
         assert "scene.background = new THREE.Color(0x04070d);" in template
         assert "_structEdges" in template
@@ -144,6 +146,38 @@ class TestStructureView:
     def test_real_attribute_is_the_only_source(self, template):
         assert "o.userData.ab_kind" in template
         assert "const bearing = !!meta.ab_load_bearing;" in template
+
+
+class TestColumnSkeleton:
+    """Columns are the bright skeleton in the construction X-ray and a
+    neutral grey overlay in the load view (specs/columns.md)."""
+
+    def test_columns_read_above_bearing_walls(self, template):
+        # high opacity + strong edges: a 60x20 sliver at ghost opacity
+        # would be invisible (owner 2026-08-13)
+        assert "const isColumn = meta.ab_kind === 'column';" in template
+        assert "isColumn ? 0.35" in template
+
+    def test_hue_by_material(self, template):
+        # rc joins the warm bearing family, steel renders cool steel-blue
+        assert "meta.ab_material === 'steel'" in template
+        assert "0x4f8fd9" in template
+
+    def test_rc_walls_join_the_skeleton_family(self, template):
+        # per-wall material is data-only (specs/seismic-lateral.md):
+        # hue changes, capacity does not
+        assert "isWall && meta.ab_material === 'rc'" in template
+
+    def test_load_view_paints_columns_neutral(self, template):
+        # not stress-coloured: columns are not meshed in the plate FEM,
+        # a utilization hue would fabricate physics
+        assert "_neutralColumn" in template
+        assert "0x8b929c" in template
+
+    def test_aim_readout_secondary_raycast(self, template):
+        # the FEM hit test targets fragments only; an unmeshed column
+        # needs its own raycast and an honest readout
+        assert "column — frame action not modelled" in template
 
 
 class TestViewAndLoadKeys:

@@ -100,6 +100,37 @@ class TestDesignAndPeak:
         assert "worst tile" in page and "el.peak" in page
 
 
+class TestColumnOverlay:
+    """Columns ride the envelope as NEUTRAL boxes (specs/columns.md):
+    not meshed in the plate FEM, so structure-grey, never the stress
+    ramp; a secondary raycast keeps them selectable."""
+
+    def test_page_renders_neutral_column_boxes(self, tmp_path):
+        page = _page(tmp_path)
+        assert "env.columns || []" in page
+        assert "0x8b929c" in page             # structure-grey, no ramp
+
+    def test_secondary_raycast_readout(self, tmp_path):
+        page = _page(tmp_path)
+        assert "column — frame action not modelled" in page
+
+    def test_written_envelope_carries_columns(self, tmp_path):
+        import json
+
+        from archicad_builder.fem import compute_fem
+        from archicad_builder.fem.writers import write_payloads
+        from tests.test_fem_model import _box
+
+        b = _box()
+        b.add_column("GF", wall="South", along=3.0,
+                     width=0.6, depth=0.2, name="T1")
+        write_payloads(compute_fem(b, mesh=0.5), tmp_path, "deadbeef")
+        env = json.loads((tmp_path / "fem-field.json").read_text())
+        assert [c["name"] for c in env["columns"]] == ["T1"]
+        # not stress-coloured means not in the quads either
+        assert all(e["kind"] != "column" for e in env["elems"])
+
+
 class TestLoadStops:
     """L cycles worst case -> weight (ULS) -> earthquake; the paint is
     the ACTIVE stop, tooltip stays compact (owner 2026-08-11,

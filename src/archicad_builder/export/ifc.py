@@ -16,6 +16,7 @@ import ifcopenshell.guid
 
 from archicad_builder.models.building import Building, Story
 from archicad_builder.models.elements import (
+    Column,
     Door,
     Roof,
     Slab,
@@ -475,7 +476,7 @@ class IFCExporter:
                 mode="json", exclude_none=True,
                 exclude={k: True for k in
                          ("walls", "slabs", "doors", "windows", "roofs",
-                          "staircases", "beams", "footings",
+                          "staircases", "beams", "footings", "columns",
                           "virtual_elements", "spaces", "apartments")}))
         self.file.createIfcRelAggregates(
             GlobalId=derived_ifc_id("rel-aggregates", ifc_building.GlobalId,
@@ -529,6 +530,13 @@ class IFCExporter:
             self._attach_parametric(ifc_footing, footing.model_dump(
                 mode="json", exclude_none=True))
             products.append(ifc_footing)
+
+        # Export columns (specs/columns.md)
+        for column in story.columns:
+            ifc_column = self._create_column(column, story)
+            self._attach_parametric(ifc_column, column.model_dump(
+                mode="json", exclude_none=True))
+            products.append(ifc_column)
 
         # Export roofs
         for roof in story.roofs:
@@ -769,6 +777,12 @@ class IFCExporter:
             RelatingPropertyDefinition=pset,
         )
 
+        # data-only in C1 (specs/seismic-lateral.md): a declared material
+        # rides to IFC; None (= masonry default) adds nothing, keeping
+        # legacy exports unchanged
+        if wall.material is not None:
+            self._assign_material(ifc_wall, wall.material)
+
         return ifc_wall
 
     def _create_virtual_element(
@@ -902,6 +916,68 @@ class IFCExporter:
                 Representations=[shape],
             ),
         )
+
+    def _assign_material(self, entity, name: str) -> None:
+        """Associate an IfcMaterial by name. Looked up in the file (not an
+        instance cache) so update_ifc's patcher — built via __new__ —
+        reuses a partner's existing material of the same name."""
+        material = next((m for m in self.file.by_type("IfcMaterial")
+                         if m.Name == name), None)
+        if material is None:
+            material = self.file.createIfcMaterial(Name=name)
+        self.file.createIfcRelAssociatesMaterial(
+            GlobalId=derived_ifc_id("rel-material", entity.GlobalId, name),
+            RelatedObjects=[entity],
+            RelatingMaterial=material,
+        )
+
+    def _create_column(
+        self, column: Column, story: Story
+    ) -> ifcopenshell.entity_instance:
+        """IfcColumn: rectangle profile (width x depth) centered on the
+        column's plan point, extruded the full storey height (tie) or its
+        own height (free post). ObjectType="column" — IFC2X3 puts
+        PredefinedType on IfcColumnType, never on the occurrence."""
+        cx, cy, ux, uy, height = story.column_placement(column)
+        placement = self._create_local_placement(
+            origin=(cx, cy, story.elevation),
+            z_dir=(0.0, 0.0, 1.0),
+            x_dir=(ux, uy, 0.0),
+        )
+        profile = self.file.createIfcRectangleProfileDef(
+            ProfileType="AREA",
+            XDim=column.width,
+            YDim=column.depth,
+            Position=self.file.createIfcAxis2Placement2D(
+                Location=self.file.createIfcCartesianPoint((0.0, 0.0)),
+            ),
+        )
+        solid = self.file.createIfcExtrudedAreaSolid(
+            SweptArea=profile,
+            Position=self.file.createIfcAxis2Placement3D(
+                Location=self.file.createIfcCartesianPoint((0.0, 0.0, 0.0)),
+            ),
+            ExtrudedDirection=self.file.createIfcDirection((0.0, 0.0, 1.0)),
+            Depth=height,
+        )
+        shape = self.file.createIfcShapeRepresentation(
+            ContextOfItems=self._body_context,
+            RepresentationIdentifier="Body",
+            RepresentationType="SweptSolid",
+            Items=[solid],
+        )
+        ifc_column = self.file.createIfcColumn(
+            GlobalId=column.global_id,
+            Name=column.name or "Column",
+            Description=column.description or None,
+            ObjectType="column",
+            ObjectPlacement=placement,
+            Representation=self.file.createIfcProductDefinitionShape(
+                Representations=[shape],
+            ),
+        )
+        self._assign_material(ifc_column, column.material)
+        return ifc_column
 
     def _create_footing(
         self, footing, elevation: float

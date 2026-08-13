@@ -21,6 +21,7 @@ from archicad_builder.models.building import Building, Story
 from archicad_builder.models.ifc_id import derived_ifc_id
 from archicad_builder.models.elements import (
     Beam,
+    Column,
     Door,
     Roof,
     Slab,
@@ -43,6 +44,7 @@ _KIND_MAP = {
     "IfcStair": (Staircase, "staircases"),
     "IfcBeam": (Beam, "beams"),
     "IfcFooting": (StripFooting, "footings"),
+    "IfcColumn": (Column, "columns"),
     "IfcVirtualElement": (VirtualElement, "virtual_elements"),
 }
 
@@ -247,7 +249,7 @@ def _duplicate_ids(building: Building) -> list[str]:
     for s in building.stories:
         visit(s.global_id)
         for kind in ("walls", "slabs", "doors", "windows", "roofs",
-                     "staircases", "beams", "footings",
+                     "staircases", "beams", "footings", "columns",
                      "virtual_elements", "spaces"):
             for el in getattr(s, kind):
                 visit(el.global_id)
@@ -322,7 +324,7 @@ def update_ifc(project_dir: Path, out_path: Path | None = None) -> Path:
     edited: list[str] = []
     for st_ in building.stories:
         for kind in ("walls", "slabs", "doors", "windows", "roofs",
-                     "staircases", "beams", "footings",
+                     "staircases", "beams", "footings", "columns",
                      "virtual_elements", "spaces"):
             for el in getattr(st_, kind):
                 present_ids.add(el.global_id)
@@ -414,6 +416,13 @@ def update_ifc(project_dir: Path, out_path: Path | None = None) -> Path:
             if footing.global_id not in theirs:
                 _add(patcher._create_footing(footing, story.elevation),
                      footing, "footing")
+        for column in story.columns:
+            if column.global_id not in theirs:
+                # _create_column resolves the host wall from OUR model
+                # (imported walls live there too) and fails loud on a
+                # dangling reference
+                _add(patcher._create_column(column, story),
+                     column, "column")
         for roof in story.roofs:
             if roof.global_id not in theirs:
                 _add(patcher._create_roof(

@@ -74,7 +74,10 @@ def write_payloads(res: FemResult, out_dir: Path, digest: str) -> None:
         # the tile tooltip (specs/fem-xray.md schema 4); u stays the
         # worst-case envelope that paints the view
         quads=dict(n=len(e_idx), elem=e_idx, u=u_arr, g=g_arr, s=s_arr,
-                   cmb=c_arr, uc=uc_arr, gc=gc_arr, pos=pos))
+                   cmb=c_arr, uc=uc_arr, gc=gc_arr, pos=pos),
+        # neutral overlay boxes — columns are not meshed, so they are
+        # additive data, not quads (specs/columns.md load view)
+        columns=res.columns)
     (out_dir / "fem-field.json").write_text(
         json.dumps(envelope, separators=(",", ":")))
 

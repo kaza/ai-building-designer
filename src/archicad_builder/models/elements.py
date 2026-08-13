@@ -36,6 +36,12 @@ class Wall(BaseModel):
         default=None,
         description="Renderer finish tag (specs/facade-finishes.md); None = default",
     )
+    material: Literal["masonry", "rc"] | None = Field(
+        default=None,
+        description="Structural material; None = masonry. Data-only in C1 — "
+        "zero capacity/stiffness change (specs/seismic-lateral.md: an RC "
+        "wall counts at masonry fvd, conservative)",
+    )
 
     @property
     def length(self) -> float:
@@ -242,6 +248,73 @@ class StripFooting(BaseModel):
         if (abs(self.end.x - self.start.x) < 1e-6
                 and abs(self.end.y - self.start.y) < 1e-6):
             raise ValueError("footing start and end coincide (zero length)")
+        return self
+
+
+# EN 1998-1 §9.5.3(3): each cross-section side of a confining element
+# must be at least 150 mm — a 60x10 has the area and fails the clause.
+TIE_MIN_SIDE = 0.15
+
+
+class Column(BaseModel):
+    """A discrete vertical member (specs/columns.md, phase C1).
+
+    Two placement modes, mutually exclusive:
+    - HOST (tie role): `wall_id` + `along` (centerline distance from the
+      wall start to the column CENTER). Cast against its host wall —
+      orientation is inferred from the wall (width runs along its axis,
+      depth across), height is always the full storey height, material
+      must be rc with both sides >= 150 mm (EN 1998-1 §9.5.3(3)).
+    - FREE: `at` plan point, axis-aligned (width along x, depth along y),
+      optional height (None = storey height). Never a confining element,
+      steel or not — §9.5.3 confining elements are cast concrete.
+    """
+
+    global_id: str = Field(default_factory=generate_ifc_id, description="IFC GlobalId")
+    name: str = ""
+    description: str = ""
+    width: float = Field(gt=0, description="Section side along the host wall axis / x (m)")
+    depth: float = Field(gt=0, description="Section side across the host wall / y (m)")
+    material: Literal["rc", "steel"] = "rc"
+    wall_id: str | None = Field(
+        default=None, description="GlobalId of the host wall (tie columns)")
+    along: float | None = Field(
+        default=None, ge=0,
+        description="Column center distance from the host wall start (m)")
+    at: Point2D | None = Field(
+        default=None, description="Plan center of a free-standing column")
+    height: float | None = Field(
+        default=None, gt=0,
+        description="Free columns only; None = full storey height")
+
+    @property
+    def is_tie(self) -> bool:
+        """Confinement role — host-placed, rc (model-enforced)."""
+        return self.wall_id is not None
+
+    @model_validator(mode="after")
+    def _placement_mode(self) -> Column:
+        if not self.name.strip():
+            raise ValueError("column name must be non-empty — identity and "
+                             "renderer metadata are name-keyed")
+        hosted = self.wall_id is not None or self.along is not None
+        if hosted and self.at is not None:
+            raise ValueError("column takes EITHER wall+along OR at, not both")
+        if not hosted and self.at is None:
+            raise ValueError("column needs a placement: wall+along or at")
+        if hosted:
+            if self.wall_id is None or self.along is None:
+                raise ValueError("host placement needs both wall_id and along")
+            if self.height is not None:
+                raise ValueError("tie columns have no height parameter — a "
+                                 "partial-height confining element is not one")
+            if self.material != "rc":
+                raise ValueError("tie columns must be rc — EN 1998-1 §9.5.3 "
+                                 "confining elements are cast concrete")
+            if min(self.width, self.depth) < TIE_MIN_SIDE:
+                raise ValueError(
+                    f"tie column sides {self.width}x{self.depth} m: each side "
+                    f"must be >= {TIE_MIN_SIDE} m (EN 1998-1 §9.5.3(3))")
         return self
 
 

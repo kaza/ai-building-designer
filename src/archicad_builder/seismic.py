@@ -2,8 +2,10 @@
 
 Eurocode 8 lateral force method, structural plausibility screening
 (NOT EN 1998 compliance — a licensed engineer signs real buildings).
-Structure type assumed: unreinforced masonry bearing walls + RC ring
-beams + RC slabs (q = 1.5). Weights reuse the gravity engines'
+Structure type: unreinforced masonry bearing walls + RC ring beams +
+RC slabs (q = 1.5) by default; the [structure] preset swaps q and the
+Table 9.3 row as data, gated FAIL-CLOSED on tie-column evidence
+(§Structure presets). Weights reuse the gravity engines'
 DesignBasis densities and finish loads so every engine agrees on what
 the building weighs (conservative for masonry: 25 > ~18 kN/m3).
 
@@ -48,8 +50,10 @@ GAMMA_I = {"I": 0.8, "II": 1.0, "III": 1.2, "IV": 1.4}
 
 # EN 1998-1 Table 9.3 recommended minima for "simple masonry buildings",
 # unreinforced masonry: minimum sum of shear-wall cross-section per
-# direction as % of floor area. Rows: ag*S ceiling (g); columns: number
-# of storeys 1..4. None = construction type NOT acceptable there.
+# direction as % of floor area. Rows: ag*S ceiling (g), STRICT `<` (the
+# old <=+epsilon selected the lenient column at exact band edges — spec
+# §Structure presets 2026-08-13); columns: number of storeys 1..4.
+# None = construction type NOT acceptable there.
 # National annexes may override — the values are published assumptions.
 WALL_DENSITY_MIN = [
     (0.07, [2.0, 2.0, 3.0, 5.0]),
@@ -57,6 +61,30 @@ WALL_DENSITY_MIN = [
     (0.15, [3.5, 5.0, None, None]),
     (0.20, [None, None, None, None]),
 ]
+# Table 9.3, confined masonry column (verified against the standard
+# 2026-08-13 — values enter the code only as quotes, never from memory):
+# columns are storey counts 2..5; the confined table STARTS at 2 storeys.
+CONFINED_DENSITY_MIN = [
+    (0.07, [2.0, 2.0, 4.0, 6.0]),
+    (0.10, [2.5, 3.0, 5.0, None]),
+    (0.15, [3.0, 4.0, None, None]),
+    (0.20, [3.5, None, None, None]),
+]
+# [structure] presets (specs/seismic-lateral.md §Structure presets): the
+# preset swaps q (EN 1998-1 Table 9.1 recommended values) and the
+# Table 9.3 density row AS DATA — one EC8 code path.
+STRUCTURE_PRESETS = {
+    "urm": dict(q=1.5, table=WALL_DENSITY_MIN, min_storeys=1),
+    "confined": dict(q=2.0, table=CONFINED_DENSITY_MIN, min_storeys=2),
+}
+
+# Confinement evidence rules, EN 1998-1 §9.5.3 (quoted 2026-08-13,
+# spec decision log — grounded search beat both reviewers' memory):
+TIE_NEAR = 1.5          # m: max distance intersection -> confining element
+TIE_SPACING_MAX = 5.0   # m: max spacing along any load-bearing wall
+TIE_OPENING_AREA = 1.5  # m2: openings above this need jamb ties
+TIE_PLACE_TOL = 0.3     # m: "at" a jamb/free end (placement tolerance,
+#                         not a clause number)
 
 
 @dataclass
@@ -133,23 +161,148 @@ def wall_net_length(story, w) -> float:
     return max(length - cut, 0.0)
 
 
-def _density_minimum(ag_s: float, n_storeys: int) -> tuple[float | None, bool]:
-    """(minimum %, acceptable) from Table 9.3. acceptable=False means URM
-    is not an acceptable construction type at this seismicity/height."""
-    if n_storeys > 4:
+def _density_minimum(ag_s: float, n_storeys: int,
+                     preset: dict) -> tuple[float | None, bool]:
+    """(minimum %, acceptable) from the preset's Table 9.3 row.
+    acceptable=False means the construction type is not acceptable at
+    this seismicity/height. Band edges are STRICT `<`: at exactly the
+    ceiling the next (stricter) band governs."""
+    idx = n_storeys - preset["min_storeys"]
+    if idx < 0 or idx > 3:
         return None, False
-    for ceiling, row in WALL_DENSITY_MIN:
-        if ag_s <= ceiling + 1e-9:
-            minimum = row[n_storeys - 1]
+    for ceiling, row in preset["table"]:
+        if ag_s < ceiling:
+            minimum = row[idx]
             return minimum, minimum is not None
     return None, False
 
 
+def _confinement_failures(building: Building) -> list[dict]:
+    """Geometric eligibility evidence for the confined classification
+    (EN 1998-1 §9.5.3, quoted in specs/seismic-lateral.md): RC
+    tie-columns at wall intersections (within 1.5 m), at free wall
+    ends, at both jambs of openings > 1.5 m2, spacing <= 5 m. One entry
+    per missing location: {story_id, text}. Only host-placed columns
+    count — the model already restricts the tie role to full-height rc
+    with sides >= 150 mm, and free posts (steel or not) never confine."""
+    from shapely.geometry import LineString, Point
+
+    failures: list[dict] = []
+    for s in building.stories:
+        ties = []
+        for c in s.columns:
+            if c.wall_id is None:
+                continue
+            cx, cy, _ux, _uy, _h = s.column_placement(c)
+            ties.append((cx, cy))
+        bearing = [w for w in s.walls if w.load_bearing]
+        segs = {w.global_id: LineString([(w.start.x, w.start.y),
+                                         (w.end.x, w.end.y)])
+                for w in bearing}
+
+        def fail(text: str, story=s) -> None:
+            failures.append({"story_id": story.global_id, "text": text})
+
+        def near_tie(x: float, y: float, tol: float,
+                     tie_pts=ties) -> bool:
+            return any(math.hypot(tx - x, ty - y) <= tol
+                       for tx, ty in tie_pts)
+
+        for w in bearing:
+            length = math.hypot(w.end.x - w.start.x, w.end.y - w.start.y)
+            if length < 1e-6:
+                continue
+            ux = (w.end.x - w.start.x) / length
+            uy = (w.end.y - w.start.y) / length
+            stations = []
+            for tx, ty in ties:
+                t = (tx - w.start.x) * ux + (ty - w.start.y) * uy
+                off = abs(-(tx - w.start.x) * uy + (ty - w.start.y) * ux)
+                if off <= w.thickness / 2 + 0.1 and -0.1 <= t <= length + 0.1:
+                    stations.append(min(max(t, 0.0), length))
+            # free edges: an endpoint that touches no other bearing wall
+            for ex, ey in ((w.start.x, w.start.y), (w.end.x, w.end.y)):
+                connected = any(
+                    other is not w
+                    and segs[other.global_id].distance(Point(ex, ey))
+                    <= other.thickness / 2 + 0.05
+                    for other in bearing)
+                if not connected and not near_tie(ex, ey, TIE_PLACE_TOL):
+                    fail(f"story '{s.name}': free end of wall '{w.name}' "
+                         f"at ({ex:.2f}, {ey:.2f}) has no RC tie-column "
+                         "(EN 1998-1 §9.5.3 free edges)")
+            # openings > 1.5 m2 need ties at both jambs
+            for o in (*s.doors, *s.windows):
+                if o.wall_id != w.global_id:
+                    continue
+                area = o.width * o.height
+                if area <= TIE_OPENING_AREA:
+                    continue
+                for jamb in (o.position, o.position + o.width):
+                    if not any(abs(st - jamb) <= TIE_PLACE_TOL
+                               for st in stations):
+                        fail(f"story '{s.name}': opening '{o.name}' "
+                             f"({area:.1f} m2) on wall '{w.name}' has no "
+                             f"tie-column at its jamb ({jamb:.2f} m from "
+                             "the wall start) (EN 1998-1 §9.5.3 openings)")
+            # spacing along the wall <= 5 m between confining elements
+            cuts = sorted([0.0, *stations, length])
+            for a, b in zip(cuts, cuts[1:]):
+                if b - a > TIE_SPACING_MAX:
+                    fail(f"story '{s.name}': wall '{w.name}' runs "
+                         f"{b - a:.1f} m between confining elements — over "
+                         f"the {TIE_SPACING_MAX:.0f} m maximum "
+                         "(EN 1998-1 §9.5.3 spacing)")
+        # intersections: a tie within 1.5 m of every bearing-wall crossing
+        for i, wa in enumerate(bearing):
+            for wb in bearing[i + 1:]:
+                inter = segs[wa.global_id].intersection(segs[wb.global_id])
+                if inter.is_empty:
+                    continue
+                if inter.geom_type == "Point":
+                    pts = [inter]
+                elif inter.geom_type == "MultiPoint":
+                    pts = list(inter.geoms)
+                else:
+                    continue    # collinear overlap is not an intersection
+                for p in pts:
+                    if not near_tie(p.x, p.y, TIE_NEAR):
+                        fail(f"story '{s.name}': intersection of walls "
+                             f"'{wa.name}' and '{wb.name}' at "
+                             f"({p.x:.2f}, {p.y:.2f}) has no RC tie-column "
+                             f"within {TIE_NEAR} m (EN 1998-1 §9.5.3 "
+                             "intersections)")
+    return failures
+
+
+def _any_unwaived_e103(building: Building, waivers) -> bool:
+    """True if the building has a lateral discontinuity (E103 geometry)
+    not covered by a waiver — the §9.3(5) q-cut proxy."""
+    # lazy import: validators import seismic lazily, so this direction
+    # must be lazy too to stay cycle-free
+    from archicad_builder.validators.phases import e103_findings
+    findings = e103_findings(building)
+    if not findings:
+        return False
+    if waivers is None:
+        return True
+    from archicad_builder.validators.waivers import partition_findings
+    active, _waived, _stale = partition_findings(findings, waivers)
+    return bool(active)
+
+
 def compute_seismic(building: Building, site: Site,
-                    basis: SeismicBasis | None = None) -> dict:
+                    basis: SeismicBasis | None = None,
+                    structure=None, waivers=None) -> dict:
     """ELF results: weights, T1, Sd, Fb, storey forces, per-direction
     capacity/density/torsion per storey. Raises on site=None — callers
-    gate (no site -> unresolved, never guessed)."""
+    gate (no site -> unresolved, never guessed).
+
+    `structure` is the [structure] preset (project_config.Structure);
+    None = urm, today's behaviour. The confined reward is FAIL-CLOSED:
+    the effective type is derived HERE from tie-column geometry, and
+    `waivers` gate only the E103 q-cut proxy — waiving E109 documents a
+    disagreement, it never unlocks q = 2.0 (spec decision log)."""
     if site is None:
         raise ValueError("compute_seismic requires a [site] configuration")
     basis = basis or SeismicBasis()
@@ -158,6 +311,29 @@ def compute_seismic(building: Building, site: Site,
     if not stories:
         raise ValueError("building has no stories")
     unresolved: dict[str, str] = {}
+
+    # ---------- structure preset (fail-closed) ----------
+    declared = structure.type if structure is not None else "urm"
+    failures: list[dict] = []
+    effective = declared
+    if declared == "confined":
+        failures = _confinement_failures(building)
+        if failures:
+            effective = "urm"
+    preset = STRUCTURE_PRESETS[effective]
+    # basis.q stays the URM default; once a non-URM system earns its
+    # classification, the preset is the authority
+    q = preset["q"] if effective != "urm" else basis.q
+    # EN 1998-1 §9.3(5): elevation-irregular buildings lose 20% of q
+    # (floor 1.5). The full §4.2.3.3 assessment is out of scope — proxy:
+    # any unwaived E103 discontinuity (spec decision log 2026-08-13).
+    q_eff = q
+    q_eff_note = None
+    if _any_unwaived_e103(building, waivers):
+        q_eff = max(1.5, 0.8 * q)
+        q_eff_note = ("unwaived E103 discontinuity: q cut by 20% (floor "
+                      "1.5) per EN 1998-1 §9.3(5) proxy — elevation "
+                      "regularity to be confirmed by the engineer")
 
     # ---------- level weights (dead + phi*psi2*live), with centroids ----
     def poly_area_centroid(outline):
@@ -185,6 +361,22 @@ def compute_seismic(building: Building, site: Site,
             dead += wt
             items.append((wt, (w.start.x + w.end.x) / 2,
                           (w.start.y + w.end.y) / 2))
+        for c in s.columns:
+            cx, cy, _ux, _uy, ch = s.column_placement(c)
+            rho = db.rc_density if c.material == "rc" else db.steel_density
+            if c.wall_id is not None:
+                # material-exclusive (specs/columns.md): the host wall's
+                # gross mass above already covers the overlap volume at
+                # rc density — add only the density DIFFERENCE there plus
+                # the full overhang, never both volumes (Codex)
+                host = s.get_wall(c.wall_id)
+                overlap_d = min(c.depth, host.thickness)
+                wt = ((rho - db.rc_density) * c.width * overlap_d * ch
+                      + rho * c.width * (c.depth - overlap_d) * ch)
+            else:
+                wt = rho * c.width * c.depth * ch
+            dead += wt
+            items.append((wt, cx, cy))
         for r in s.roofs:
             area, (cx, cy) = poly_area_centroid(r.outline)
             wt = area * (min(r.thickness, db.cap_thickness) * db.rc_density
@@ -241,7 +433,7 @@ def compute_seismic(building: Building, site: Site,
     ag_d = site.ag * GAMMA_I[site.importance_class]
     stype = site.spectrum_type or COUNTRY_SPECTRUM_TYPE[site.country]
     sd = design_spectrum(t1, ag_d, stype, site.ground_type,
-                         basis.q, basis.beta)
+                         q_eff, basis.beta)
     tc = SPECTRUM[(stype, site.ground_type)][2]
     lam = 0.85 if (len(active) > 2 and t1 <= 2 * tc) else 1.0
     fb = sd * w_active * lam
@@ -321,7 +513,15 @@ def compute_seismic(building: Building, site: Site,
         # sways (Codex code review 2026-08-10)
         n_storeys = len(active)
         ag_s = ag_d * SPECTRUM[(stype, site.ground_type)][0]
-        d_min, acceptable = _density_minimum(ag_s, n_storeys)
+        if effective == "confined" and n_storeys < preset["min_storeys"]:
+            # the confined column of Table 9.3 starts at 2 storeys — an
+            # invented row would be a lie (spec §Structure presets)
+            unresolved["density_table"] = (
+                "confined masonry with 1 storey: Table 9.3 simple rules "
+                "not applicable, explicit analysis required")
+            d_min, acceptable = None, True
+        else:
+            d_min, acceptable = _density_minimum(ag_s, n_storeys, preset)
 
         for d in ("x", "y"):
             cap = basis.fvd() * sum(k for k, _x, _y in stiff[d])
@@ -351,6 +551,30 @@ def compute_seismic(building: Building, site: Site,
                    round(sum(i[0] * i[2] for i in all_items) / dead_w, 3)]
                   if dead_w > 0 else [0.0, 0.0])
 
+    assumptions_structure = {
+        "urm": ("unreinforced masonry bearing walls + RC ring "
+                "beams + RC slabs (EN 1998-1 section 9)"),
+        "confined": ("confined masonry bearing walls + RC tie-columns, "
+                     "ring beams + RC slabs (EN 1998-1 section 9)"),
+    }
+    result_structure = {
+        "declared": declared, "effective": effective,
+        "q": q, "q_eff": q_eff,
+        "fallback": (None if effective == declared else
+                     "geometric eligibility evidence failed — numbers "
+                     "fall back to URM (waivers gate findings, not "
+                     "physics)"),
+    }
+    extra_assumptions = {}
+    if q_eff_note:
+        extra_assumptions["q_eff_note"] = q_eff_note
+    if declared == "confined":
+        extra_assumptions["confinement_evidence"] = (
+            "geometric eligibility evidence only (tie-column positions "
+            "per EN 1998-1 §9.5.3) — NOT §9.5.3 compliance: "
+            "reinforcement, stirrups, anchorage and casting sequence "
+            "are verified by the engineer")
+
     return {
         "W": round(w_active, 1), "W_model": round(total_w, 1),
         "dead_total": round(dead_total, 1), "com": com_global,
@@ -358,14 +582,21 @@ def compute_seismic(building: Building, site: Site,
         "T1": round(t1, 4), "Sd": round(sd, 4),
         "lambda": lam, "Fb": round(fb, 1),
         "forces": forces, "storeys": storeys_out,
+        "structure": result_structure,
+        "confinement_failures": failures,
         "_unresolved": unresolved,
         "_assumptions": {
             "basis": ("seismic PLAUSIBILITY per EN 1998-1 lateral force "
                       "method, NOT Eurocode compliance — a licensed "
                       "engineer signs real buildings"),
-            "structure": ("unreinforced masonry bearing walls + RC ring "
-                          "beams + RC slabs (EN 1998-1 section 9)"),
-            "q": basis.q, "psi2": basis.psi2,
+            "structure": assumptions_structure[effective],
+            "structure_declared": declared,
+            "structure_effective": (
+                effective if effective == declared else
+                f"{effective} (declared '{declared}' — "
+                + result_structure["fallback"] + ")"),
+            **extra_assumptions,
+            "q": q, "q_eff": q_eff, "psi2": basis.psi2,
             "fvk0_kpa": basis.fvk0, "gamma_m": basis.gamma_m,
             "fvd": ("fvk0/gamma_m, compression benefit 0.4*sigma_d "
                     "deliberately dropped (conservative)"),
@@ -383,8 +614,11 @@ def compute_seismic(building: Building, site: Site,
             "mass": ("DesignBasis densities/finishes shared with the "
                      "gravity engines; storey lumped at its ceiling; "
                      "slabs on grade excluded; wall openings not "
-                     "subtracted from mass (conservative); snow psi2=0"),
+                     "subtracted from mass (conservative); snow psi2=0; "
+                     "column self-weight material-exclusive (embedded "
+                     "overlap counted once)"),
             "wall_density_table": ("EN 1998-1 Table 9.3 recommended "
-                                   "values (NA-overridable)"),
+                                   f"values, {effective} row "
+                                   "(NA-overridable)"),
         },
     }

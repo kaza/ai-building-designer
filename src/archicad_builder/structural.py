@@ -37,6 +37,7 @@ class DesignBasis:
     gamma_g: float = 1.35
     gamma_q: float = 1.5
     rc_density: float = 25.0          # kN/m3
+    steel_density: float = 78.5       # kN/m3 (structural steel self-weight)
     cap_thickness: float = 0.25       # m — modeled slabs above this are visual
     wall_fd: float = 3000.0           # kN/m2 design compressive strength
     wall_phi: float = 0.6             # slenderness reduction
@@ -126,7 +127,6 @@ def _analyze_panel(poly, thickness, span_dir, q_area, bearing, basis,
     polygon intervals (L-shapes must not bridge — Codex review).
     """
     minx, miny, maxx, maxy = poly.bounds
-    stations = []
     lo, hi = (miny, maxy) if span_dir == "x" else (minx, maxx)
     n = max(2, int((hi - lo) / STATION_STEP))
     worst_m = 0.0

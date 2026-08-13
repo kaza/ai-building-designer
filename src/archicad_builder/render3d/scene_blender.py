@@ -401,6 +401,8 @@ for obj in scene.objects:
         obj["ab_name"] = _m["name"]
         obj["ab_load_bearing"] = 1 if _m["load_bearing"] else 0
         obj["ab_tag"] = _m["tag"]
+        if _m["material"]:
+            obj["ab_material"] = _m["material"]
         _stamped += 1
 print(f"stamped metadata on {_stamped} elements")
 

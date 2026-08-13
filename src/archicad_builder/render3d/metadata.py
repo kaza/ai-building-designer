@@ -20,7 +20,13 @@ _PREFIX = {
     "windows": "IfcWindow",
     "staircases": "IfcStair",
     "beams": "IfcBeam",
+    "columns": "IfcColumn",
 }
+
+# kinds whose material is a rendering attribute (specs/columns.md,
+# specs/seismic-lateral.md §wall materials). Beams also carry a material
+# field in JSON, but only these drive the X-ray palette.
+_MATERIAL_KINDS = {"walls", "columns"}
 
 
 # plan-tag prefixes, mirroring Story.ensure_tags numbering (per story, in
@@ -46,11 +52,17 @@ def element_metadata(doc: dict) -> dict[str, dict]:
                     tag = story_prefix + (
                         el.get("tag") or f"{_TAG_PREFIX[kind]}{i}")
                 key = f"{prefix}_{name.replace(' ', '_')}"
+                material = ""
+                if kind in _MATERIAL_KINDS:
+                    # walls: None/absent = masonry legacy default —
+                    # rendered as "" so old GLBs stay byte-identical
+                    material = el.get("material") or ""
                 out[key] = {
                     "global_id": el.get("global_id", ""),
                     "kind": kind[:-1] if kind.endswith("s") else kind,
                     "name": name,
                     "load_bearing": bool(el.get("load_bearing")),
                     "tag": tag,
+                    "material": material,
                 }
     return out

@@ -106,14 +106,15 @@ outputs = ["output/loads.json"]
 [[step]]
 name = "seismic"         # ELF analysis (specs/seismic-lateral.md)
 run = ["{python}", "-m", "archicad_builder", "seismic", "{project}"]
-inputs = ["building.json", "project.toml"]
+# validation.json: waivers feed the q_eff proxy (EN 1998-1 §9.3(5))
+inputs = ["building.json", "project.toml", "validation.json"]
 outputs = ["output/seismic.json"]
 
 [[step]]
 name = "fem"             # plate FEM + seismic combos + X-ray page
 profile = "fem"          # slower since S2: 5 combos + equilibrium audits
 run = ["{python}", "-m", "archicad_builder", "fem", "{project}"]
-inputs = ["building.json", "project.toml"]
+inputs = ["building.json", "project.toml", "validation.json"]
 outputs = ["output/fem-field.json", "output/fem-loads.json", "output/xray.html"]
 
 [[step]]

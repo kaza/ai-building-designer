@@ -52,15 +52,18 @@ def _save_building(building: Building, project: str) -> Path:
 
 
 def _validate_json(building: Building, waivers: WaiverConfig | None = None,
-                   site=None) -> dict:
+                   site=None, structure=None) -> dict:
     """Run all validators and return structured results.
 
     With a WaiverConfig, waived findings move to 'waived' (with reasons),
     counts exclude them, and unmatched waivers are listed as 'stale_waivers'.
     Without one, output shape is unchanged (no waiver keys at all).
     `site` is the project's [site] config; None skips seismic checks.
+    `structure` is the [structure] preset; waivers ALSO feed the seismic
+    q_eff proxy inside the validators (findings are partitioned here).
     """
-    errors = validate_all_phases(building, site=site)
+    errors = validate_all_phases(building, site=site, structure=structure,
+                                 waivers=waivers)
 
     waived: list[dict] = []
     stale: list[dict] = []
@@ -113,6 +116,16 @@ def _load_site(project: str):
     except ConfigError:
         return None
 
+
+def _load_structure(project: str):
+    """Project [structure] preset; None (= urm) when project.toml is
+    missing or invalid — same contract as _load_site."""
+    from archicad_builder.project_config import ConfigError, ProjectConfig
+    try:
+        return ProjectConfig.load(PROJECTS_DIR / project).structure
+    except ConfigError:
+        return None
+
 def _output(data: dict) -> None:
     """Print JSON output to stdout."""
     typer.echo(json.dumps(data, indent=2, ensure_ascii=False))
@@ -141,7 +154,8 @@ def validate(
         raise typer.Exit(1) from exc
     building = _load_building(project)
     waivers = _load_project_waivers(project)
-    result = _validate_json(building, waivers, site=cfg.site)
+    result = _validate_json(building, waivers, site=cfg.site,
+                            structure=cfg.structure)
     _output({"ok": True, "validation": result})
     # Without --strict this command has ALWAYS exited 0, which made the
     # "validate" step in the documented pipeline a gate that could never
@@ -162,7 +176,8 @@ def assess(project: str = typer.Argument(..., help="Project directory name")):
         raise typer.Exit(1) from exc
     building = _load_building(project)
     waivers = _load_project_waivers(project)
-    validation = _validate_json(building, waivers, site=cfg.site)
+    validation = _validate_json(building, waivers, site=cfg.site,
+                                structure=cfg.structure)
 
     # Build summary
     stories_info = []
@@ -262,8 +277,12 @@ def fem_cmd(
     from archicad_builder.fem.xray import write_xray_page
 
     building = _load_building(project)
-    # [site] adds the seismic combos (specs/seismic-lateral.md S2)
-    result = compute_fem(building, mesh=mesh, site=_load_site(project))
+    # [site] adds the seismic combos (specs/seismic-lateral.md S2);
+    # [structure] + waivers keep the EQ forces on the same q_eff as the
+    # ELF checks
+    result = compute_fem(building, mesh=mesh, site=_load_site(project),
+                         structure=_load_structure(project),
+                         waivers=_load_project_waivers(project))
     out = PROJECTS_DIR / project / "output"
     out.mkdir(parents=True, exist_ok=True)
     digest = building_digest(PROJECTS_DIR / project / "building.json")
@@ -309,7 +328,9 @@ def seismic_cmd(
         _output({"ok": True, "written": str(out),
                  "unresolved": result["_unresolved"]})
         return
-    result = compute_seismic(building, cfg.site)
+    result = compute_seismic(building, cfg.site,
+                             structure=cfg.structure,
+                             waivers=_load_project_waivers(project))
     out.write_text(_json.dumps(result, indent=1, sort_keys=True))
     _output({
         "ok": True,
@@ -808,7 +829,8 @@ def apply(
 
     if not no_validate:
         output["validation"] = _validate_json(
-            building, site=_load_site(project))
+            building, site=_load_site(project),
+            structure=_load_structure(project))
 
     if render_story:
         out = PROJECTS_DIR / project / "output"
@@ -850,7 +872,8 @@ def generate(
         raise typer.Exit(1)
 
     _save_building(building, project)
-    validation = _validate_json(building, site=_load_site(project))
+    validation = _validate_json(building, site=_load_site(project),
+                                structure=_load_structure(project))
 
     _output({
         "ok": True,

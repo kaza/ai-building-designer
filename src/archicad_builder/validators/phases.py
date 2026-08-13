@@ -58,13 +58,16 @@ MIN_BATHROOM_AREA = 5.0       # OIB adaptable housing requirement
 CORE_WALL_KEYWORDS = ["core", "elevator", "staircase", "divider"]  # Wall names indicating core
 
 
-def validate_all_phases(building: Building,
-                        site=None) -> list[ValidationError]:
+def validate_all_phases(building: Building, site=None, structure=None,
+                        waivers=None) -> list[ValidationError]:
     """Run all phase validators (v2 + v3).
 
     `site` is the project's [site] config (specs/seismic-lateral.md);
     None -> the seismic validators report nothing (unresolved, never
-    guessed) so buildings without a site keep validating as before."""
+    guessed) so buildings without a site keep validating as before.
+    `structure` is the [structure] preset (None = urm); `waivers` feed
+    ONLY the seismic q_eff proxy (EN 1998-1 §9.3(5)) — findings are
+    partitioned by the caller, never dropped here."""
     errors: list[ValidationError] = []
     errors.extend(validate_phase1_shell(building))
     errors.extend(validate_phase2_core(building))
@@ -76,9 +79,13 @@ def validate_all_phases(building: Building,
     # Phase B structural loads (specs/structural-plausibility.md)
     errors.extend(validate_structural_loads(building))
     # S1 seismic (specs/seismic-lateral.md)
-    errors.extend(validate_seismic(building, site))
+    errors.extend(validate_seismic(building, site, structure=structure,
+                                   waivers=waivers))
     # S3 foundations (specs/foundations.md)
-    errors.extend(validate_foundations(building, site))
+    errors.extend(validate_foundations(building, site, structure=structure,
+                                       waivers=waivers))
+    # C1 columns (specs/columns.md)
+    errors.extend(validate_columns_support(building))
     # v3 additions
     errors.extend(validate_core_integrity(building))
     errors.extend(validate_interior_enclosure(building))
@@ -1570,7 +1577,8 @@ def validate_structural_loads(building) -> list[ValidationError]:
     return errors
 
 
-def validate_seismic(building, site, basis=None) -> list[ValidationError]:
+def validate_seismic(building, site, basis=None, structure=None,
+                     waivers=None) -> list[ValidationError]:
     """S1 seismic plausibility (specs/seismic-lateral.md).
 
     E100 storey seismic shear > wall shear capacity per direction (error)
@@ -1582,6 +1590,10 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
          gravity waiver (e.g. an engineered transfer beam) does NOT
          restore the seismic shear path, so the codes are waived on
          different grounds (spec decision log)
+    E109 missing tie-column location for a declared "confined" system
+         (one finding per location). Waiving E109 documents the
+         disagreement — the numbers already fell back to URM inside
+         compute_seismic, fail-closed.
 
     No [site] configured -> no findings (unresolved, never guessed).
     """
@@ -1590,8 +1602,16 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
     from archicad_builder.seismic import compute_seismic
 
     errors: list[ValidationError] = []
-    res = compute_seismic(building, site, basis)
+    res = compute_seismic(building, site, basis, structure=structure,
+                          waivers=waivers)
     elf_ok = "elf" not in res["_unresolved"]
+
+    for failure in res["confinement_failures"]:
+        errors.append(ValidationError(
+            severity="error", element_type="Story",
+            element_id=failure["story_id"],
+            message=f"E109: {failure['text']}",
+        ))
 
     for st in res["storeys"]:
         if st.get("below_base"):
@@ -1644,7 +1664,15 @@ def validate_seismic(building, site, basis=None) -> list[ValidationError]:
                         "the earthquake will twist this storey."),
                 ))
 
-    # E103 — lateral continuity (pure geometry, E050's own helpers)
+    errors.extend(e103_findings(building))
+    return errors
+
+
+def e103_findings(building) -> list[ValidationError]:
+    """E103 — lateral continuity (pure geometry, E050's own helpers).
+    Module-level so compute_seismic can reuse the exact same geometry
+    for its q_eff proxy (EN 1998-1 §9.3(5)) without a second rule."""
+    errors: list[ValidationError] = []
     stories = sorted(building.stories, key=lambda s: s.elevation)
     for i in range(1, len(stories)):
         upper, lower = stories[i], stories[i - 1]
@@ -1717,12 +1745,14 @@ def _covering_footing(wall, footings):
     return None
 
 
-def validate_foundations(building, site, basis=None) -> list[ValidationError]:
+def validate_foundations(building, site, basis=None, structure=None,
+                         waivers=None) -> list[ValidationError]:
     """S3 foundations (specs/foundations.md). E104 coverage, E105 bearing
     pressure (factored ULS action vs design resistance, DA2-style), E106
     sliding (dead weight only credited as friction), E107 rigid-body
     overturning about the foundation footprint toe. No [site.soil] ->
-    unresolved, no findings."""
+    unresolved, no findings. Walls-only by design — column loads enter
+    no footing-pressure math in C1 (specs/columns.md, E108 owns them)."""
     if site is None or site.soil is None or not building.stories:
         return []
     from archicad_builder.models.elements import SlabType
@@ -1801,7 +1831,8 @@ def validate_foundations(building, site, basis=None) -> list[ValidationError]:
             ))
 
     # E106/E107 — base shear into the ground
-    seis = compute_seismic(building, site, basis)
+    seis = compute_seismic(building, site, basis, structure=structure,
+                           waivers=waivers)
     foot_dead = 0.0
     foot_mx = foot_my = 0.0
     for f in lowest.footings:
@@ -1869,6 +1900,81 @@ def validate_foundations(building, site, basis=None) -> list[ValidationError]:
                         f"{n_dead:.0f} kN x {arm:.2f} m vs overturning "
                         f"{m_ot:.0f} kNm) — the building tips before it "
                         "slides."),
+                ))
+    return errors
+
+
+def validate_columns_support(building) -> list[ValidationError]:
+    """E108 — geometric SUPPORT-PATH check for columns (specs/columns.md).
+
+    Every column base must land on: a footing, a load-bearing wall top
+    of the storey below, the on-grade slab (BASESLAB, lowest storey —
+    the same grounding rule E104 uses), or an aligned column below.
+    This is NOT foundation adequacy: column loads enter no footing-
+    pressure math in C1; E050/E103/E104/E105 keep their walls-only
+    scope."""
+    errors: list[ValidationError] = []
+    from archicad_builder.models.elements import SlabType
+
+    stories = sorted(building.stories, key=lambda s: s.elevation)
+    if not stories:
+        return errors
+    lowest = stories[0]
+    base_polys = []
+    for sl in lowest.slabs:
+        if sl.slab_type == SlabType.BASESLAB and len(sl.outline.vertices) >= 3:
+            p = ShapelyPolygon([(v.x, v.y) for v in sl.outline.vertices])
+            base_polys.append(make_valid(p) if not p.is_valid else p)
+    base_union = unary_union(base_polys).buffer(0.05) if base_polys else None
+
+    def on_segment(px, py, ax, ay, bx, by, half_width) -> bool:
+        length = math.hypot(bx - ax, by - ay)
+        if length < 1e-6:
+            return False
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        t = (px - ax) * ux + (py - ay) * uy
+        off = abs(-(px - ax) * uy + (py - ay) * ux)
+        return -0.05 <= t <= length + 0.05 and off <= half_width + 0.05
+
+    for i, story in enumerate(stories):
+        below = stories[i - 1] if i > 0 else None
+        for c in story.columns:
+            cx, cy, _ux, _uy, _h = story.column_placement(c)
+            supported = False
+            what = []
+            if story is lowest:
+                what = ["footing", "on-grade slab"]
+                supported = any(
+                    on_segment(cx, cy, f.start.x, f.start.y,
+                               f.end.x, f.end.y, f.width / 2)
+                    for f in lowest.footings)
+                if not supported and base_union is not None:
+                    from shapely.geometry import Point as ShapelyPoint
+                    supported = base_union.covers(ShapelyPoint(cx, cy))
+            if not supported and below is not None:
+                what = ["bearing wall below", "aligned column below",
+                        *what]
+                supported = any(
+                    on_segment(cx, cy, w.start.x, w.start.y,
+                               w.end.x, w.end.y, w.thickness / 2)
+                    for w in below.walls if w.load_bearing)
+                if not supported:
+                    for lower_col in below.columns:
+                        lx, ly, _lux, _luy, _lh = \
+                            below.column_placement(lower_col)
+                        if math.hypot(lx - cx, ly - cy) <= 0.1:
+                            supported = True
+                            break
+            if not supported:
+                errors.append(ValidationError(
+                    severity="error", element_type="Column",
+                    element_id=c.global_id,
+                    message=(
+                        f"E108: Column '{c.name}' on '{story.name}' has no "
+                        f"support path — its base at ({cx:.2f}, {cy:.2f}) "
+                        f"lands on no {', no '.join(what)} "
+                        "(geometric support-path check, not foundation "
+                        "adequacy — specs/columns.md)."),
                 ))
     return errors
 

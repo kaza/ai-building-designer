@@ -9,10 +9,11 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_serializer
 
 from archicad_builder.models.elements import (
     Beam,
+    Column,
     Door,
     DoorOperationType,
     Roof,
@@ -54,9 +55,22 @@ class Story(BaseModel):
     staircases: list[Staircase] = Field(default_factory=list)
     beams: list[Beam] = Field(default_factory=list)
     footings: list[StripFooting] = Field(default_factory=list)
+    columns: list[Column] = Field(default_factory=list)
     virtual_elements: list[VirtualElement] = Field(default_factory=list)
     spaces: list[Space] = Field(default_factory=list)
     apartments: list[Apartment] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _drop_empty_columns(self, handler):
+        """Serialize normally, but omit an EMPTY columns collection —
+        every existing building.json (and AB_Parametric payload) predates
+        the field, and a schema addition must not churn files that have
+        no columns (specs/ifc-identity.md: unchanged building, unchanged
+        bytes)."""
+        data = handler(self)
+        if isinstance(data, dict) and not self.columns:
+            data.pop("columns", None)
+        return data
 
     def get_wall(self, wall_id: str) -> Wall | None:
         """Find a wall by GlobalId."""
@@ -83,6 +97,26 @@ class Story(BaseModel):
     def wall_ids(self) -> set[str]:
         """Set of all wall GlobalIds in this story."""
         return {w.global_id for w in self.walls}
+
+    def column_placement(self, column: Column) -> tuple[float, float, float,
+                                                        float, float]:
+        """(cx, cy, ux, uy, height): plan center, section x-axis unit
+        vector (along the host wall for ties, +x for free posts) and the
+        effective height. Fails loud on a dangling host reference —
+        every consumer (IFC, seismic mass, FEM overlay, E108) derives
+        the same placement from here."""
+        if column.wall_id is not None:
+            wall = self.get_wall(column.wall_id)
+            if wall is None:
+                raise ValueError(
+                    f"column '{column.name}' references missing wall "
+                    f"{column.wall_id}")
+            ux = (wall.end.x - wall.start.x) / wall.length
+            uy = (wall.end.y - wall.start.y) / wall.length
+            return (wall.start.x + ux * column.along,
+                    wall.start.y + uy * column.along, ux, uy, self.height)
+        return (column.at.x, column.at.y, 1.0, 0.0,
+                self.height if column.height is None else column.height)
 
     def ensure_tags(self) -> None:
         """Auto-generate tags for elements that don't have one.
@@ -234,6 +268,7 @@ class Building(BaseModel):
         is_external: bool = False,
         load_bearing: bool = False,
         finish: str | None = None,
+        material: str | None = None,
     ) -> Wall:
         """Add a wall to a story. Returns the created wall.
 
@@ -250,6 +285,7 @@ class Building(BaseModel):
             is_external=is_external,
             load_bearing=load_bearing,
             finish=finish,
+            material=material,
         )
         story.walls.append(wall)
         return wall
@@ -387,6 +423,53 @@ class Building(BaseModel):
         )
         story.footings.append(footing)
         return footing
+
+    def add_column(
+        self,
+        story_name: str,
+        width: float,
+        depth: float,
+        *,
+        wall: str | None = None,
+        along: float | None = None,
+        at: tuple[float, float] | None = None,
+        material: str = "rc",
+        height: float | None = None,
+        name: str = "",
+        description: str = "",
+    ) -> Column:
+        """Add a column (specs/columns.md). Tie mode: `wall` (name) +
+        `along` (center distance from the wall start, within the wall);
+        free mode: `at` plan point. Names must be unique per storey —
+        identity and renderer metadata are name-keyed."""
+        story = self._require_story(story_name)
+        if any(c.name == name for c in story.columns):
+            raise ValueError(
+                f"column name {name!r} already exists on '{story.name}' — "
+                "names are the identity key")
+        extra: dict = {}
+        if wall is not None:
+            if height is not None:
+                raise ValueError("tie columns have no height parameter — "
+                                 "they are always full storey height")
+            host = story.get_wall_by_name(wall)
+            if host is None:
+                available = [w.name for w in story.walls if w.name]
+                raise ValueError(
+                    f"Wall '{wall}' not found in '{story_name}'. "
+                    f"Available: {available}")
+            if along is None or not 0.0 <= along <= host.length:
+                raise ValueError(
+                    f"column 'along' must lie on the host wall "
+                    f"[0, {host.length:.2f}], got {along}")
+            extra = {"wall_id": host.global_id, "along": along}
+        elif at is not None:
+            extra = {"at": Point2D(x=at[0], y=at[1]), "height": height}
+        column = Column(
+            name=name, description=description,
+            width=width, depth=depth, material=material, **extra)
+        story.columns.append(column)
+        return column
 
     def add_beam(
         self,

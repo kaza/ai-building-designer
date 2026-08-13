@@ -66,6 +66,9 @@ class FemResult:
     assumptions: list[str] = dc_field(default_factory=list)
     not_modelled: list[str] = dc_field(default_factory=list)
     combos: list[str] = dc_field(default_factory=lambda: ["ULS"])
+    # neutral overlay boxes for the X-ray page (specs/columns.md): columns
+    # are NOT meshed — no stiffness, no load, no stress hue
+    columns: list[dict] = dc_field(default_factory=list)
     # per-case equilibrium ledgers: gravity cases carry intended/attached/
     # reacted (vertical), lateral cases applied/reacted (horizontal) — a
     # single scalar balance can hide one case over-reacting while another
@@ -230,10 +233,13 @@ def _band_max(samples, band):
 
 def compute_fem(building: Building, mesh: float = 0.25,
                 max_quads: int = 60_000, site=None,
-                seismic_basis=None) -> FemResult:
+                seismic_basis=None, structure=None,
+                waivers=None) -> FemResult:
     """site: project [site] config — adds EQX/EQY lateral cases scaled to
     the ELF storey forces and four seismic combos (specs/seismic-lateral.md
-    S2). None keeps the gravity-only ULS behavior bit-identical."""
+    S2). None keeps the gravity-only ULS behavior bit-identical.
+    structure/waivers thread through to compute_seismic so the EQ forces
+    use the same q_eff as the ELF checks."""
     db = DesignBasis()
     stories = sorted(building.stories, key=lambda s: s.elevation)
     problems: list[str] = []
@@ -244,13 +250,13 @@ def compute_fem(building: Building, mesh: float = 0.25,
     if site is not None:
         from archicad_builder.seismic import SeismicBasis, compute_seismic
         sbasis = seismic_basis or SeismicBasis()
-        elf = compute_seismic(building, site, sbasis)
+        elf = compute_seismic(building, site, sbasis, structure=structure,
+                              waivers=waivers)
         if "elf" in elf["_unresolved"]:
             raise FemPreflightError(
                 "seismic requested but " + elf["_unresolved"]["elf"])
 
     # ---------- preflight ----------
-    meta = {}      # story name -> per-story derived data
     for s in stories:
         for w in s.walls:
             if w.load_bearing and _axis(w, "wall", problems) is None:
@@ -520,7 +526,8 @@ def compute_fem(building: Building, mesh: float = 0.25,
             continue
         quad = m.model.quads[qname]
         nds = (quad.i_node, quad.j_node, quad.m_node, quad.n_node)
-        xs_ = [n.X for n in nds]; ys_ = [n.Y for n in nds]
+        xs_ = [n.X for n in nds]
+        ys_ = [n.Y for n in nds]
         zs_ = [n.Z for n in nds]
         area = ((max(xs_) - min(xs_)) + (max(ys_) - min(ys_))) \
             * (max(zs_) - min(zs_))
@@ -933,6 +940,21 @@ def compute_fem(building: Building, mesh: float = 0.25,
             "to the ELF storey force; applied at the highest node of "
             "each plan column at or below the diaphragm (a short wall "
             "pushes at its own top, not a level it never reaches)")
+    # columns: neutral overlay geometry only (specs/columns.md phase C1 —
+    # meshing them as frame members is C2, if a decision ever hinges on it)
+    columns_out = []
+    for s in stories:
+        for c in s.columns:
+            cx, cy, ux, uy, ch = s.column_placement(c)
+            # plan AABB of the (possibly rotated) section — enough for a
+            # neutral overlay box
+            hx = abs(ux) * c.width / 2 + abs(uy) * c.depth / 2
+            hy = abs(uy) * c.width / 2 + abs(ux) * c.depth / 2
+            columns_out.append(dict(
+                name=c.name, story=s.name, material=c.material,
+                x=cx, y=cy, w=round(2 * hx, 4), d=round(2 * hy, 4),
+                z0=s.elevation, z1=s.elevation + ch))
+
     # The honest answer to "what is missing" — printed on the X-ray page so
     # nobody mistakes a calm color for a safe building (owner 2026-08-08).
     not_modelled = [
@@ -949,6 +971,10 @@ def compute_fem(building: Building, mesh: float = 0.25,
         "wall load, so any moment there would be a support artefact",
         "non-bearing walls: self-weight only, no stiffness or load path",
     ]
+    if columns_out:
+        not_modelled.append(
+            "column frame action / vertical-load shortening not in the "
+            "plate FEM — engineer verifies member design")
     if elf is not None:
         not_modelled += [
             "accidental torsional eccentricity (+/-0.05L): inherent "
@@ -971,5 +997,5 @@ def compute_fem(building: Building, mesh: float = 0.25,
         intended=tot_intended, attached=tot_attached,
         reactions=abs(reactions),
         unresolved=unresolved, assumptions=assumptions,
-        not_modelled=not_modelled,
+        not_modelled=not_modelled, columns=columns_out,
         combos=display_combos, case_balance=case_balance)

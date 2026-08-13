@@ -132,6 +132,51 @@ def build_report(project_dir: Path) -> str:
                  "seismic and foundation checks did not run.</p>")
     else:
         s.append(_kv(site.model_dump(exclude_none=True)))
+
+    # structure system (specs/seismic-lateral.md §Structure presets):
+    # declared vs EFFECTIVE type — a reviewer's first question is "what
+    # did you assume", so the assumption is never implicit
+    s.append("<h3>Structure system</h3>")
+    struct_info: dict = {"declared type": cfg.structure.type}
+    if seismic and isinstance(seismic.get("structure"), dict):
+        st_res = seismic["structure"]
+        struct_info["effective type"] = st_res.get("effective")
+        struct_info["q"] = st_res.get("q")
+        struct_info["q_eff"] = st_res.get("q_eff")
+        if st_res.get("fallback"):
+            struct_info["fallback"] = st_res["fallback"]
+    else:
+        struct_info["effective type"] = (
+            "unresolved — output/seismic.json carries no structure "
+            "record; re-run the seismic step")
+    split: dict[str, float] = {}
+    for st_ in stories:
+        for w in st_.walls:
+            split[w.material or "masonry"] = (
+                split.get(w.material or "masonry", 0.0) + w.length)
+    struct_info["wall material split (m)"] = {
+        k: round(v, 1) for k, v in sorted(split.items())}
+    s.append(_kv(struct_info))
+    s.append('<p class="muted">Confined classification rests on '
+             'geometric eligibility, not EN 1998-1 §9.5.3 compliance — '
+             'reinforcement, stirrups, anchorage and detailing are '
+             'verified by the engineer. Per-wall material is data-only '
+             'in C1: an RC wall counts at masonry fvd '
+             '(conservative).</p>')
+
+    col_rows = []
+    for st_ in stories:
+        for c in st_.columns:
+            cx, cy, _ux, _uy, ch = st_.column_placement(c)
+            col_rows.append([c.name, st_.name,
+                             "tie" if c.is_tie else "free", c.material,
+                             f"{c.width:.2f} × {c.depth:.2f}",
+                             f"({cx:.2f}, {cy:.2f})", round(ch, 2)])
+    if col_rows:
+        s.append("<h3>Columns</h3>")
+        s.append(_table(["column", "story", "role", "material",
+                         "section m", "position", "height m"], col_rows))
+
     from archicad_builder.seismic import SeismicBasis
     from archicad_builder.structural import DesignBasis
     s.append("<h3>Gravity basis (DesignBasis)</h3>")
@@ -279,8 +324,10 @@ def build_report(project_dir: Path) -> str:
 
     # validation
     s.append("<h2>Validation</h2>")
-    findings = validate_all_phases(building, site=site)
     waivers = load_waivers(project_dir / "validation.json")
+    findings = validate_all_phases(building, site=site,
+                                   structure=cfg.structure,
+                                   waivers=waivers)
     waived, stale = [], []
     if waivers is not None:
         findings, waived, stale = partition_findings(findings, waivers)
@@ -310,6 +357,10 @@ def build_report(project_dir: Path) -> str:
     else:
         gaps += ["FEM did not run — its exclusion list is unavailable; "
                  "treat every FEM-adjacent claim as unverified"]
+    if col_rows and not any("column frame action" in g for g in gaps):
+        # the FEM's own not_modelled already says this when it ran
+        gaps += ["column frame action / vertical-load shortening not in "
+                 "the plate FEM — engineer verifies member design"]
     gaps += [
         "vertical seismic component on cantilevers (flagged above)",
         "accidental torsional eccentricity in the FEM (inherent torsion "
