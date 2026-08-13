@@ -281,11 +281,11 @@ def skin(name, start, end):
 
 
 # South facade (y=0, outer face y=-0.15): two leaves flanking the reworked
-# kitchen pane, one beside the entry door; the stair-tower gap x6.1-7.6
-# stays open.
-skin("Shear Skin South W", (-0.15, -0.275), (1.95, -0.275))
+# kitchen pane; the stair-tower gap x6.1-7.6 stays open. (A third leaf by
+# the entry door was tried and removed: south stiffness pulls the centre
+# of rigidity AWAY from the mass — dropping it improved e0 and the bill.)
+skin("Shear Skin South W", (0, -0.275), (1.95, -0.275))
 skin("Shear Skin South E", (2.55, -0.275), (6.1, -0.275))
-skin("Shear Skin Entry", (7.6, -0.275), (8.5, -0.275))
 # North facade (y=12, outer face y=12.15): pilaster leaves behind the two
 # solid stubs flanking the Room 2 slider — added on the SOFT north side,
 # so they also pull the centre of rigidity toward the mass (E102).

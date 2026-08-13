@@ -655,7 +655,7 @@
           "tag": "",
           "description": "",
           "start": {
-            "x": -0.15,
+            "x": 0.0,
             "y": -0.275
           },
           "end": {
@@ -678,24 +678,6 @@
           },
           "end": {
             "x": 6.1,
-            "y": -0.275
-          },
-          "height": 3.0,
-          "thickness": 0.25,
-          "load_bearing": true,
-          "is_external": true
-        },
-        {
-          "global_id": "0BE8PZ0OHEYwQcHjq7nCvB",
-          "name": "Shear Skin Entry",
-          "tag": "",
-          "description": "",
-          "start": {
-            "x": 7.6,
-            "y": -0.275
-          },
-          "end": {
-            "x": 8.5,
             "y": -0.275
           },
           "height": 3.0,
