@@ -157,6 +157,14 @@ models = [
     "loungeChairRelax",
 ]
 
+# Structure preset (specs/seismic-lateral.md §Structure presets): the
+# architect's strengthening grid (axes A/B/C x 1-4, arena 2026-08-13)
+# is confined masonry — rc tie-columns on the axis grid, ring beams in
+# the roof-fascia depth. q = 2.0 is earned fail-closed by the tie-column
+# evidence in build.py; empty confinement_failures is the proof.
+[structure]
+type = "confined"
+
 # Seismic context (specs/seismic-lateral.md). PLACEHOLDERS pending the
 # real hazard-map lookup and geotech report — flagged in spec.md:
 # ag from the BAS EN 1998-1 map for the actual site, ground type and
