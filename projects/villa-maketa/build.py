@@ -74,6 +74,12 @@ for fname, fs, fe in [
 # 0.6 m bears 215 kPa > sigma_rd — E105 sized this one up to 0.8 m
 b.add_footing(GAR, (4.5, 8), (4.5, 0), width=0.8, height=0.5,
               name="Footing Garage West")
+# Arena 2026-08-13 (b-garage): strip under the GF Terrace Fin Wall
+# (y=12, outside the garage box — bears on soil). Declared on the
+# garage storey because footings live on the lowest storey (E104);
+# the real construction depth is a frost-depth strip, engineer to set.
+b.add_footing(GAR, (4.5, 12), (6.0, 12), width=0.6, height=0.5,
+              name="Footing Terrace Fin")
 
 b.add_story(GF, height=H, elevation=0.0)
 
@@ -91,10 +97,20 @@ def wall(name: str, start, end, thickness=INT):
 # east segment is appended after all other walls so W1-W14 stay stable.
 # White south-band walls rise past the brown roof as a parapet (photo #24:
 # "the wall should go to that height" — there is NO thick white roof)
-w_south = wall("South Wall", (0, 0), (6.1, 0), EXT)  # white
-w_east = wall("East Wall", (9.5, 0), (9.5, 12), EXT)
-w_north = wall("North Wall", (9.5, 12), (6.0, 12), EXT)
-w_r2_west = wall("Room 2 West Wall", (6.0, 12), (6.0, 8), EXT)
+# Arena 2026-08-13 (b-garage): the south band and the Room 2 north wall
+# thicken OUTWARD (centerline shifts, inner face stays put — room areas
+# untouched): South/South East 0.30→0.45, North 0.30→0.60. Extra shear
+# area for E100 x lands where the walls are already mostly solid.
+T_SOUTH = 0.45   # centerline y = -0.075, inner face stays at +0.15
+T_NORTH = 0.60   # centerline y = 12.15, inner face stays at 11.85
+w_south = wall("South Wall", (-0.15, -0.075), (6.1, -0.075), T_SOUTH)  # white
+w_south.is_external = True
+w_south.load_bearing = True
+w_east = wall("East Wall", (9.5, 0), (9.5, 12.15), EXT)  # meets thick N wall
+w_north = wall("North Wall", (9.65, 12.15), (6.0, 12.15), T_NORTH)
+w_north.is_external = True
+w_north.load_bearing = True
+w_r2_west = wall("Room 2 West Wall", (6.0, 12.15), (6.0, 8), EXT)
 w_master_n = wall("Master North Wall", (6.0, 8), (4.5, 8), EXT)
 # W6: east (door-side) half is one floor-to-roof window; west half is solid
 # yellow concrete carrying the TV, wrapping the corner into W7 (owner 2026-08-06)
@@ -128,7 +144,9 @@ w_r2_master = wall("Room 2 South Wall West", (6.0, 8), (8, 8))    # room2 vs mas
 # northern x-direction shear line (E100 x / E102 x fix).
 w_r2_hall.load_bearing = True
 w_r2_master.load_bearing = True
-w_south_e = wall("South Wall East", (7.6, 0), (9.5, 0), EXT)  # W15, D1, white
+w_south_e = wall("South Wall East", (7.6, -0.075), (9.65, -0.075), T_SOUTH)  # W15, D1, white
+w_south_e.is_external = True
+w_south_e.load_bearing = True
 w_west_s = wall("West Wall South", (0, 2.7), (0, 0), EXT)        # W16, white
 
 # --- Doors ---
@@ -158,9 +176,11 @@ d_r2.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # inner-flush like all villa glazing), Win5 = the fixed 1.1m pane beside
 # it; exact adjacency at position 1.75 (Gemini plan review: zero-overlap
 # adjacency is legal, sliding op skips W100 swing checks, 1.1m > egress).
-d_r2_terrace = b.add_door(GF, "North Wall", position=1.75, width=1.1,
+d_r2_terrace = b.add_door(GF, "North Wall", position=1.9, width=1.1,
                           height=2.8, name="Vila Room 2 Terrace Door",
                           swing_inward=False, pane_side="inner")
+# (position 1.9 from the extended wall start x=9.65 = same absolute
+# x6.65-7.75 opening as before the thickening)
 d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 
 # --- Windows ---
@@ -173,8 +193,10 @@ d_r2_terrace.operation_type = DoorOperationType.SLIDING_TO_LEFT
 # usable and light falls from above.
 # Arena 2026-08-13 (b-garage): kitchen band consolidated to a taller,
 # narrower pane — same 1.125 m² of glass, +0.6 m of shear wall (E100 x).
-b.add_window(GF, "South Wall", position=1.8, width=0.9, height=1.25,
+b.add_window(GF, "South Wall", position=1.95, width=0.9, height=1.25,
              sill_height=1.55, name="Kitchen Window", pane_side="inner")
+# (position 1.95 from the extended wall start x=-0.15 = same absolute
+# x1.8-2.7 spot as before the thickening)
 # Win2 slot reused in place (tags are insertion-ordered — owner talks in ids).
 # Owner 2026-08-06: Win2 runs from just below the roof (2.90) down to 1.80.
 # Feedback #001: position 0 = flush with the W6 corner -> corner glazing,
@@ -216,8 +238,10 @@ d_terrace_small.operation_type = DoorOperationType.SINGLE_SWING_RIGHT
 # same 2.80 head, slot reused in place so tags stay stable
 # Arena 2026-08-13 (b-garage): fixed pane 1.1→0.9 (Room 2 keeps 91% of
 # its glazing); exact adjacency to D7 at position 1.75 preserved.
-b.add_window(GF, "North Wall", position=0.85, width=0.9, height=2.75,
+b.add_window(GF, "North Wall", position=1.0, width=0.9, height=2.75,
              sill_height=0.05, name="Room 2 Sliding Door", pane_side="inner")
+# (position 1.0 from the extended wall start x=9.65 = absolute x7.75-8.65,
+# exact adjacency to D7 at x=7.75 preserved)
 # Feedback #024: the east facade under Roof East (y 2.7-12.6) carries a
 # clerestory band, not a lone porthole — same 2.05-2.80 language as
 # Win2/Win7. Two windows because the Room 2 partition (y=8) must land on
@@ -259,6 +283,15 @@ b.add_slab(
     name="Deck",
 )
 b.add_slab(GF, [(0.5, 14), (9, 14), (9, 17.5), (0.5, 17.5)], thickness=0.15, name="Pool")
+# Arena 2026-08-13 (b-garage): terrace fin — extends the North Wall line
+# (axis 4) westward from the Room 2 corner, under the Roof East / Roof
+# West north edge. Carries the roof corner over the covered terrace AND
+# anchors the northern x-direction shear line far from the stiff south
+# band (E100 x + E102 x). Full storey height, bearing, on its own strip
+# footing (soil under — outside the garage box).
+w_fin = b.add_wall(GF, (6.0, 12), (4.5, 12), height=H, thickness=EXT,
+                   name="Terrace Fin Wall", is_external=True,
+                   load_bearing=True)
 # Deck windscreen on the west edge (feedback #004 + maquette photo #29):
 # stone-clad near the house, glass panel running to the pool. Height 1.25
 # above the deck top (deck slab tops out at the storey datum since the
@@ -296,9 +329,11 @@ roof_e.span_direction = "x"
 # The roof splits into TWO clean rectangles (owner, P-shot 2026-08-06):
 # white south band + brown rest, tops flush at 3.45. The white part has NO
 # overhang — flush with the wall outer faces, "wall goes up then flat".
+# Arena 2026-08-13 (b-garage): south edge -0.15→-0.3 — stays flush with
+# the outer face of the thickened (0.45) south band walls.
 roof_s = b.add_roof(
     GF,
-    [(-0.15, -0.15), (9.65, -0.15), (9.65, 2.7), (-0.15, 2.7)],
+    [(-0.15, -0.3), (9.65, -0.3), (9.65, 2.7), (-0.15, 2.7)],
     thickness=0.45, name="Roof South White",
 )
 roof_s.span_direction = "x"
