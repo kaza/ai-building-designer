@@ -3,10 +3,11 @@
 {% block content %}
 <h1>Projects</h1>
 <div class="grid">
-  {% for id, name, open, resolved in projects %}
+  {% for id, name, open, resolved, attempts in projects %}
   <div class="card">
     <h2><a href="/{{ id }}/">{{ name }}</a></h2>
-    <p class="hint">{{ open }} open feedback · {{ resolved }} resolved</p>
+    <p class="hint">{{ open }} open feedback · {{ resolved }} resolved
+      {% if attempts %} · {{ attempts }} attempts{% endif %}</p>
     <a class="cta" href="/{{ id }}/">Open project</a>
   </div>
   {% endfor %}

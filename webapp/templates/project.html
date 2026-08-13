@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ name }} — AI Building Designer{% endblock %}
 {% block content %}
+{% if parent %}
+<p><a href="/{{ parent[0] }}/">← {{ parent[1] }}</a> <span class="hint">/ attempt</span></p>
+{% else %}
 <p><a href="/">← all projects</a></p>
+{% endif %}
 <h1>{{ name }}</h1>
 <p class="hint">build <code>{{ build.sha }}</code> · published {{ build.built_at }}</p>
 <a class="cta" href="/{{ project }}/walkthrough">▶ Enter 3D walkthrough</a>
@@ -15,6 +19,25 @@
     <figcaption>{{ p.caption }}</figcaption></figure>
   {% endfor %}
 </div>
+
+{% if runs %}
+<h2>Attempts</h2>
+{% for run, items in runs.items() %}
+<h3 class="hint">{{ run }}</h3>
+<table>
+  <tr><th>attempt</th><th></th></tr>
+  {% for cid, cname in items %}
+  <tr>
+    <td><a href="/{{ cid }}/">{{ cname }}</a></td>
+    <td style="white-space: nowrap">
+      <a href="/{{ cid }}/walkthrough">▶ walkthrough</a> ·
+      <a href="/{{ cid }}/xray">🩻 x-ray</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endfor %}
+{% endif %}
 
 <h2>Feedback</h2>
 {% if feedback %}
