@@ -102,6 +102,24 @@ class TestConfinedPreset:
         urm = compute_seismic(_box(), _site())
         assert res["Sd"] < urm["Sd"]
 
+    def test_partition_hosted_tie_earns_no_evidence(self):
+        # Codex 2026-08-15: a tie in a non-bearing partition confines
+        # nothing — re-hosting a required corner tie into a partition
+        # must break the evidence and drop the reward
+        b = _confined_box()
+        b.add_wall("S0", (0.0, 2.0), (3.0, 2.0), height=3.0,
+                   thickness=0.12, name="S0 Partition",
+                   load_bearing=False)
+        story = next(s for s in b.stories if s.name == "S0")
+        tie = next(c for c in story.columns
+                   if c.name == "S0 South T0")
+        partition = next(w for w in story.walls
+                         if w.name == "S0 Partition")
+        tie.wall_id = partition.global_id
+        res = compute_seismic(b, _site(), structure=CONFINED)
+        assert res["structure"]["effective"] == "urm"
+        assert res["confinement_failures"]
+
     def test_no_structure_block_is_todays_urm(self):
         # absent block = byte-identical behaviour
         assert (compute_seismic(_box(), _site())["Fb"]
