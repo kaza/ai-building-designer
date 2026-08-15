@@ -435,7 +435,12 @@ GF_TIES = [
     ("North Wall", 2.85, 0.25, "Tie 1 win jamb W"),
     ("Room 2 West Wall", 3.85, 0.25, "Tie 2 x6"),
     ("Master North Wall", 0.95, 0.25, "Tie 2 master jamb"),
-    ("Living East Wall", 7.85, 0.25, "Tie 2 old-A line"),
+    # old-A junction tie re-hosted 2026-08-15: Living East Wall is a
+    # non-bearing partition and a tie there confines nothing under the
+    # corrected rule — Master North Wall's west end covers the same
+    # axis-2 / old-A crossing AND stays a station (t >= -0.1) for the
+    # Living Sliding Window jamb at Living North Wall's start.
+    ("Master North Wall", 1.45, 0.25, "Tie 2 old-A line"),
     ("Living North Wall", 2.05, 0.25, "Tie 2 kamin E"),
     ("West Wall", 3.35, 0.25, "Tie W mullion"),
     ("West Wall", 5.25, 0.25, "Tie 3W joint"),
@@ -464,35 +469,17 @@ for _host, _along, _name in GAR_TIES:
     b.add_column(GAR, wall=_host, along=_along, width=0.25, depth=0.25,
                  material="rc", name=_name)
 
-# --- Foundation piers under off-garage tie-columns (E108) ---
-# GF ties standing over the garage box lines are supported by the walls
-# below; the rest of the grid gets an rc pier to the garage founding
-# level with its own pad — one founding depth for the whole house, no
-# differential settlement against the box. (2.45,8) lands on the wide
-# A footing, so it needs no pad of its own.
-TIE_PIERS = [
-    ((0.15, 0), "x"), ((3.05, 0), "x"), ((5.95, 0), "x"),
-    ((7.75, 0), "x"), ((8.50, 0), "x"), ((9.45, 0), "x"),
-    ((9.5, 2.7), "y"), ((9.5, 5.35), "y"), ((9.5, 8.0), "y"),
-    ((9.5, 11.85), "y"),
-    ((8.85, 12), "x"), ((7.75, 12), "x"), ((6.65, 12), "x"),
-    ((2.45, 8), None),          # on the axis-A strip footing (w 0.8)
-    ((-0.05, 8), "x"), ((-1.05, 8), "x"),
-    ((0, 4.65), "y"), ((0, 2.75), "y"),
-    ((8.15, 8), "x"), ((9.2, 8), "x"),
-    ((2.8, 12), "x"),           # under the A1 post pier
-]
-for _i, ((_px, _py), _axis) in enumerate(TIE_PIERS, 1):
-    b.add_column(GAR, at=(_px, _py), width=0.25, depth=0.25,
-                 material="rc", name=f"Foundation Pier {_i}")
-    if _axis == "x":
-        _fs, _fe = (_px - 0.35, _py), (_px + 0.35, _py)
-    elif _axis == "y":
-        _fs, _fe = (_px, _py - 0.35), (_px, _py + 0.35)
-    else:
-        continue
-    b.add_footing(GAR, _fs, _fe, width=0.7, height=0.5,
-                  name=f"Pad Pier {_i}")
+# --- A1 post foundation (the one real free-standing member) ---
+# 2026-08-15: the E108 tie-pier forest is GONE. Hosted ties anchor into
+# the ring beam and their wall's load path (owner-corrected E108) — the
+# 20 below-grade piers/pads that propped the consoles were fictional
+# and the consoles now genuinely cantilever. The A1 post keeps its
+# legitimate foundation: an rc pier to the garage founding level (one
+# founding depth for the whole house) with its own pad.
+b.add_column(GAR, at=(A, 12), width=0.25, depth=0.25,
+             material="rc", name="A1 Post Pier")
+b.add_footing(GAR, (A - 0.35, 12), (A + 0.35, 12), width=0.7, height=0.5,
+              name="Pad A1 Post")
 
 garage_story = b.get_story(GAR)
 assert garage_story is not None

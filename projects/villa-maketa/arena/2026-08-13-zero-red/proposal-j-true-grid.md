@@ -11,7 +11,7 @@ E102 retired, not waived) · red elements 10→0 across ULS + all four
 SEIS combos · apartment 90.0 m² untouched, GF slab−walls net ≈ +0.15 m²
 (deck +1.89 m² covers the new wall footprints); garage floor 37→28 m²
 BY COMMISSION (the one-car box the architect drew) · glazing: Living
-90.2% of baseline, every other room 100% (≥ 90% gate) · cost ≈ €43,300
+90.2% of baseline, every other room 100% (≥ 90% gate) · cost ≈ €35,800
 incl. 15% overhead`
 
 `validate --strict` exit 0 — zero errors AND zero warnings. The E100,
@@ -127,8 +127,8 @@ ZERO elements over 1.00 in any of ULS, SEIS_X±, SEIS_Y±.
 | RC tie-columns 25×25, GF (26 × 3.0 m) | 78.0 m | €90/m | 7,020 |
 | **The 2A stub, 60×20** (kamin mass) | 3.0 m | €130/m | 390 |
 | RC tie-columns 25×25, garage (8 × 2.89 m) | 23.1 m | €90/m | 2,080 |
-| Foundation piers under off-box ties (21 × 2.89 m) | 60.7 m | €90/m | 5,463 |
-| Pier pads 0.7×0.7×0.5 (20 — one pier sits on the A footing) | 4.9 m³ | €280/m³ | 1,372 |
+| A1 post foundation pier (1 × 2.89 m, the one real free post) | 2.9 m | €90/m | 260 |
+| A1 pier pad 0.7×0.7×0.5 | 0.25 m³ | €280/m³ | 69 |
 | Fascia ring beams: axes 1, 2, **A (2A→A1)**, B, west (35.9 m, 0.30×0.50) | 5.38 m³ | €350/m³ | 1,883 |
 | Ring-beam upgrade allowance, remaining confined walls | 39 m | €35/m | 1,365 |
 | **A1 post**, rc 50×40 (modelled as meshed pier) | 1.5 m² | €120/m² | 180 |
@@ -137,12 +137,12 @@ ZERO elements over 1.00 in any of ULS, SEIS_X±, SEIS_Y±.
 | South stone band thickening 0.30→0.40 | 18.3 m² | €45/m²/10cm | 824 |
 | Win4 glazing rework | 1.51 m² | €300/m² | 454 |
 | Masonry infill at Win4 (the kamin return) | 1.51 m² | €55/m² | 83 |
-| Subtotal | | | 37,669 |
-| Site overhead 15% | | | 5,650 |
-| **Total** | | | **≈ €43,300** |
+| Subtotal | | | 31,163 |
+| Site overhead 15% | | | 4,674 |
+| **Total** | | | **≈ €35,800** |
 
-This is the expensive option and unapologetic about it: ~€19k over the
-f-grid stationary version, of which ~€15k is the box move itself
+This is the expensive option and unapologetic about it: ~€12k over the
+f-grid stationary version, essentially the box move itself
 (demolition, pit, new walls/footings/slab). The rest is the same
 confinement grid every green lane needs. It is the design the architect
 actually drew.
@@ -153,16 +153,19 @@ actually drew.
 the first evaluation, fail-closed: q = q_eff = 2.0. The evidence grid:
 
 - **27 GF tie-columns** including the architect's **2A stub (60×20,
-  long side along A)** hosted in the kamin wall at (2.8, 8), plus one
-  tie in the demoted Living East partition that doubles as the D9 jamb
-  and the (4.5, 8) junction evidence.
+  long side along A)** hosted in the kamin wall at (2.8, 8). The old-A
+  junction tie is re-hosted in Master North Wall's west end (2026-08-15:
+  a tie in the demoted Living East partition confines nothing under the
+  corrected rule) — it still covers the (4.5, 8) junction and the
+  Living Sliding Window jamb.
 - **8 garage ties** on the moved box (corners, vehicle-door jambs,
   ≤ 5 m spacing) — the hatched tie marks the architect printed along B
   exist in the model as *GTie B stair/mid/B2*.
-- Every tie NOT standing over a garage wall line has an **rc foundation
-  pier to the box founding level** (21 piers, 20 pads — one lands on
-  the widened A strip footing): one founding depth, no differential
-  settlement, and a green E108 support path for every column.
+- **E108 corrected (2026-08-15)**: hosted ties anchor into the ring
+  beam and their bearing wall's own load path — no individual pier per
+  tie. The 20 fictional foundation piers/pads this lane had added are
+  GONE; only the **A1 post keeps its real pier and pad** to the box
+  founding level (a free-standing member founds like one).
 - The **A1 post earns NO confinement credit** (free-standing member,
   specs/columns.md) — its tie ring is its own pier's evidence, nothing
   more. Stated so the referee doesn't have to catch it.
@@ -184,9 +187,9 @@ the first evaluation, fail-closed: q = q_eff = 2.0. The evidence grid:
 - Tie-column reinforcement, stirrups, anchorage into pads and ring
   beams, casting sequence (masonry toothed, ties poured after) — the
   model proves §9.5.3 GEOMETRY only.
-- Foundation piers: 2.89 m buried rc columns — buckling and pad bearing
-  at placeholder σ_rd = 200 kPa (geotech report pending); ag = 0.15 g
-  placeholder pending the BAS EN 1998-1 map.
+- The A1 foundation pier: a 2.89 m buried rc column — buckling and pad
+  bearing at placeholder σ_rd = 200 kPa (geotech report pending);
+  ag = 0.15 g placeholder pending the BAS EN 1998-1 map.
 - The stair-tower shaft now sits OUTSIDE the box wall line (east of B)
   — waterproofing/retaining detail at the shaft-to-box junction.
 
@@ -206,7 +209,7 @@ geometrije je prošao, pa kuća zaslužuje q = 2,0. Nijedan element više
 nije preko nosivosti ni u jednoj kombinaciji (ULS + sve četiri
 seizmičke). Konzole — "lebdeći volumen" — označene su inženjeru za
 provjeru vertikalnog seizmičkog djelovanja. Cijena je realna, ne
-uljepšana: ≈ €43.300 sa svim rušenjem, iskopom i serklažima.
+uljepšana: ≈ €35.800 sa svim rušenjem, iskopom i serklažima.
 
 ## 8. What the true geometry bought (vs f-grid's stationary version)
 
@@ -226,6 +229,12 @@ closest approach (0.96); (2) the x-direction shear ledger lost the old
 garage west wall — recovered on the grid (0.40 m axis-4 band, axis-2 rc
 walls, kamin return at Win4, wing wall); (3) the A1 post itself was
 this lane's only self-inflicted red (1.014 at 0.30 thick — cleared at
-0.40). Cost honesty: ~€19k over f-grid, almost all of it the box move
+0.40). Cost honesty: ~€12k over f-grid, almost all of it the box move
 (demolition, pit, new stone walls, footings, slab) — the price of
 building the maquette instead of approximating it.
+
+---
+
+Addendum 2026-08-15: E108 corrected (ties anchor into ring beam/wall
+path) — the fictional foundation piers removed (20 of 21; the A1 post
+keeps its one real pier); consoles now genuinely cantilever.
