@@ -389,85 +389,24 @@ story.apartments.append(apartment)
 # depth. Soffits sit ON the glazing heads (z 2.80) — the f-grid lane
 # proved a 5 cm masonry sliver between head and soffit carries the roof
 # edge in tension and stays red.
-# Axis 2 (the kamin line), wing tip to the east overhang:
-b.add_beam(GF, (-1.2, 8), (9.65, 8), width=0.30, depth=0.50,
-           z_top=3.30, name="Ring Beam Axis 2")
-# Axis 1 (y=12, guest-room north / deck edge):
-b.add_beam(GF, (0.2, 12), (9.65, 12), width=0.30, depth=0.50,
-           z_top=3.30, name="Ring Beam Axis 1")
-# THE architect's beam ("iron or concrete" — concrete here, a steel beam
-# would not be meshed): on the A line at roof level, from the 2A stub
-# north to the A1 post, carrying the roof edge over the glass zone.
+# ARCHITECT-LITERAL VARIANT (owner 2026-08-15): only the elements the
+# architect actually drew. The four ring beams the compliant lane added
+# are REMOVED — the point of this variant is to SEE what fails without
+# them. THE architect's one beam ("iron or concrete") stays: on the A
+# line at roof level, 2A stub -> A1 post, over the glass zone.
 b.add_beam(GF, (A, 8), (A, 12.15), width=0.30, depth=0.50,
            z_top=3.30, name="Beam Axis A")
-# Axis B roof-level tie: bridges the Bath Divider (B3) up to axis 2 —
-# the roof seam field x4.3-6.58 lost its x=4.5 support when the garage
-# moved; B is its new east seat.
-b.add_beam(GF, (B, 2.35), (B, 8.15), width=0.30, depth=0.50,
-           z_top=3.30, name="Ring Beam Axis B")
-# West facade: soffit at 2.80 = the band-window head.
-b.add_beam(GF, (0, 2.55), (0, 8.15), width=0.30, depth=0.50,
-           z_top=3.30, name="Ring Beam West Facade")
 
-# --- Tie-column grid (confined masonry evidence, EN 1998-1 §9.5.3) ---
-# The architect's axes: A/B/C = x 2.8/6.58/9.5, 1/2/3/4 = y 12/8/4.5/0.
-# Ties at every bearing-wall intersection, free end, jamb of openings
-# > 1.5 m2, and <= 5 m spacing — output/seismic.json
-# confinement_failures must be EMPTY (earns q = 2.0 fail-closed).
+# --- The architect's columns, and ONLY those (owner 2026-08-15) ---
+# The §9.5.3 tie grid (26 GF + 8 garage ties) is REMOVED in this
+# variant: the architect drew two members, so two members exist. The
+# confined declaration stays — the fail-closed evidence check will list
+# every location the code demands and the sketch lacks; that list IS
+# this variant's deliverable.
 # The architect's hidden stub: 60x20 at 2A, long side along A (y) —
 # hosted in the kamin wall, 20 cm along the wall, 60 cm across it.
 b.add_column(GF, wall="Living North Wall", along=1.7, width=0.20,
              depth=0.60, material="rc", name="Stub 2A 60x20")
-GF_TIES = [
-    # (host wall, along, width, name)
-    ("South Wall", 0.15, 0.25, "Tie 4-west corner"),
-    ("South Wall", 3.05, 0.25, "Tie 4 mid (A4 zone)"),
-    ("South Wall", 5.95, 0.25, "Tie 4 stair W"),
-    ("South Wall East", 0.15, 0.25, "Tie 4 stair E"),
-    ("South Wall East", 0.90, 0.25, "Tie 4 entry jamb"),
-    ("South Wall East", 1.85, 0.25, "Tie C4"),
-    ("East Wall", 2.70, 0.25, "Tie C hall jamb S"),
-    ("East Wall", 5.35, 0.25, "Tie C mid"),
-    ("East Wall", 8.00, 0.25, "Tie C2"),
-    ("East Wall", 11.85, 0.25, "Tie C1"),
-    ("North Wall", 0.65, 0.25, "Tie 1 win jamb E"),
-    ("North Wall", 1.75, 0.25, "Tie 1 door jamb"),
-    ("North Wall", 2.85, 0.25, "Tie 1 win jamb W"),
-    ("Room 2 West Wall", 3.85, 0.25, "Tie 2 x6"),
-    ("Master North Wall", 0.95, 0.25, "Tie 2 master jamb"),
-    # old-A junction tie re-hosted 2026-08-15: Living East Wall is a
-    # non-bearing partition and a tie there confines nothing under the
-    # corrected rule — Master North Wall's west end covers the same
-    # axis-2 / old-A crossing AND stays a station (t >= -0.1) for the
-    # Living Sliding Window jamb at Living North Wall's start.
-    ("Master North Wall", 1.45, 0.25, "Tie 2 old-A line"),
-    ("Living North Wall", 2.05, 0.25, "Tie 2 kamin E"),
-    ("West Wall", 3.35, 0.25, "Tie W mullion"),
-    ("West Wall", 5.25, 0.25, "Tie 3W joint"),
-    ("Room 2 South Wall East", 0.15, 0.25, "Tie 2 corridor"),
-    ("Room 2 South Wall East", 1.20, 0.25, "Tie 2 room2 jamb"),
-    ("Bath Divider Wall", 0.15, 0.25, "Tie B3 south"),
-    ("Bath Divider Wall", 1.85, 0.25, "Tie B3 north"),
-    ("Wing Wall 2W", 0.05, 0.25, "Tie 2W corner"),
-    ("Wing Wall 2W", 1.05, 0.25, "Tie 2W end"),
-    ("A1 Post", 0.25, 0.25, "Tie A1"),
-]
-for _host, _along, _w, _name in GF_TIES:
-    b.add_column(GF, wall=_host, along=_along, width=_w, depth=0.25,
-                 material="rc", name=_name)
-GAR_TIES = [
-    ("Garage West Wall", 0.15, "GTie A2 corner"),
-    ("Garage West Wall", 4.00, "GTie A mid"),
-    ("Garage West Wall", 7.85, "GTie A4 corner"),
-    ("Garage East Wall", 0.15, "GTie B stair corner"),
-    ("Garage East Wall", 3.55, "GTie B mid"),
-    ("Garage East Wall", 7.10, "GTie B2 corner"),
-    ("Garage South Wall", 0.45, "GTie 4 door jamb W"),
-    ("Garage South Wall", 3.05, "GTie 4 door jamb E"),
-]
-for _host, _along, _name in GAR_TIES:
-    b.add_column(GAR, wall=_host, along=_along, width=0.25, depth=0.25,
-                 material="rc", name=_name)
 
 # --- A1 post foundation (the one real free-standing member) ---
 # 2026-08-15: the E108 tie-pier forest is GONE. Hosted ties anchor into

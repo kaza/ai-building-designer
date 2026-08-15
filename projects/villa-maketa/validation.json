@@ -31,63 +31,63 @@
     {
       "rule": "E013",
       "match": "No building entrance",
-      "reason": "entry exists (Vila Entry Door, GF South Wall); validator assumes stories[0] is ground level — a basement breaks that assumption (framework finding)"
+      "reason": "entry exists (Vila Entry Door, GF South Wall); validator assumes stories[0] is ground level \u2014 a basement breaks that assumption (framework finding)"
     },
     {
       "rule": "W060",
       "match": "Garage Vehicle Door",
-      "reason": "2.4m vehicle door — garage doors are wide on purpose"
+      "reason": "2.4m vehicle door \u2014 garage doors are wide on purpose"
     },
     {
       "rule": "E065",
-      "reason": "Roof West's deck strip cantilevers 4.3m with no western support — REAL finding (the floating deck roof, load-takedown experiment). Fix is an owner design decision pending: columns at the deck edge vs shortening the roof to the glass line (asked 2026-08-08)."
+      "reason": "Roof West's deck strip cantilevers 4.3m with no western support \u2014 REAL finding (the floating deck roof, load-takedown experiment). Fix is an owner design decision pending: columns at the deck edge vs shortening the roof to the glass line (asked 2026-08-08)."
     },
     {
       "rule": "E062",
       "match": "Garage Vehicle Door",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Kitchen Window",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Living Band Window",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Living Glass W2",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Living Sliding Window",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Hallway Window",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E062",
       "match": "Living Band Window N",
-      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verstärkung') — the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verstärkung pending"
+      "reason": "beams removed deliberately (owner 2026-08-08 evening: 'remove them, let's see how it looks without them, then we can check where and how we need to make Verst\u00e4rkung') \u2014 the FEM X-ray on the beam-less model shows where reinforcement belongs; decision on final Verst\u00e4rkung pending"
     },
     {
       "rule": "E100",
-      "reason": "maquette reproduction predates the seismic feature; x-direction shear deficit (band windows) and garage-storey capacity are REAL findings, documented in spec.md — strengthening (RC wall upgrade / confined masonry) is an owner+engineer decision pending the actual hazard-map ag and geotech report"
+      "reason": "architect-literal variant (owner 2026-08-15): with only the drawn members the building classifies as unreinforced masonry (q=1.5) and storey shear FAILS both directions - x 517 vs 614 kN, y 570 vs 614. Documented gap, not a fix: the E109 tie list is the missing ingredient."
     },
     {
       "rule": "E101",
-      "reason": "URM assumption at placeholder ag=0.15 exceeds the EN 1998-1 Table 9.3 simple-rules envelope; the villa will not be built as unreinforced masonry — structure type to be fixed with the engineer (spec.md)"
+      "reason": "architect-literal variant: unreinforced masonry is outside the EN 1998-1 Table 9.3 envelope at ag*S=0.18g - confined classification requires the tie grid this variant deliberately omits."
     },
     {
-      "rule": "E102",
-      "reason": "torsional irregularity is real (stair tower half outside the envelope, one-sided garage wing) and stays documented in spec.md + the handoff report; consequence is loss of simplified-analysis privileges — the engineer runs a spatial model, which the FEM X-ray already is"
+      "rule": "E109",
+      "reason": "architect-literal variant: 55 tie-column locations required by EN 1998-1 9.5.3 (intersections, wall ends, jambs >1.5m2, 5m spacing) and absent from the sketch - the gap list IS this variant's deliverable; see the engineer report."
     }
   ]
 }
