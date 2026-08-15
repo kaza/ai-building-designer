@@ -263,188 +263,8 @@
           "height": 0.5
         },
         {
-          "global_id": "0i8XK9U4jBGwvwElGLR996",
-          "name": "Pad Pier 1",
-          "description": "",
-          "start": {
-            "x": 1.1,
-            "y": 0.0
-          },
-          "end": {
-            "x": 1.7999999999999998,
-            "y": 0.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "2qpu6FSNv1bRxX8v_DUqeP",
-          "name": "Pad Pier 2",
-          "description": "",
-          "start": {
-            "x": 5.6000000000000005,
-            "y": 0.0
-          },
-          "end": {
-            "x": 6.3,
-            "y": 0.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1lr9dF5qj2NBW0sLaNKh51",
-          "name": "Pad Pier 3",
-          "description": "",
-          "start": {
-            "x": 7.4,
-            "y": 0.0
-          },
-          "end": {
-            "x": 8.1,
-            "y": 0.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "2HunK35qTCiwCbTRgm4gio",
-          "name": "Pad Pier 4",
-          "description": "",
-          "start": {
-            "x": 8.15,
-            "y": 0.0
-          },
-          "end": {
-            "x": 8.85,
-            "y": 0.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "3Gm5n_Dn98tPfNFzZDanBg",
-          "name": "Pad Pier 5",
-          "description": "",
-          "start": {
-            "x": -0.19999999999999998,
-            "y": 8.0
-          },
-          "end": {
-            "x": 0.5,
-            "y": 8.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1lHX0YifL3ER_UzG1jLhxK",
-          "name": "Pad Pier 6",
-          "description": "",
-          "start": {
-            "x": 1.9,
-            "y": 8.0
-          },
-          "end": {
-            "x": 2.6,
-            "y": 8.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1CI$Lf8mDA7P63Z5w_huGr",
-          "name": "Pad Pier 7",
-          "description": "",
-          "start": {
-            "x": -1.4,
-            "y": 8.0
-          },
-          "end": {
-            "x": -0.7000000000000001,
-            "y": 8.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "0HAc2VE$9BsBDULDkyXL9k",
-          "name": "Pad Pier 8",
-          "description": "",
-          "start": {
-            "x": 0.0,
-            "y": 4.300000000000001
-          },
-          "end": {
-            "x": 0.0,
-            "y": 5.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1WvDUUWJLEG80KjqPa2tg5",
-          "name": "Pad Pier 9",
-          "description": "",
-          "start": {
-            "x": 0.0,
-            "y": 2.4499999999999997
-          },
-          "end": {
-            "x": 0.0,
-            "y": 3.15
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1sPUengibFoh6pLViWqrmM",
-          "name": "Pad Pier 10",
-          "description": "",
-          "start": {
-            "x": 8.5,
-            "y": 12.0
-          },
-          "end": {
-            "x": 9.2,
-            "y": 12.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1b$2Cjm69ADe2y5a8wL23C",
-          "name": "Pad Pier 11",
-          "description": "",
-          "start": {
-            "x": 7.4,
-            "y": 12.0
-          },
-          "end": {
-            "x": 8.1,
-            "y": 12.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "0KGn6$gzf1qQN$oV6wgyIF",
-          "name": "Pad Pier 12",
-          "description": "",
-          "start": {
-            "x": 6.300000000000001,
-            "y": 12.0
-          },
-          "end": {
-            "x": 7.0,
-            "y": 12.0
-          },
-          "width": 0.7,
-          "height": 0.5
-        },
-        {
-          "global_id": "1qjl$fZSjF3vjsJSG2Xphi",
-          "name": "Pad Pier 13",
+          "global_id": "1PVJJyrcnDgPdaoYeW1KRP",
+          "name": "Pad Pergola 1A",
           "description": "",
           "start": {
             "x": 0.10000000000000003,
@@ -458,8 +278,8 @@
           "height": 0.5
         },
         {
-          "global_id": "0sp34k21bCRQEFBR8lu__d",
-          "name": "Pad Pier 14",
+          "global_id": "0aU6OBItH8t9hHyjTjGgaG",
+          "name": "Pad Pergola 1B",
           "description": "",
           "start": {
             "x": 1.9499999999999997,
@@ -473,8 +293,8 @@
           "height": 0.5
         },
         {
-          "global_id": "2fbXICTHf9nwHQkSaRs8aX",
-          "name": "Pad Pier 15",
+          "global_id": "0TaznZM6DD4uNQ$z3L04Cr",
+          "name": "Pad Pergola 1C",
           "description": "",
           "start": {
             "x": 3.85,
@@ -580,152 +400,8 @@
           "along": 0.15
         },
         {
-          "global_id": "07ifBX$$HFKRxL5FnnvXnI",
-          "name": "Foundation Pier 1",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 1.45,
-            "y": 0.0
-          }
-        },
-        {
-          "global_id": "0jqkRB$7TFJfDBI448NpkD",
-          "name": "Foundation Pier 2",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 5.95,
-            "y": 0.0
-          }
-        },
-        {
-          "global_id": "3FuSrUvkTFYOtDe6RmMHHZ",
-          "name": "Foundation Pier 3",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 7.75,
-            "y": 0.0
-          }
-        },
-        {
-          "global_id": "2MCJOGytj8gv3QsjVdQejL",
-          "name": "Foundation Pier 4",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 8.5,
-            "y": 0.0
-          }
-        },
-        {
-          "global_id": "3d37KTuC9Do8YpktLwUF2D",
-          "name": "Foundation Pier 5",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 0.15,
-            "y": 8.0
-          }
-        },
-        {
-          "global_id": "0AF7shneDB69BRwqy6$sYF",
-          "name": "Foundation Pier 6",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 2.25,
-            "y": 8.0
-          }
-        },
-        {
-          "global_id": "2JH7dFonT5cOdW$tyYNcf4",
-          "name": "Foundation Pier 7",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": -1.05,
-            "y": 8.0
-          }
-        },
-        {
-          "global_id": "34EGxbCR1CcuBSGvE7cB_a",
-          "name": "Foundation Pier 8",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 0.0,
-            "y": 4.65
-          }
-        },
-        {
-          "global_id": "0Uv_TO_UL5cf76j5KQ45I1",
-          "name": "Foundation Pier 9",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 0.0,
-            "y": 2.8
-          }
-        },
-        {
-          "global_id": "1Ku68uC4nB_uULb$V9QOGP",
-          "name": "Foundation Pier 10",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 8.85,
-            "y": 12.0
-          }
-        },
-        {
-          "global_id": "2pbSLGJgTBcwQTZuK3wMsg",
-          "name": "Foundation Pier 11",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 7.75,
-            "y": 12.0
-          }
-        },
-        {
-          "global_id": "3rDi$Sou52dPQa0FCxM4xX",
-          "name": "Foundation Pier 12",
-          "description": "",
-          "width": 0.25,
-          "depth": 0.25,
-          "material": "rc",
-          "at": {
-            "x": 6.65,
-            "y": 12.0
-          }
-        },
-        {
-          "global_id": "1FytKnDn50YuZ8mhfuLTvL",
-          "name": "Foundation Pier 13",
+          "global_id": "0RdwKvFIzBOQjRaXc3hgtQ",
+          "name": "Pergola Foundation Pier 1A",
           "description": "",
           "width": 0.25,
           "depth": 0.25,
@@ -736,8 +412,8 @@
           }
         },
         {
-          "global_id": "0MFnoMuYf5hxJqacANxYq4",
-          "name": "Foundation Pier 14",
+          "global_id": "1eE_Jk25XEGfFeeP5Hkq5q",
+          "name": "Pergola Foundation Pier 1B",
           "description": "",
           "width": 0.25,
           "depth": 0.25,
@@ -748,8 +424,8 @@
           }
         },
         {
-          "global_id": "3y1HAouBL7Wf_OnuNNm2Ar",
-          "name": "Foundation Pier 15",
+          "global_id": "1BalliQrP4GgOcJAebyQdN",
+          "name": "Pergola Foundation Pier 1C",
           "description": "",
           "width": 0.25,
           "depth": 0.25,

@@ -10,7 +10,7 @@ torsionally REGULAR (e0 ≤ 0.30·r and r ≥ ls), E102 gone · red elements
 10→0 across ULS + all four SEIS combos · area Δ +0.15 m² net
 (apartment 90.0 m² untouched; deck +1.2 m² covers the 0.81 m² of new
 pier/wing footprints) · glazing: Living 91.2%, every other room 100%
-of baseline (≥90% gate) · cost ≈ €24,300 incl. 15% overhead`
+of baseline (≥90% gate) · cost ≈ €19,800 incl. 15% overhead`
 
 `validate --strict` exit 0 — zero errors AND zero warnings; the E100,
 E101 and E102 waivers are now STALE (the findings no longer exist —
@@ -34,11 +34,12 @@ every free wall end (the stair-gap edges at 4, the garage door jambs on
 B), both jambs of every opening over 1.5 m², and ≤ 5 m spacing on every
 bearing wall. `confinement_failures` is empty, so the seismic engine
 grants q = 2.0: demand drops 581 → 467 kN before a single wall is
-added. Ties standing off the garage box (facade corners on axes 1 and
-4, the west facade) get rc **foundation piers to the garage founding
-level with their own pads** — one founding depth for the whole house,
-no differential settlement against the basement box, and a clean E108
-support path for every column.
+added. Ties cast inside bearing walls anchor into the ring beam and
+the wall's own load path — E108 (corrected 2026-08-15) demands no
+individual pier under them. Only the three axis-1 pergola piers, which
+carry real roof load on a line with no wall below, get rc **foundation
+piers to the garage founding level with their own pads** — one founding
+depth, no differential settlement against the basement box.
 
 **The x-direction, closed with three small moves.** The band-window
 facades gave axis 2 literally zero shear length. (1) Win7 shrinks
@@ -97,8 +98,8 @@ ZERO elements over 1.00 in any of ULS, SEIS_X±, SEIS_Y±.
 | RC tie-columns 25×25, GF (26, cast in wall) | 78.0 m | €90/m | 7,020 |
 | The 2A stub, 60×20 in the Living East Wall | 3.0 m | €130/m | 390 |
 | RC tie-columns 25×25, garage storey (9) | 26.0 m | €90/m | 2,340 |
-| Foundation piers under off-garage ties (15, to garage founding level) | 43.4 m | €90/m | 3,903 |
-| Pier pads 0.7×0.7×0.5 (15) | 3.68 m³ | €280/m³ | 1,029 |
+| Pergola foundation piers (3, to garage founding level) | 8.7 m | €90/m | 781 |
+| Pier pads 0.7×0.7×0.5 (3) | 0.74 m³ | €280/m³ | 206 |
 | Fascia ring beams, axes 1 + 2 + west + east (31.5 m, cast with roof edge) | 4.89 m³ | €350/m³ | 1,713 |
 | Ring-beam upgrade allowance, remaining confined walls | 48.7 m | €35/m | 1,705 |
 | Pergola piers, rc 0.5×0.3 (3) | 4.5 m² | €120/m² | 540 |
@@ -107,12 +108,12 @@ ZERO elements over 1.00 in any of ULS, SEIS_X±, SEIS_Y±.
 | Win7 glazing rework | 1.35 m² | €300/m² | 405 |
 | Masonry infill at Win7 band | 1.35 m² | €55/m² | 74 |
 | Deck slab extension (west edge +0.20 m) | 0.18 m³ | €350/m³ | 63 |
-| Subtotal | | | 21,137 |
-| Site overhead 15% | | | 3,171 |
-| **Total** | | | **≈ €24,300** |
+| Subtotal | | | 17,192 |
+| Site overhead 15% | | | 2,579 |
+| **Total** | | | **≈ €19,800** |
 
 Not the cheapest lane and unapologetic about it: the money is the
-confinement itself (ties + piers ≈ €14.7 k) — the thing that earns
+confinement itself (ties + piers ≈ €10.7 k) — the thing that earns
 q = 2.0, retires E101's URM impossibility honestly, and is the system
 the architect drew.
 
@@ -152,8 +153,9 @@ gone.
   against toothed masonry) — the model proves §9.5.3 *geometry* only.
 - The 60×20 stub at 2A and both facade fascia beams: bearing at the
   glazing heads (soffit sits on the window frames at z 2.80).
-- Foundation piers: 2.89 m buried columns — buckling length and pad
-  bearing at the placeholder σ_rd = 200 kPa (geotech report pending).
+- Pergola foundation piers (3): 2.89 m buried columns — buckling length
+  and pad bearing at the placeholder σ_rd = 200 kPa (geotech report
+  pending).
 - Column frame action is NOT in the plate FEM (specs/columns.md C1):
   the pergola piers are meshed as wall stubs, the tie-columns carry no
   numerical load — their seismic value is the confinement class.
@@ -169,3 +171,13 @@ nine of ten baseline reds were the roof edge riding on glass or on
 tie-columns themselves (phase C1 keeps them out of the FEM), so the
 2A stub protects the A2 junction in the classification and on the
 engineer's sheet, not in the utilization table.
+
+## Addendum
+
+2026-08-15: E108 corrected — fictional foundation piers removed. The 12
+below-grade piers/pads that existed solely to give wall-hosted ties an
+old-E108 support path are gone (−€3,945); hosted ties in bearing walls
+anchor into the ring beam and the wall's load path. The three pergola
+foundations stay — they carry the real deck-roof edge. Seismic and FEM
+results are unchanged (columns are not meshed; confinement evidence
+comes from the hosted ties, all in bearing walls).

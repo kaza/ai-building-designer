@@ -462,27 +462,24 @@ for _host, _along, _name in GAR_TIES:
     b.add_column(GAR, wall=_host, along=_along, width=0.25, depth=0.25,
                  material="rc", name=_name)
 
-# --- Foundation piers under off-garage tie-columns (E108) ---
-# GF ties standing over the garage bearing lines are supported; the rest
-# of the grid (facade corners, jamb ties, pergola piers) gets an rc pier
-# to the garage founding level with its own pad — uniform founding depth,
-# no differential settlement against the garage box.
-TIE_PIERS = [
-    (1.45, 0), (5.95, 0), (7.75, 0), (8.50, 0),
-    (0.15, 8), (2.25, 8), (-1.05, 8),
-    (0, 4.65), (0, 2.80),
-    (8.85, 12), (7.75, 12), (6.65, 12),
-    (0.45, 12), (2.30, 12), (4.20, 12),
+# --- Pergola pier foundations (axis 1) ---
+# 2026-08-15: the 15-pier "foundation forest" under wall-hosted ties is
+# GONE — E108 now exempts host-placed ties in bearing walls (they anchor
+# into the ring beam and the wall's own load path; owner: consoles must
+# float). What remains is REAL: the three axis-1 pergola piers carry the
+# deck-roof edge (FEM iter 1: Roof West 1.41->0.24, Roof East 1.76->0.32),
+# so each gets an rc pier to the garage founding level with its own pad —
+# uniform founding depth, no differential settlement against the garage box.
+PERGOLA_FOUNDATIONS = [
+    ("1A", (0.45, 12)),
+    ("1B", (2.30, 12)),
+    ("1C", (4.20, 12)),
 ]
-for _i, (_px, _py) in enumerate(TIE_PIERS, 1):
+for _tag, (_px, _py) in PERGOLA_FOUNDATIONS:
     b.add_column(GAR, at=(_px, _py), width=0.25, depth=0.25,
-                 material="rc", name=f"Foundation Pier {_i}")
-    if abs(_px) < 0.01:      # x=0 facade line: footing runs along y
-        _fs, _fe = (_px, _py - 0.35), (_px, _py + 0.35)
-    else:
-        _fs, _fe = (_px - 0.35, _py), (_px + 0.35, _py)
-    b.add_footing(GAR, _fs, _fe, width=0.7, height=0.5,
-                  name=f"Pad Pier {_i}")
+                 material="rc", name=f"Pergola Foundation Pier {_tag}")
+    b.add_footing(GAR, (_px - 0.35, _py), (_px + 0.35, _py),
+                  width=0.7, height=0.5, name=f"Pad Pergola {_tag}")
 
 garage_story = b.get_story(GAR)
 assert garage_story is not None
