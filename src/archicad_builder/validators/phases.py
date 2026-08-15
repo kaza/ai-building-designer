@@ -1907,12 +1907,15 @@ def validate_foundations(building, site, basis=None, structure=None,
 def validate_columns_support(building) -> list[ValidationError]:
     """E108 — geometric SUPPORT-PATH check for columns (specs/columns.md).
 
-    Every column base must land on: a footing, a load-bearing wall top
-    of the storey below, the on-grade slab (BASESLAB, lowest storey —
-    the same grounding rule E104 uses), or an aligned column below.
-    This is NOT foundation adequacy: column loads enter no footing-
-    pressure math in C1; E050/E103/E104/E105 keep their walls-only
-    scope."""
+    FREE-standing columns only (owner 2026-08-15): a host-placed tie
+    anchors into the ring beam and its host wall's own load path — the
+    wall's support is E104's business, and demanding a pier under every
+    tie propped up the consoles the design is about. A free column's
+    base must land on: a footing, a load-bearing wall top of the storey
+    below, the on-grade slab (BASESLAB, lowest storey — the same
+    grounding rule E104 uses), or an aligned column below. This is NOT
+    foundation adequacy: column loads enter no footing-pressure math in
+    C1; E050/E103/E104/E105 keep their walls-only scope."""
     errors: list[ValidationError] = []
     from archicad_builder.models.elements import SlabType
 
@@ -1939,6 +1942,15 @@ def validate_columns_support(building) -> list[ValidationError]:
     for i, story in enumerate(stories):
         below = stories[i - 1] if i > 0 else None
         for c in story.columns:
+            if c.wall_id:
+                host = story.get_wall(c.wall_id)
+                if host is not None and host.load_bearing:
+                    # host-placed tie in a BEARING wall: supported by
+                    # construction (see docstring) — the wall's own
+                    # path is checked elsewhere. A non-bearing or
+                    # dangling host earns no exemption (Codex review
+                    # 2026-08-15): fall through to the geometric check
+                    continue
             cx, cy, _ux, _uy, _h = story.column_placement(c)
             supported = False
             what = []
@@ -1960,6 +1972,12 @@ def validate_columns_support(building) -> list[ValidationError]:
                     for w in below.walls if w.load_bearing)
                 if not supported:
                     for lower_col in below.columns:
+                        if lower_col.wall_id:
+                            # an exempt hosted tie must not launder
+                            # support upward to a free column (Codex
+                            # review 2026-08-15) — bearing-wall-below
+                            # already covers the honest version
+                            continue
                         lx, ly, _lux, _luy, _lh = \
                             below.column_placement(lower_col)
                         if math.hypot(lx - cx, ly - cy) <= 0.1:

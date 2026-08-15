@@ -329,15 +329,53 @@ class TestSeismicMass:
 
 class TestE108SupportPath:
     def test_column_on_footing_passes(self):
+        # free column (hosted ties are exempt and would short-circuit
+        # the footing branch — Codex 2026-08-15)
         b = _box(with_footings=True)
-        b.add_column("S0", wall="S0 South", along=3.0,
-                     width=0.6, depth=0.3, name="T1")
+        b.add_column("S0", at=(3.0, 0.0), width=0.6, depth=0.3, name="T1")
         assert validate_columns_support(b) == []
+
+    def test_tie_in_partition_gets_no_exemption(self):
+        # non-bearing host = no exemption: the geometric check runs and
+        # fails where the partition floats (Codex 2026-08-15)
+        b = _box(with_footings=True)
+        b.add_wall("S0", (1, 2), (5, 2), height=3.0, thickness=0.12,
+                   name="S0 Partition", load_bearing=False)
+        b.add_column("S0", wall="S0 Partition", along=2.0,
+                     width=0.6, depth=0.3, name="T1")
+        found = validate_columns_support(b)
+        assert any("T1" in f.message for f in found)
 
     def test_column_on_baseslab_passes(self):
         b = _box(baseslab=True)
         b.add_column("S0", at=(2, 2), width=0.3, depth=0.3, name="C1")
         assert validate_columns_support(b) == []
+
+    def test_hosted_tie_inherits_the_wall_support_path(self):
+        # owner 2026-08-15 (j-true-grid review): a tie cast inside a
+        # wall anchors into the ring beam and the wall's own load path —
+        # it never needs its own pier. E108 checks free columns only;
+        # the piers it used to demand propped up the very consoles the
+        # design is about.
+        b = _box()  # no footings, no baseslab — the wall's problem, not the tie's
+        b.add_column("S0", wall="S0 South", along=3.0,
+                     width=0.6, depth=0.3, name="T1")
+        assert validate_columns_support(b) == []
+
+    def test_hosted_tie_never_launders_support_upward(self):
+        # Codex 2026-08-15: a free column above an exempt hosted tie
+        # must not inherit support through it — only free columns and
+        # bearing walls carry the chain
+        b = _box(storeys=2)  # no footings, no baseslab
+        # non-bearing partition inside the box, hosted tie in it: the
+        # partition supports nothing, so neither may its tie
+        b.add_wall("S0", (1, 2), (5, 2), height=3.0, thickness=0.12,
+                   name="S0 Partition", load_bearing=False)
+        b.add_column("S0", wall="S0 Partition", along=2.0,
+                     width=0.6, depth=0.3, name="T0")
+        b.add_column("S1", at=(3.0, 2.0), width=0.3, depth=0.3, name="C1")
+        found = validate_columns_support(b)
+        assert any("C1" in f.message for f in found)
 
     def test_column_in_the_void_fails(self):
         b = _box(with_footings=True)
@@ -349,9 +387,9 @@ class TestE108SupportPath:
         assert "C1" in found[0].message
 
     def test_upper_column_over_bearing_wall_passes(self):
+        # free column so the lower-wall branch is actually exercised
         b = _box(storeys=2, with_footings=True)
-        b.add_column("S1", wall="S1 South", along=3.0,
-                     width=0.6, depth=0.3, name="T1")
+        b.add_column("S1", at=(3.0, 0.0), width=0.6, depth=0.3, name="T1")
         assert validate_columns_support(b) == []
 
     def test_upper_column_mid_span_fails(self):

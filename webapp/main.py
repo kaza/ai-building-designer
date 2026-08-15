@@ -123,13 +123,19 @@ def health():
 
 @app.get("/", response_class=HTMLResponse)
 def catalog():
+    # Attempts (parent_id set) live on their project's page, not here —
+    # the homepage lists real projects only (specs/web-deployment.md
+    # §Project hierarchy).
     with db() as conn:
         rows = conn.execute(
             """
             SELECT p.id, p.name,
                    count(*) FILTER (WHERE f.status = 'new')      AS open,
-                   count(*) FILTER (WHERE f.status = 'resolved') AS resolved
+                   count(*) FILTER (WHERE f.status = 'resolved') AS resolved,
+                   (SELECT count(*) FROM projects c
+                    WHERE c.parent_id = p.id)                    AS attempts
             FROM projects p LEFT JOIN feedback f ON f.project_id = p.id
+            WHERE p.parent_id IS NULL
             GROUP BY p.id, p.name ORDER BY p.created_at
             """
         ).fetchall()
@@ -141,11 +147,27 @@ def project_home(project: str):
     build = get_build(project)
     with db() as conn:
         row = conn.execute(
-            "SELECT name FROM projects WHERE id = %s", (project,)
+            "SELECT name, parent_id FROM projects WHERE id = %s", (project,)
         ).fetchone()
         if row is None:
             raise HTTPException(404, f"unknown project {project!r}")
-        name = row[0]
+        name, parent_id = row
+        parent = None
+        if parent_id:
+            parent = conn.execute(
+                "SELECT id, name FROM projects WHERE id = %s", (parent_id,)
+            ).fetchone()
+        children = conn.execute(
+            """
+            SELECT id, name, run_id FROM projects
+            WHERE parent_id = %s ORDER BY created_at
+            """, (project,)
+        ).fetchall()
+        # group by run, insertion-ordered (run_id is a column, never
+        # parsed out of names — specs/web-deployment.md)
+        runs: dict = {}
+        for cid, cname, run in children:
+            runs.setdefault(run or "attempts", []).append((cid, cname))
         feedback = conn.execute(
             """
             SELECT id, comment, where_label, status, created_at, resolved_at,
@@ -162,7 +184,7 @@ def project_home(project: str):
     ]
     return _jinja.get_template("project.html").render(
         project=project, name=name, build=build, plans=plans,
-        feedback=feedback,
+        feedback=feedback, parent=parent, runs=runs,
     )
 
 

@@ -115,6 +115,15 @@ psql "$DATABASE_URL" -c "SELECT id, comment, where_label FROM feedback \
   ops, not framework code). The channel MUST start with `<project>--`
   (e.g. `villa-maketa--b-garage`), so an alias can never overwrite
   another project's blobs. All publish gates run unchanged.
+- **Project hierarchy** (2026-08-13, owner: "the homepage is a graveyard
+  of projects"): `projects` rows carry nullable `parent_id` (an attempt
+  points at its owning project) and `run_id` (which arena run it belongs
+  to — a column, never parsed out of names). The homepage lists only
+  rows with `parent_id IS NULL`; a project page groups its attempts by
+  run with walkthrough/X-ray links; attempt pages breadcrumb back to the
+  parent. Attempts stay live and mutable ("shove them in there"; archive
+  flag later); storage/blob keys stay flat — hierarchy is navigation,
+  not plumbing.
 
 ## Limits
 - The feedback POST is unauthenticated; acceptable while the audience is

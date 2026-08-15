@@ -189,13 +189,19 @@ def _confinement_failures(building: Building) -> list[dict]:
 
     failures: list[dict] = []
     for s in building.stories:
+        bearing = [w for w in s.walls if w.load_bearing]
+        bearing_ids = {w.global_id for w in bearing}
         ties = []
         for c in s.columns:
             if c.wall_id is None:
                 continue
+            if c.wall_id not in bearing_ids:
+                # a tie in a non-bearing partition confines nothing —
+                # counting it would let a partition-hosted stub earn
+                # the q reward (Codex review 2026-08-15)
+                continue
             cx, cy, _ux, _uy, _h = s.column_placement(c)
             ties.append((cx, cy))
-        bearing = [w for w in s.walls if w.load_bearing]
         segs = {w.global_id: LineString([(w.start.x, w.start.y),
                                          (w.end.x, w.end.y)])
                 for w in bearing}
